@@ -1,0 +1,7 @@
+reaction_id,reaction_name,required_statuses,trigger_source,effect_summary,damage_multiplier,cc_seconds,terrain_result,notes
+RX001,碎裂,Chill+Crit,Metal or Ice,消耗寒蚀状态并造成高额爆发伤害,2.0,0.0,IceCrack,适合金冰联动起手
+RX002,引爆,Burn+Crit,Fire or Metal,立即结算并引爆当前灼烧层数,2.2,0.0,Scorch,对高血量目标收益很高
+RX003,传导,Conductive+Hit,Thunder,电流向附近目标继续跳跃,1.4,0.0,Electrified,怪越密收益越高
+RX004,熔断,Burn+Chill,Fire or Ice,火冰相撞触发蒸汽爆发并短暂打断,1.6,0.35,Steam,适合混合控制
+RX005,雷狱,Conductive+Slow,Thunder or Metal,对减速且导电目标造成短暂禁锢,1.2,0.45,Electrified,适合处理精英怪
+RX006,坍缩,Burn+Chill+Conductive,Any Ultimate,三状态融合后触发大范围清场,3.0,0.75,VoidScorch,四槽终结反应

@@ -1,0 +1,264 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 41140d968abe7014cb86d89222bbccb8, type: 3}
+  m_Name: AI_ambusher
+  m_EditorClassIdentifier: 
+  _serializedGraph: '{"type":"SkillAI.AIGraph","nodes":[{"dynamic":true,"_position":{"x":317.0,"y":159.0},"$type":"SkillAI.PrioritizedSelector","$id":"0"},{"_position":{"x":151.0,"y":453.0},"$type":"NodeCanvas.BehaviourTrees.Sequencer","$id":"1"},{"scanInterval":{"_value":0.2},"_position":{"x":148.0,"y":584.0},"$type":"SkillAI.SensorScan","$id":"2"},{"_position":{"x":315.0,"y":452.0},"$type":"NodeCanvas.BehaviourTrees.Sequencer","$id":"3"},{"_position":{"x":316.0,"y":579.0},"$type":"SkillAI.HasEnemyDetected","$id":"4"},{"arriveDistance":{"_value":2.0},"speedMultiplier":{"_value":1.5},"timeout":{},"_position":{"x":320.0,"y":697.0},"$type":"SkillAI.MoveTo","$id":"5"},{"_position":{"x":482.0,"y":243.0},"$type":"NodeCanvas.BehaviourTrees.Sequencer","$id":"6"},{"_position":{"x":493.0,"y":453.0},"$type":"SkillAI.HasEnemyDetected","$id":"7"},{"maxObserveDistance":{"_value":10.0},"_position":{"x":499.0,"y":561.0},"$type":"SkillAI.TargetObserver","$id":"8"},{"range":{"_value":3.0},"_position":{"x":506.0,"y":691.0},"$type":"SkillAI.IsTargetInRange","$id":"9"},{"attackRange":{"_value":3.0},"damage":{"_value":30.0},"attackSpeed":{"_value":0.5},"_position":{"x":509.0,"y":790.0},"$type":"SkillAI.AttackTarget","$id":"10"},{"duration":{"_value":0.2},"_position":{"x":614.0,"y":174.0},"$type":"SkillAI.Idle"}],"connections":[{"_sourceNode":{"$ref":"0"},"_targetNode":{"$ref":"1"},"$type":"NodeCanvas.BehaviourTrees.BTConnection"},{"_sourceNode":{"$ref":"0"},"_targetNode":{"$ref":"3"},"$type":"NodeCanvas.BehaviourTrees.BTConnection"},{"_sourceNode":{"$ref":"0"},"_targetNode":{"$ref":"6"},"$type":"NodeCanvas.BehaviourTrees.BTConnection"},{"_sourceNode":{"$ref":"1"},"_targetNode":{"$ref":"2"},"$type":"NodeCanvas.BehaviourTrees.BTConnection"},{"_sourceNode":{"$ref":"3"},"_targetNode":{"$ref":"4"},"$type":"NodeCanvas.BehaviourTrees.BTConnection"},{"_sourceNode":{"$ref":"4"},"_targetNode":{"$ref":"5"},"$type":"NodeCanvas.BehaviourTrees.BTConnection"},{"_sourceNode":{"$ref":"6"},"_targetNode":{"$ref":"7"},"$type":"NodeCanvas.BehaviourTrees.BTConnection"},{"_sourceNode":{"$ref":"7"},"_targetNode":{"$ref":"8"},"$type":"NodeCanvas.BehaviourTrees.BTConnection"},{"_sourceNode":{"$ref":"8"},"_targetNode":{"$ref":"9"},"$type":"NodeCanvas.BehaviourTrees.BTConnection"},{"_sourceNode":{"$ref":"9"},"_targetNode":{"$ref":"10"},"$type":"NodeCanvas.BehaviourTrees.BTConnection"}],"canvasGroups":[],"localBlackboard":{"_variables":{}},"derivedData":{"repeat":true,"$type":"NodeCanvas.BehaviourTrees.BehaviourTree+DerivedSerializationData"}}'
+  _objectReferences: []
+  _graphSource:
+    _version: 3.05
+    _category: 
+    _comments: 
+    _translation: {x: 0, y: 0}
+    _zoomFactor: 1
+  _haltSerialization: 0
+  aiTreeId: 7d6222a0e0614e8c80820f80bb7ccfe0
+  treeName: "\u4F0F\u51FBAI\u6A21\u677F"
+  treeDescription: "\u81EA\u52A8\u751F\u6210\u81EA AITree.csv (id=ambusher)"
+  aiType: 0
+  priority: 70
+#---GRAPH_START---
+#The pretty formatted json serialization bellow is only a reference to help in version control diff. Other than that it is not used at all.
+#{
+#    "type": "SkillAI.AIGraph",
+#    "nodes": [
+#        {
+#            "dynamic": true,
+#            "_position": {
+#                "x": 317.0,
+#                "y": 159.0
+#            },
+#            "$type": "SkillAI.PrioritizedSelector",
+#            "$id": "0"
+#        },
+#        {
+#            "_position": {
+#                "x": 151.0,
+#                "y": 453.0
+#            },
+#            "$type": "NodeCanvas.BehaviourTrees.Sequencer",
+#            "$id": "1"
+#        },
+#        {
+#            "scanInterval": {
+#                "_value": 0.2
+#            },
+#            "_position": {
+#                "x": 148.0,
+#                "y": 584.0
+#            },
+#            "$type": "SkillAI.SensorScan",
+#            "$id": "2"
+#        },
+#        {
+#            "_position": {
+#                "x": 315.0,
+#                "y": 452.0
+#            },
+#            "$type": "NodeCanvas.BehaviourTrees.Sequencer",
+#            "$id": "3"
+#        },
+#        {
+#            "_position": {
+#                "x": 316.0,
+#                "y": 579.0
+#            },
+#            "$type": "SkillAI.HasEnemyDetected",
+#            "$id": "4"
+#        },
+#        {
+#            "arriveDistance": {
+#                "_value": 2.0
+#            },
+#            "speedMultiplier": {
+#                "_value": 1.5
+#            },
+#            "timeout": {
+#
+#            },
+#            "_position": {
+#                "x": 320.0,
+#                "y": 697.0
+#            },
+#            "$type": "SkillAI.MoveTo",
+#            "$id": "5"
+#        },
+#        {
+#            "_position": {
+#                "x": 482.0,
+#                "y": 243.0
+#            },
+#            "$type": "NodeCanvas.BehaviourTrees.Sequencer",
+#            "$id": "6"
+#        },
+#        {
+#            "_position": {
+#                "x": 493.0,
+#                "y": 453.0
+#            },
+#            "$type": "SkillAI.HasEnemyDetected",
+#            "$id": "7"
+#        },
+#        {
+#            "maxObserveDistance": {
+#                "_value": 10.0
+#            },
+#            "_position": {
+#                "x": 499.0,
+#                "y": 561.0
+#            },
+#            "$type": "SkillAI.TargetObserver",
+#            "$id": "8"
+#        },
+#        {
+#            "range": {
+#                "_value": 3.0
+#            },
+#            "_position": {
+#                "x": 506.0,
+#                "y": 691.0
+#            },
+#            "$type": "SkillAI.IsTargetInRange",
+#            "$id": "9"
+#        },
+#        {
+#            "attackRange": {
+#                "_value": 3.0
+#            },
+#            "damage": {
+#                "_value": 30.0
+#            },
+#            "attackSpeed": {
+#                "_value": 0.5
+#            },
+#            "_position": {
+#                "x": 509.0,
+#                "y": 790.0
+#            },
+#            "$type": "SkillAI.AttackTarget",
+#            "$id": "10"
+#        },
+#        {
+#            "duration": {
+#                "_value": 0.2
+#            },
+#            "_position": {
+#                "x": 614.0,
+#                "y": 174.0
+#            },
+#            "$type": "SkillAI.Idle"
+#        }
+#    ],
+#    "connections": [
+#        {
+#            "_sourceNode": {
+#                "$ref": "0"
+#            },
+#            "_targetNode": {
+#                "$ref": "1"
+#            },
+#            "$type": "NodeCanvas.BehaviourTrees.BTConnection"
+#        },
+#        {
+#            "_sourceNode": {
+#                "$ref": "0"
+#            },
+#            "_targetNode": {
+#                "$ref": "3"
+#            },
+#            "$type": "NodeCanvas.BehaviourTrees.BTConnection"
+#        },
+#        {
+#            "_sourceNode": {
+#                "$ref": "0"
+#            },
+#            "_targetNode": {
+#                "$ref": "6"
+#            },
+#            "$type": "NodeCanvas.BehaviourTrees.BTConnection"
+#        },
+#        {
+#            "_sourceNode": {
+#                "$ref": "1"
+#            },
+#            "_targetNode": {
+#                "$ref": "2"
+#            },
+#            "$type": "NodeCanvas.BehaviourTrees.BTConnection"
+#        },
+#        {
+#            "_sourceNode": {
+#                "$ref": "3"
+#            },
+#            "_targetNode": {
+#                "$ref": "4"
+#            },
+#            "$type": "NodeCanvas.BehaviourTrees.BTConnection"
+#        },
+#        {
+#            "_sourceNode": {
+#                "$ref": "4"
+#            },
+#            "_targetNode": {
+#                "$ref": "5"
+#            },
+#            "$type": "NodeCanvas.BehaviourTrees.BTConnection"
+#        },
+#        {
+#            "_sourceNode": {
+#                "$ref": "6"
+#            },
+#            "_targetNode": {
+#                "$ref": "7"
+#            },
+#            "$type": "NodeCanvas.BehaviourTrees.BTConnection"
+#        },
+#        {
+#            "_sourceNode": {
+#                "$ref": "7"
+#            },
+#            "_targetNode": {
+#                "$ref": "8"
+#            },
+#            "$type": "NodeCanvas.BehaviourTrees.BTConnection"
+#        },
+#        {
+#            "_sourceNode": {
+#                "$ref": "8"
+#            },
+#            "_targetNode": {
+#                "$ref": "9"
+#            },
+#            "$type": "NodeCanvas.BehaviourTrees.BTConnection"
+#        },
+#        {
+#            "_sourceNode": {
+#                "$ref": "9"
+#            },
+#            "_targetNode": {
+#                "$ref": "10"
+#            },
+#            "$type": "NodeCanvas.BehaviourTrees.BTConnection"
+#        }
+#    ],
+#    "canvasGroups": [],
+#    "localBlackboard": {
+#        "_variables": {
+#
+#        }
+#    },
+#    "derivedData": {
+#        "repeat": true,
+#        "$type": "NodeCanvas.BehaviourTrees.BehaviourTree+DerivedSerializationData"
+#    }
+#}
+#---GRAPH_END---

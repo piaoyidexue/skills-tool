@@ -1,0 +1,6 @@
+guest_element_id,guest_name,theme,temporary_status,signature_rule,example_recipe
+GE001,毒,持续耗血,Poison,中毒可随连锁传播,FU-TX-GL
+GE002,光,精确收割,Blind,被标记目标承受额外处决伤害,AC-LX-FI
+GE003,时,节奏操控,TimeLock,延迟命中会在 1 秒后重复一次,GL-CH-FU
+GE004,虚,坍缩爆发,Entropy,多状态可压缩成最大生命爆发,FI-VD-AC
+GE005,土,防线构筑,Root,可生成阻挡型晶体墙,AC-TR-GL

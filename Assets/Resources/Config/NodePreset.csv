@@ -1,0 +1,13 @@
+node_preset_id,preset_name,use_case,core_chain,optional_branch,blackboard_keys,vfx_binding,delay_binding,damage_binding,notes
+Preset_ImpactLane,单路命中,单体单路伤害,Start>Delay>PlayVFX>Damage>End,None,LastDamage|CurrentGraph,ImpactVFXKey,DelaySeconds,Damage*DamageRate,默认的直接命中技能图
+Preset_BeamLane,射线通道,持续射线或引导攻击,Start>Delay>Log>PlayVFX>Damage>End,None,TargetDistance|LastDamage,ImpactVFXKey,DelaySeconds,Damage*DamageRate,适合冰系射线与调试输出
+Preset_CritBranch,暴击分支,暴击或处决类技能,Start>RollChance>Condition,True: ModifyFloat>PlayVFX>Damage / False: SubGraph(Common_ImpactDamage),IsCrit|DamageOverride|LastDamage,BeamVFXKey,DelaySeconds,DamageOverride or Damage*DamageRate,适合金系收割与火系处决
+Preset_ConductiveChain,传导连锁,多目标弹跳和雷链,Start>Delay>PlayVFX>Damage>Log>End,None,BranchCount|LastDamage|TargetDistance,BeamVFXKey,DelaySeconds,Damage*DamageRate,后续可接链跳逻辑脚本
+Preset_StatusAmplify,状态增幅,读取状态并放大收益,Start>Condition>ModifyFloat>Damage>End,False: DamageOverride fallback,IsCrit|DamageOverride|LastDamage,ImpactVFXKey,DelaySeconds,DamageOverride or Damage*DamageRate,适合脆化、灼烧增幅
+Preset_ReactionBurst,反应爆发,消耗状态或转化状态,Start>Condition>PlayVFX>ModifyFloat>Damage>End,False: End,DamageOverride|LastDamage|CurrentGraph,BeamVFXKey,DelaySeconds,DamageOverride,适合碎裂、引爆、反应爆发
+Preset_RowResonance,行共鸣,同行/跨行联动,Start>Log>Parallel>End,BranchA: PlayVFX>Damage / BranchB: SubGraph(Common_ImpactDamage),BranchCount|CurrentGraph|LastDamage,BeamVFXKey,DelaySeconds,Damage*DamageRate,用于同行联动和元素墙
+Preset_TerrainUltimate,地表奥义,涂地与地形改写,Start>Delay>Log>PlayVFX>End,None,CurrentGraph|TargetDistance,ImpactVFXKey,DelaySeconds,No direct damage or follow-up subgraph,地表改写入口模板
+Preset_ChainUltimate,连锁奥义,递进式或重复式打击,Start>PlayVFX>Parallel>End,BranchA: Damage / BranchB: SubGraph(Common_ImpactDamage),BranchCount|LastDamage|DamageOverride,BeamVFXKey,DelaySeconds,Damage*DamageRate or DamageOverride,适合火雷连锁终结技
+Preset_ElementCollapse,元素坍缩,全行或全屏改写,Start>Delay>Log>Parallel>End,BranchA: PlayVFX>Damage / BranchB: PlayVFX>Damage,BranchCount|CurrentGraph|LastDamage,ImpactVFXKey + BeamVFXKey,DelaySeconds,Vary by branch,用于四槽终极技能
+Preset_ExecuteUltimate,处决奥义,阈值收割技能,Start>Condition>ModifyFloat>PlayVFX>Damage>End,False: End,DamageOverride|LastDamage|IsCrit,BeamVFXKey,DelaySeconds,DamageOverride,用于确认击杀的终结技
+Preset_TrapExecute,陷阱处决,金系陷阱或地雷型,Start>Delay>PlayVFX>Condition>Damage>End,False: End,IsCrit|LastDamage,ImpactVFXKey,DelaySeconds,Damage*DamageRate,用于陷阱触发后爆发

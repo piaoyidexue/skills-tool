@@ -1,0 +1,11 @@
+isotope_id,isotope_name,element,rarity,modifier_summary,tradeoff,affected_stats
+ISO001,蓝焰,Fire,rare,灼烧同时削减护盾值,None,burn
+ISO002,灰烬风暴,Fire,common,焦土地板持续时间延长,-10% projectile speed,terrain
+ISO003,重霜,Ice,common,减速强度提高,-15% attack speed,chill
+ISO004,镜面寒晶,Ice,rare,被冻结目标会反弹少量伤害,None,freeze
+ISO005,分叉核心,Thunder,common,基础连锁次数 +1,-10% damage,chain
+ISO006,超导回路,Thunder,rare,导电目标会分摊伤害,stun 时间缩短,conductive
+ISO007,重金,Metal,rare,暴击附带短暂眩晕,-20% attack speed,crit
+ISO008,刃钢合金,Metal,common,暴击伤害 +35%,-10% range,crit
+ISO009,蒸汽电池,Hybrid,rare,蒸汽地板可额外生成充能,None,terrain
+ISO010,极锻核心,Hybrid,legendary,对冰缓目标暴击可返还冷却,None,crit|cooldown

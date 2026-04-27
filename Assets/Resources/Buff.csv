@@ -1,0 +1,5 @@
+buff_id,type,value,duration,icon_key
+2001,burn,5,3,burn
+2002,slow,0.3,2,slow
+2003,freeze,1,1.5,freeze
+2004,haste,0.25,4,haste

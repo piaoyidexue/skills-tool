@@ -1,0 +1,7 @@
+terrain_id,terrain_name,applied_by,bonus_effect,enemy_effect,duration_seconds,stack_rule
+TR001,焦土地板,Fire,火系伤害提升 20%,无,6,refresh
+TR002,冰面地板,Ice,雷链范围翻倍,敌人产生滑行效果,6,refresh
+TR003,导电地板,Thunder,连锁次数 +1,刷新导电状态,5,refresh
+TR004,锻钢地板,Metal,暴击伤害提升 25%,无,8,refresh
+TR005,蒸汽地板,Fire+Ice,反应伤害提升 15%,轻度视野扰动表现,4,replace
+TR006,晶格地板,Ice+Metal,脆化概率提升 20%,移速降低 10%,6,refresh

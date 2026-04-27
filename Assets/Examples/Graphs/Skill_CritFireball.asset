@@ -1,0 +1,289 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d806ff6e468f4804e8bab31c8796e20e, type: 3}
+  m_Name: Skill_CritFireball
+  m_EditorClassIdentifier: 
+  _serializedGraph: '{"type":"SkillGraph","nodes":[{"nodeGuid":"d96195a9bd4a4981966fd48207a580fa","_inputPortNames":["input"],"_outputPortNames":["output"],"_position":{"x":60.0,"y":220.0},"$type":"StartNode","$id":"0"},{"probability":{"SkillField":5},"nodeGuid":"e5528febff134f13bd1c6d453dbee90c","_inputPortNames":["input"],"_outputPortNames":["output"],"_position":{"x":260.0,"y":220.0},"$type":"RollChanceNode","$id":"1"},{"threshold":{"SkillField":5},"nodeGuid":"57b784b52f06468eb1a174fe45eaee73","_inputPortNames":["input"],"_outputPortNames":["truePort","falsePort"],"_position":{"x":500.0,"y":220.0},"$type":"ConditionNode","$id":"2"},{"inputValue":{},"multiplier":{"Source":2,"LiteralValue":2.0,"DefaultValue":1.0},"additive":{"Source":2},"nodeGuid":"b2d4fbacb3a345bba7783a261df1f540","_inputPortNames":["input"],"_outputPortNames":["output"],"_position":{"x":760.0,"y":320.0},"$type":"ModifyFloatNode","$id":"3"},{"vfxKey":{"Source":0,"SkillConfigFieldName":"BeamVFXKey"},"styleKey":{"Source":0,"SkillConfigFieldName":"VFXProfileKey"},"scaleMultiplier":{"Source":2,"LiteralValue":1.0},"widthMultiplier":{"Source":2,"LiteralValue":1.0},"lengthOverride":{"Source":2},"durationOverride":{"SkillField":8},"intensityMultiplier":{"Source":2,"LiteralValue":1.0},"nodeGuid":"70864e1376c74d0c8160b1aacc4711fc","_inputPortNames":["input"],"_outputPortNames":["output"],"_position":{"x":1040.0,"y":280.0},"$type":"PlayVFXNode","$id":"4"},{"damageAmount":{"Source":1},"damageRate":{"SkillField":1,"DefaultValue":1.0},"multiplyByDamageRate":false,"nodeGuid":"899ae266b80f4b4595a7a62fe001367b","_inputPortNames":["input"],"_outputPortNames":["output"],"_position":{"x":1300.0,"y":280.0},"$type":"DamageNode","$id":"5"},{"nodeGuid":"1e7c3d394cb04a098e2935d887fab4db","_inputPortNames":["input"],"_outputPortNames":["output"],"_position":{"x":1560.0,"y":220.0},"$type":"EndNode","$id":"6"},{"subGraph":1,"nodeGuid":"d677b78e24a24b11b29c7c900cecf3cd","_inputPortNames":["input"],"_outputPortNames":["output"],"_position":{"x":760.0,"y":120.0},"$type":"SubGraphNode","$id":"7"}],"connections":[{"_sourceNode":{"$ref":"0"},"_targetNode":{"$ref":"1"},"$type":"SkillConnection"},{"_sourceNode":{"$ref":"1"},"_targetNode":{"$ref":"2"},"$type":"SkillConnection"},{"_portName":"truePort","_sourceNode":{"$ref":"2"},"_targetNode":{"$ref":"3"},"$type":"SkillConnection"},{"_portName":"falsePort","_sourceNode":{"$ref":"2"},"_targetNode":{"$ref":"7"},"$type":"SkillConnection"},{"_sourceNode":{"$ref":"3"},"_targetNode":{"$ref":"4"},"$type":"SkillConnection"},{"_sourceNode":{"$ref":"4"},"_targetNode":{"$ref":"5"},"$type":"SkillConnection"},{"_sourceNode":{"$ref":"5"},"_targetNode":{"$ref":"6"},"$type":"SkillConnection"},{"_sourceNode":{"$ref":"7"},"_targetNode":{"$ref":"6"},"$type":"SkillConnection"}],"canvasGroups":[],"localBlackboard":{"_variables":{}}}'
+  _objectReferences:
+  - {fileID: 0}
+  - {fileID: 11400000, guid: ddbfad228183dfa408dad77bc2cdda35, type: 2}
+  _graphSource:
+    _version: 3.05
+    _category: 
+    _comments: 
+    _translation: {x: 0, y: 0}
+    _zoomFactor: 1
+  _haltSerialization: 0
+  graphId: 0044a89816e14c56b91e572880a984a5
+#---GRAPH_START---
+#The pretty formatted json serialization bellow is only a reference to help in version control diff. Other than that it is not used at all.
+#{
+#    "type": "SkillGraph",
+#    "nodes": [
+#        {
+#            "nodeGuid": "d96195a9bd4a4981966fd48207a580fa",
+#            "_inputPortNames": [
+#                "input"
+#            ],
+#            "_outputPortNames": [
+#                "output"
+#            ],
+#            "_position": {
+#                "x": 60.0,
+#                "y": 220.0
+#            },
+#            "$type": "StartNode",
+#            "$id": "0"
+#        },
+#        {
+#            "probability": {
+#                "SkillField": 5
+#            },
+#            "nodeGuid": "e5528febff134f13bd1c6d453dbee90c",
+#            "_inputPortNames": [
+#                "input"
+#            ],
+#            "_outputPortNames": [
+#                "output"
+#            ],
+#            "_position": {
+#                "x": 260.0,
+#                "y": 220.0
+#            },
+#            "$type": "RollChanceNode",
+#            "$id": "1"
+#        },
+#        {
+#            "threshold": {
+#                "SkillField": 5
+#            },
+#            "nodeGuid": "57b784b52f06468eb1a174fe45eaee73",
+#            "_inputPortNames": [
+#                "input"
+#            ],
+#            "_outputPortNames": [
+#                "truePort",
+#                "falsePort"
+#            ],
+#            "_position": {
+#                "x": 500.0,
+#                "y": 220.0
+#            },
+#            "$type": "ConditionNode",
+#            "$id": "2"
+#        },
+#        {
+#            "inputValue": {
+#
+#            },
+#            "multiplier": {
+#                "Source": 2,
+#                "LiteralValue": 2.0,
+#                "DefaultValue": 1.0
+#            },
+#            "additive": {
+#                "Source": 2
+#            },
+#            "nodeGuid": "b2d4fbacb3a345bba7783a261df1f540",
+#            "_inputPortNames": [
+#                "input"
+#            ],
+#            "_outputPortNames": [
+#                "output"
+#            ],
+#            "_position": {
+#                "x": 760.0,
+#                "y": 320.0
+#            },
+#            "$type": "ModifyFloatNode",
+#            "$id": "3"
+#        },
+#        {
+#            "vfxKey": {
+#                "Source": 0,
+#                "SkillConfigFieldName": "BeamVFXKey"
+#            },
+#            "styleKey": {
+#                "Source": 0,
+#                "SkillConfigFieldName": "VFXProfileKey"
+#            },
+#            "scaleMultiplier": {
+#                "Source": 2,
+#                "LiteralValue": 1.0
+#            },
+#            "widthMultiplier": {
+#                "Source": 2,
+#                "LiteralValue": 1.0
+#            },
+#            "lengthOverride": {
+#                "Source": 2
+#            },
+#            "durationOverride": {
+#                "SkillField": 8
+#            },
+#            "intensityMultiplier": {
+#                "Source": 2,
+#                "LiteralValue": 1.0
+#            },
+#            "nodeGuid": "70864e1376c74d0c8160b1aacc4711fc",
+#            "_inputPortNames": [
+#                "input"
+#            ],
+#            "_outputPortNames": [
+#                "output"
+#            ],
+#            "_position": {
+#                "x": 1040.0,
+#                "y": 280.0
+#            },
+#            "$type": "PlayVFXNode",
+#            "$id": "4"
+#        },
+#        {
+#            "damageAmount": {
+#                "Source": 1
+#            },
+#            "damageRate": {
+#                "SkillField": 1,
+#                "DefaultValue": 1.0
+#            },
+#            "multiplyByDamageRate": false,
+#            "nodeGuid": "899ae266b80f4b4595a7a62fe001367b",
+#            "_inputPortNames": [
+#                "input"
+#            ],
+#            "_outputPortNames": [
+#                "output"
+#            ],
+#            "_position": {
+#                "x": 1300.0,
+#                "y": 280.0
+#            },
+#            "$type": "DamageNode",
+#            "$id": "5"
+#        },
+#        {
+#            "nodeGuid": "1e7c3d394cb04a098e2935d887fab4db",
+#            "_inputPortNames": [
+#                "input"
+#            ],
+#            "_outputPortNames": [
+#                "output"
+#            ],
+#            "_position": {
+#                "x": 1560.0,
+#                "y": 220.0
+#            },
+#            "$type": "EndNode",
+#            "$id": "6"
+#        },
+#        {
+#            "subGraph": 1,
+#            "nodeGuid": "d677b78e24a24b11b29c7c900cecf3cd",
+#            "_inputPortNames": [
+#                "input"
+#            ],
+#            "_outputPortNames": [
+#                "output"
+#            ],
+#            "_position": {
+#                "x": 760.0,
+#                "y": 120.0
+#            },
+#            "$type": "SubGraphNode",
+#            "$id": "7"
+#        }
+#    ],
+#    "connections": [
+#        {
+#            "_sourceNode": {
+#                "$ref": "0"
+#            },
+#            "_targetNode": {
+#                "$ref": "1"
+#            },
+#            "$type": "SkillConnection"
+#        },
+#        {
+#            "_sourceNode": {
+#                "$ref": "1"
+#            },
+#            "_targetNode": {
+#                "$ref": "2"
+#            },
+#            "$type": "SkillConnection"
+#        },
+#        {
+#            "_portName": "truePort",
+#            "_sourceNode": {
+#                "$ref": "2"
+#            },
+#            "_targetNode": {
+#                "$ref": "3"
+#            },
+#            "$type": "SkillConnection"
+#        },
+#        {
+#            "_portName": "falsePort",
+#            "_sourceNode": {
+#                "$ref": "2"
+#            },
+#            "_targetNode": {
+#                "$ref": "7"
+#            },
+#            "$type": "SkillConnection"
+#        },
+#        {
+#            "_sourceNode": {
+#                "$ref": "3"
+#            },
+#            "_targetNode": {
+#                "$ref": "4"
+#            },
+#            "$type": "SkillConnection"
+#        },
+#        {
+#            "_sourceNode": {
+#                "$ref": "4"
+#            },
+#            "_targetNode": {
+#                "$ref": "5"
+#            },
+#            "$type": "SkillConnection"
+#        },
+#        {
+#            "_sourceNode": {
+#                "$ref": "5"
+#            },
+#            "_targetNode": {
+#                "$ref": "6"
+#            },
+#            "$type": "SkillConnection"
+#        },
+#        {
+#            "_sourceNode": {
+#                "$ref": "7"
+#            },
+#            "_targetNode": {
+#                "$ref": "6"
+#            },
+#            "$type": "SkillConnection"
+#        }
+#    ],
+#    "canvasGroups": [],
+#    "localBlackboard": {
+#        "_variables": {
+#
+#        }
+#    }
+#}
+#---GRAPH_END---

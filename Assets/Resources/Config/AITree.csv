@@ -1,0 +1,177 @@
+tree_id,tree_name,ai_type,priority,update_interval,chain_order,node_order,node_class,params
+# ============================================================================
+# AITree.csv — AI 行为树配置（单一数据源）
+#
+# 本文件是 AI 行为树的唯一配置来源。修改并保存后自动生成对应 .asset 文件。
+# 策划只需修改本表，无需在 Unity 编辑器中手动搭建行为树。
+#
+# 列说明:
+#   tree_id         — 行为树唯一标识（同 ID 的行属于同一棵树）
+#   tree_name       — 显示名称（中文）
+#   ai_type         — AI 类型: Combat/Patrol/Guard/Flee/Idle/Boss/Support
+#   priority        — 全局优先级 0-100，越大越优先
+#   update_interval — 行为树刷新间隔(秒)，0=每帧，0.1=每秒10次
+#   chain_order     — 行为链优先级(1最高)，数字越小越优先
+#   node_order      — 链内节点执行顺序(1开始)
+#   node_class      — 节点类名（大小写不敏感，见手册 7.5 节）
+#   params          — 节点参数 key=value;key=value（可选）
+#
+# 生成规则:
+#   - 根节点自动创建为 PrioritizedSelector(dynamic=true)
+#   - 每个 chain_order 自动包裹为一个 Sequencer
+#   - 链内节点按 node_order 串联
+#   - # 开头的行为注释行，不影响生成
+# ============================================================================
+
+# ============================================================================
+# 模板1: 战斗AI — 完整的优先级行为树模板
+# 逻辑: 低血量逃跑 > 战斗攻击 > 待机扫描（三层优先级）
+# 适用: 近战战士、小怪、精英怪
+# ============================================================================
+combat,战斗AI模板,Combat,50,0.1,1,1,IsHealthBelow,threshold=0.25
+combat,战斗AI模板,Combat,50,0.1,1,2,Flee,safeDistance=15;fleeSpeedMultiplier=1.5
+# --- 战斗链: 有目标 → 观察有效性 → 靠近/攻击循环 ---
+combat,战斗AI模板,Combat,50,0.1,2,1,HasTarget,
+combat,战斗AI模板,Combat,50,0.1,2,2,TargetObserver,maxObserveDistance=30
+combat,战斗AI模板,Combat,50,0.1,2,3,IsTargetInRange,range=2.5
+combat,战斗AI模板,Combat,50,0.1,2,4,Cooldown,cooldownTime=1
+combat,战斗AI模板,Combat,50,0.1,2,5,AttackTarget,damage=10;attackRange=2.5;attackSpeed=1
+combat,战斗AI模板,Combat,50,0.1,2,6,MoveTo,arriveDistance=1.5
+# --- 默认链: 传感器扫描 → 短暂待机（循环） ---
+combat,战斗AI模板,Combat,50,0.1,3,1,SensorScan,scanInterval=0.5
+combat,战斗AI模板,Combat,50,0.1,3,2,Idle,duration=0.5
+
+# ============================================================================
+# 模板2: 巡逻AI — 遇敌切换战斗，无目标继续巡逻
+# 逻辑: 遇敌追击攻击 > 路径巡逻（两层层级）
+# 适用: 哨兵、守卫巡逻队
+# ============================================================================
+patrol,巡逻AI模板,Patrol,50,0.15,1,1,HasEnemyDetected,
+patrol,巡逻AI模板,Patrol,50,0.15,1,2,TargetObserver,maxObserveDistance=25
+patrol,巡逻AI模板,Patrol,50,0.15,1,3,MoveTo,arriveDistance=2
+patrol,巡逻AI模板,Patrol,50,0.15,1,4,AttackTarget,damage=8;attackRange=2.5;attackSpeed=1.2
+# --- 巡逻链: 沿路径点循环移动 ---
+patrol,巡逻AI模板,Patrol,50,0.15,2,1,PatrolWaypoints,waitTime=1.5;mode=Loop;maxCycles=0
+
+# ============================================================================
+# 模板3: Boss AI — 三阶段战斗（血量驱动阶段切换）
+# 逻辑: HP<30% 狂暴大招 > HP<60% 召唤技能 > 常规攻击
+# 适用: Boss、章节精英怪
+# ============================================================================
+boss,Boss AI模板,Boss,80,0,1,1,IsHealthBelow,threshold=0.3
+boss,Boss AI模板,Boss,80,0,1,2,CastSkill,skillId=boss_ultimate;castRange=15
+boss,Boss AI模板,Boss,80,0,1,3,TargetObserver,maxObserveDistance=50
+boss,Boss AI模板,Boss,80,0,1,4,AttackTarget,damage=25;attackSpeed=2;attackRange=3
+# --- 阶段2: HP<60% → 召唤技能 + 强化攻击 ---
+boss,Boss AI模板,Boss,80,0,2,1,IsHealthBelow,threshold=0.6
+boss,Boss AI模板,Boss,80,0,2,2,CastSkill,skillId=boss_summon;castRange=20
+boss,Boss AI模板,Boss,80,0,2,3,TargetObserver,maxObserveDistance=50
+boss,Boss AI模板,Boss,80,0,2,4,AttackTarget,damage=18;attackSpeed=1.2;attackRange=3
+# --- 阶段1(默认): HP>60% 常规攻击 ---
+boss,Boss AI模板,Boss,80,0,3,1,TargetObserver,maxObserveDistance=50
+boss,Boss AI模板,Boss,80,0,3,2,AttackTarget,damage=12;attackSpeed=1;attackRange=2.5
+
+# ============================================================================
+# 模板4: 守卫AI — 警戒待机，发现入侵者追击
+# 逻辑: 遇敌追击攻击 > 警戒待机扫描
+# 适用: 守门怪、宝箱守卫、固定炮台
+# ============================================================================
+guard,守卫AI模板,Guard,40,0.1,1,1,HasEnemyDetected,
+guard,守卫AI模板,Guard,40,0.1,1,2,MoveTo,arriveDistance=3
+guard,守卫AI模板,Guard,40,0.1,1,3,AttackTarget,damage=10;attackRange=3
+# --- 警戒链: 高频扫描 + 短暂待机 ---
+guard,守卫AI模板,Guard,40,0.1,2,1,SensorScan,scanInterval=0.3
+guard,守卫AI模板,Guard,40,0.1,2,2,Idle,duration=1
+
+# ============================================================================
+# 模板5: 远程AI — 保持距离，远程攻击，被近身时后撤
+# 逻辑: 低血量逃跑 > 太近后撤 > 在射程内攻击 > 靠近进入射程
+# 适用: 弓箭手、法师、炮塔
+# ============================================================================
+ranged,远程AI模板,Combat,50,0.1,1,1,IsHealthBelow,threshold=0.2
+ranged,远程AI模板,Combat,50,0.1,1,2,Flee,safeDistance=20;fleeSpeedMultiplier=1.8
+# --- 被近身: 敌人太近 → 后撤 ---
+ranged,远程AI模板,Combat,50,0.1,2,1,HasEnemyDetected,
+ranged,远程AI模板,Combat,50,0.1,2,2,TargetObserver,maxObserveDistance=25
+ranged,远程AI模板,Combat,50,0.1,2,3,CompareFloat,mode=Less;keyA=DistanceToTarget;fixedValue=3
+ranged,远程AI模板,Combat,50,0.1,2,4,Flee,safeDistance=8;fleeSpeedMultiplier=1.2
+# --- 远程攻击: 在射程内 → CD 就绪 → 攻击 ---
+ranged,远程AI模板,Combat,50,0.1,3,1,HasEnemyDetected,
+ranged,远程AI模板,Combat,50,0.1,3,2,TargetObserver,maxObserveDistance=25
+ranged,远程AI模板,Combat,50,0.1,3,3,IsTargetInRange,range=8
+ranged,远程AI模板,Combat,50,0.1,3,4,Cooldown,cooldownTime=2
+ranged,远程AI模板,Combat,50,0.1,3,5,AttackTarget,damage=15;attackRange=8;attackSpeed=2;mode=Ranged
+# --- 靠近目标: 不在射程 → 移动到射程边缘 ---
+ranged,远程AI模板,Combat,50,0.1,4,1,HasEnemyDetected,
+ranged,远程AI模板,Combat,50,0.1,4,2,MoveTo,arriveDistance=7;speedMultiplier=0.9
+# --- 默认: 警戒待机 ---
+ranged,远程AI模板,Combat,50,0.1,5,1,SensorScan,scanInterval=0.5
+ranged,远程AI模板,Combat,50,0.1,5,2,Idle,duration=0.5
+
+# ============================================================================
+# 模板6: 治疗/辅助AI — 优先治疗低血量友方，其次攻击敌人
+# 逻辑: 自身低血量逃跑 > 治疗友方 > 攻击敌人 > 跟随友方
+# 适用: 治疗师、辅助单位、召唤物
+# ============================================================================
+healer,治疗AI模板,Support,60,0.1,1,1,IsHealthBelow,threshold=0.2
+healer,治疗AI模板,Support,60,0.1,1,2,Flee,safeDistance=15;fleeSpeedMultiplier=2
+# --- 治疗链: 有友方需要治疗 → 释放治疗技能 ---
+healer,治疗AI模板,Support,60,0.1,2,1,BlackboardBool,key=AllyNeedHeal;expectedValue=true
+healer,治疗AI模板,Support,60,0.1,2,2,CooldownReady,lastUsedKey=LastUsedSkillTime;cooldown=5
+healer,治疗AI模板,Support,60,0.1,2,3,CastSkill,skillId=heal_wave;castRange=10
+# --- 辅助攻击链: 有敌人 → 远程辅助攻击 ---
+healer,治疗AI模板,Support,60,0.1,3,1,HasEnemyDetected,
+healer,治疗AI模板,Support,60,0.1,3,2,TargetObserver,maxObserveDistance=20
+healer,治疗AI模板,Support,60,0.1,3,3,IsTargetInRange,range=6
+healer,治疗AI模板,Support,60,0.1,3,4,Cooldown,cooldownTime=3
+healer,治疗AI模板,Support,60,0.1,3,5,AttackTarget,damage=6;attackRange=6;attackSpeed=3;mode=Ranged
+# --- 跟随友方: 向最近友方靠近 ---
+healer,治疗AI模板,Support,60,0.1,4,1,SensorScan,scanInterval=0.5
+healer,治疗AI模板,Support,60,0.1,4,2,Idle,duration=1
+
+# ============================================================================
+# 模板7: 伏击AI — 隐蔽等待，敌人进入范围后突袭
+# 逻辑: 突袭攻击 > 追击逃跑敌人 > 回到伏击点隐蔽
+# 适用: 刺客、伏击怪、陷阱生物
+# ============================================================================
+ambusher,伏击AI模板,Combat,70,0.05,1,1,HasEnemyDetected,
+ambusher,伏击AI模板,Combat,70,0.05,1,2,TargetObserver,maxObserveDistance=10
+ambusher,伏击AI模板,Combat,70,0.05,1,3,IsTargetInRange,range=3
+ambusher,伏击AI模板,Combat,70,0.05,1,4,AttackTarget,damage=30;attackRange=3;attackSpeed=0.5
+# --- 追击链: 有目标但未进入突袭范围 → 快速靠近 ---
+ambusher,伏击AI模板,Combat,70,0.05,2,1,HasEnemyDetected,
+ambusher,伏击AI模板,Combat,70,0.05,2,2,MoveTo,arriveDistance=2;speedMultiplier=1.5
+# --- 待机链: 静止隐蔽等待 ---
+ambusher,伏击AI模板,Combat,70,0.05,3,1,SensorScan,scanInterval=0.2
+ambusher,伏击AI模板,Combat,70,0.05,3,2,Idle,duration=0.2
+
+# ============================================================================
+# 模板8: 逃跑AI — 纯粹的逃跑行为
+# 逻辑: 检测到任何威胁 → 立刻逃跑，跑远后待机
+# 适用: 平民NPC、胆小生物、任务护送目标
+# ============================================================================
+coward,逃跑AI模板,Flee,30,0.15,1,1,HasEnemyDetected,
+coward,逃跑AI模板,Flee,30,0.15,1,2,Flee,safeDistance=25;fleeSpeedMultiplier=2
+# --- 默认: 低频率扫描 + 待机 ---
+coward,逃跑AI模板,Flee,30,0.15,2,1,SensorScan,scanInterval=1
+coward,逃跑AI模板,Flee,30,0.15,2,2,Idle,duration=2
+
+# ============================================================================
+# 模板9: 空闲AI — 最简行为（仅待机/动画）
+# 逻辑: 仅播放待机动画，可配合 PlayAnimation 播放特定循环动画
+# 适用: 装饰NPC、不可交互背景角色
+# ============================================================================
+idle_npc,空闲AI模板,Idle,10,0.5,1,1,Idle,duration=99999;playRandomIdleAnimation=true
+
+# ============================================================================
+# 模板10: 技能机AI — 纯技能释放（不依赖基础攻击）
+# 逻辑: 冷却就绪 → 释放指定技能，循环
+# 适用: 机关、陷阱发生器、纯技能 Boss
+# ============================================================================
+caster,技能机AI模板,Combat,50,0.1,1,1,HasEnemyDetected,
+caster,技能机AI模板,Combat,50,0.1,1,2,TargetObserver,maxObserveDistance=30
+caster,技能机AI模板,Combat,50,0.1,1,3,CooldownReady,lastUsedKey=LastUsedSkillTime;cooldown=4
+caster,技能机AI模板,Combat,50,0.1,1,4,CastSkill,skillId=fire_breath;castRange=10
+# --- 默认: 扫描待机 ---
+caster,技能机AI模板,Combat,50,0.1,2,1,SensorScan,scanInterval=0.5
+caster,技能机AI模板,Combat,50,0.1,2,2,Idle,duration=0.5
