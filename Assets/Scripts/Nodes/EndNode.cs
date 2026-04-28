@@ -11,7 +11,7 @@ public class EndNode : SkillNode
     {
         yield break;
     }
-}
+
     public override SkillNode ResolveNextNode(SkillContext ctx)
     {
         return null;

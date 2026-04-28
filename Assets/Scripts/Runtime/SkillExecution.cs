@@ -35,6 +35,16 @@ public class SkillExecution
     private bool _debugEnabled;
 
     /// <summary>
+    ///     【新增】：触发完成事件（专门提供给外部的 SkillTickManager 调用）
+    /// </summary>
+    public void NotifyCompleted()
+    {
+        // 在类的内部调用自身的事件是合法的
+        OnCompleted?.Invoke();
+    }
+
+    // ReSharper disable Unity.PerformanceAnalysis
+    /// <summary>
     ///     初始化执行实例。每次从对象池取出时调用。
     /// </summary>
     public void Initialize(SkillGraph graph, SkillContext context)

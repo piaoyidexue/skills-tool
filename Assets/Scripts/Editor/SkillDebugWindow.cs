@@ -28,7 +28,7 @@ public class SkillDebugWindow : EditorWindow
         runner.IsDebugMode = GUILayout.Toggle(runner.IsDebugMode, "Debug Mode");
         EditorGUILayout.EndHorizontal();
 
-        var frame = runner.CurrentFrame;
+        var frame = runner.CurrentExecution?.CurrentFrame;
         var ctx = runner.CurrentContext;
         if (frame == null || ctx == null)
         {

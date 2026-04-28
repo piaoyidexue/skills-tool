@@ -73,7 +73,7 @@ public class SkillTickManager : MonoBehaviour
             // 执行完成（无当前节点且不在运行中）→ 延迟移除
             if (execution.CurrentNode == null && !execution.IsRunning)
             {
-                execution.OnCompleted?.Invoke();
+                execution.NotifyCompleted();       // ✅ 改成调用刚才新增的这个方法
                 _pendingRemovals.Add(execution);
             }
         }

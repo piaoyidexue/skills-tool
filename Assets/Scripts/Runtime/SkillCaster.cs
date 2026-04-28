@@ -169,29 +169,22 @@ public class SkillCaster : MonoBehaviour, IInterruptible
 
                 ChangeStage(CastStage.Executing);
                 _currentExecution = _runner.RunSkillTick(_pipelineGraph, ActiveContext);
+                if (_currentExecution != null)
+                    _currentExecution.OnCompleted += OnExecutionCompleted;
                 _pipelineState = CastPipelineState.Executing;
                 break;
             }
 
             case CastPipelineState.Executing:
             {
-                if (_currentExecution != null && _currentExecution.IsRunning)
-                    return; // 图仍在运行
-
-                // 图执行完成或被中断
+                // 正常完成由 OnCompleted 回调处理，此处仅检测节点级中断
                 if (ActiveContext != null && ActiveContext.IsInterrupted)
                 {
+                    if (_currentExecution != null)
+                        _currentExecution.OnCompleted -= OnExecutionCompleted;
                     CleanupAndSetInterrupted();
-                    break;
                 }
 
-                // 进入后摇
-                ChangeStage(CastStage.PostCasting);
-                _pipelineTimer = 0f;
-                ActiveContext.Blackboard.SetValue(BBKey.IsPostCasting, true);
-                ActiveContext.Blackboard.SetValue(BBKey.PostCastTime,
-                    _pipelineConfig.PostCastTime * postCastMultiplier);
-                _pipelineState = CastPipelineState.PostCast;
                 break;
             }
 
@@ -330,6 +323,7 @@ public class SkillCaster : MonoBehaviour, IInterruptible
 
         if (_currentExecution != null)
         {
+            _currentExecution.OnCompleted -= OnExecutionCompleted;
             _runner.InterruptTick(_currentExecution);
         }
 
@@ -374,6 +368,7 @@ public class SkillCaster : MonoBehaviour, IInterruptible
 
         if (_currentExecution != null)
         {
+            _currentExecution.OnCompleted -= OnExecutionCompleted;
             _runner.InterruptTick(_currentExecution);
         }
 
@@ -470,6 +465,29 @@ public class SkillCaster : MonoBehaviour, IInterruptible
         _castCoroutine = null;
         ActiveContext = null;
         _activeSkillId = 0;
+    }
+
+    /// <summary>
+    ///     OnCompleted 回调 —— 技能图正常执行完毕时由 SkillTickManager 触发，
+    ///     推进管线从 Executing → PostCast。
+    /// </summary>
+    private void OnExecutionCompleted()
+    {
+        if (_pipelineState != CastPipelineState.Executing) return;
+
+        _currentExecution = null;
+
+        // 进入后摇
+        ChangeStage(CastStage.PostCasting);
+        _pipelineTimer = 0f;
+        if (ActiveContext != null)
+        {
+            ActiveContext.Blackboard.SetValue(BBKey.IsPostCasting, true);
+            ActiveContext.Blackboard.SetValue(BBKey.PostCastTime,
+                _pipelineConfig.PostCastTime * postCastMultiplier);
+        }
+
+        _pipelineState = CastPipelineState.PostCast;
     }
 
     private void CleanupAndSetInterrupted()

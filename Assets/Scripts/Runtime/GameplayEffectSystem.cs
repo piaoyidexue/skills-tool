@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using UnityEngine;
 
 // ============================================================
 //  Gameplay Effect (GE) 系统 —— 类 Unreal GAS 的 Buff/Debuff 框架

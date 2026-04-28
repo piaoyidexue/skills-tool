@@ -5,6 +5,12 @@ public class SkillContext
 {
     private readonly Stack<string> _graphStack = new();
 
+    public SkillContext()
+    {
+        Blackboard = new Blackboard();
+        Recorder = new DebugRecorder();
+    }
+
     public SkillContext(int skillID, Transform caster, Transform initialTarget)
     {
         SkillID = skillID;
@@ -17,7 +23,7 @@ public class SkillContext
 
     public int SkillID { get; private set; }
     public SkillConfig Config { get; private set; }
-    public Transform Caster { get; private set; }
+    public Transform Caster { get; set; }
     public Transform Target { get; set; }
 
     /// <summary>施法者组件引用（由 SkillCaster 注入）</summary>
@@ -36,7 +42,7 @@ public class SkillContext
         }
     }
 
-    public Blackboard Blackboard { get; }
+    public Blackboard Blackboard { get; set; }
     public DebugRecorder Recorder { get; private set; }
     public bool DebugEnabled { get; set; }
     public int MaxSubgraphDepth { get; set; } = 3;

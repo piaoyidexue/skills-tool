@@ -153,22 +153,18 @@ public class SkillSandboxController : MonoBehaviour
             return;
         }
 
-        // 构建上下文
-        var context = new SkillContext
-        {
-            Caster = _caster.transform,
-            Target = target.transform,
-            Blackboard = new Blackboard(),
-        };
+        // 构建上下文（使用带参构造函数，确保 SkillID / Config 正确初始化）
+        var context = new SkillContext(config.SkillID, _caster.transform, target.transform);
 
-        // 注入技能配置数据
-        context.Blackboard.SetValue(BBKey.SkillID, config.SkillID);
+        // 注入技能配置数据到黑板
         context.Blackboard.SetValue(BBKey.DamagePercent, config.DamageRate);
         context.Blackboard.SetValue(BBKey.CritChance, config.CritChance);
 
         Debug.Log($"[SkillSandbox] Executing: {config.SkillName} (ID={config.SkillID}) → Target={target.name}");
 
         _activeExecution = SkillTickManager.Instance.Register(graph, context);
+        if (_activeExecution != null)
+            _activeExecution.OnCompleted += OnSkillExecutionCompleted;
 
         if (StepMode)
         {
@@ -216,6 +212,15 @@ public class SkillSandboxController : MonoBehaviour
 
             _targets.Add(target);
         }
+    }
+
+    /// <summary>
+    ///     OnCompleted 回调 —— 技能图正常执行完毕时由 SkillTickManager 触发。
+    /// </summary>
+    private void OnSkillExecutionCompleted()
+    {
+        Debug.Log("[SkillSandbox] Skill execution completed.");
+        _activeExecution = null;
     }
 
     private void ResetTargets()
@@ -374,4 +379,8 @@ public class SandboxSpatialEntity : MonoBehaviour, ISpatialEntity
     public float SpatialRadius => 1f;
     public int SpatialEntityId => GetInstanceID();
     public bool SpatialIsActive => gameObject.activeInHierarchy;
+    public int EntityId { get; }
+    public Vector3 Position { get; }
+    public int TeamId { get; }
+    public bool IsActive { get; }
 }
