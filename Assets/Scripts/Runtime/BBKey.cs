@@ -36,6 +36,15 @@ public static class BBKey
     public const string ProjectileHitPosition = "ProjectileHitPosition";
     public const string ProjectileHitTarget = "ProjectileHitTarget";
 
+    // -- target query --
+    public const string TargetCount = "TargetCount";
+    public const string TargetList = "TargetList";
+
+    // -- skill config injection --
+    public const string SkillID = "SkillID";
+    public const string DamagePercent = "DamagePercent";
+    public const string CritChance = "CritChance";
+
     /// <summary>生成 ChannelTick_{n} 键名</summary>
     public static string ChannelTick(int tickIndex) => $"ChannelTick_{tickIndex}";
 }

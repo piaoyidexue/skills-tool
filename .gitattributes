@@ -1,0 +1,80 @@
+# ============================================================
+#  Unity 项目的 Git 差异合并策略
+#  图表类 Asset（.asset）使用 UnityYAML 文本合并
+#  二进制资源锁定为单路合并，避免冲突损坏
+# ============================================================
+
+# ---- Unity 图表 / 预制体 / 场景 ----
+# 这些是文本格式的 YAML，可以使用内置合并驱动
+*.unity text merge=unityYAML eol=lf
+*.prefab text merge=unityYAML eol=lf
+*.asset text merge=unityYAML eol=lf
+*.controller text merge=unityYAML eol=lf
+*.anim text merge=unityYAML eol=lf
+*.overrideController text merge=unityYAML eol=lf
+*.playable text merge=unityYAML eol=lf
+*.mask text merge=unityYAML eol=lf
+
+# ---- 美术/音频/模型资源 ----
+# 二进制文件，锁定为单路合并避免损坏
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.tga binary
+*.psd binary
+*.fbx binary
+*.obj binary
+*.blend binary
+*.mesh binary
+*.wav binary
+*.mp3 binary
+*.ogg binary
+*.mp4 binary
+*.mov binary
+*.anim binary
+*.ttf binary
+*.otf binary
+*.mat binary
+*.cubemap binary
+*.shader binary
+*.shadergraph binary
+*.shadersubgraph binary
+*.renderTexture binary
+*.physicMaterial binary
+*.physicsMaterial2D binary
+*.guiskin binary
+*.flare binary
+*.terrainlayer binary
+
+# ---- DLL / 插件 ----
+*.dll binary
+*.pdb binary
+*.mdb binary
+*.suo binary
+*.bundle binary
+
+# ---- 生成/临时文件 ----
+*.csproj text merge=union eol=lf
+*.sln text merge=union eol=lf
+*.sln.DotSettings text merge=union eol=lf
+
+# ---- CSV 配置 —— 策划唯一数据源，文本合并 ----
+*.csv merge=union eol=lf text
+
+# ---- 代码文件 ----
+*.cs text eol=lf
+*.shader text eol=lf
+
+# ---- Unity 生成目录 ----
+/[Ll]ibrary/
+/[Tt]emp/
+/[Oo]bj/
+/[Bb]uild/
+/[Bb]uilds/
+/[Ll]ogs/
+/[Uu]ser[Ss]ettings/
+
+# ---- IDE ----
+.idea/
+.vs/
+*.DotSettings.user

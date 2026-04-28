@@ -54,6 +54,23 @@ public abstract class SkillNode : Node
     /// <summary>输出端口名称列表（只读）</summary>
     public IReadOnlyList<string> OutputPortNames => _outputPortNames;
 
+    // ============================================================
+    //  Tick 驱动接口（0 GC 模式）—— 替代 IEnumerator Execute
+    // ============================================================
+
+    /// <summary>节点首次进入时调用（替代原 Execute 的前置代码）</summary>
+    public virtual void OnEnter(SkillContext ctx) { }
+
+    /// <summary>每帧 Tick 驱动，返回状态（替代 IEnumerator + yield）</summary>
+    public abstract NodeTickResult Tick(SkillContext ctx, float deltaTime);
+
+    /// <summary>节点离开时调用（替代原 Execute 的后置代码 / yield break 之前）</summary>
+    public virtual void OnExit(SkillContext ctx) { }
+
+    // ============================================================
+    //  兼容旧接口：IEnumerator Execute（逐步废弃）
+    // ============================================================
+
     /// <summary>核心执行方法（协程驱动），子类必须实现</summary>
     public abstract IEnumerator Execute(SkillContext ctx);
 

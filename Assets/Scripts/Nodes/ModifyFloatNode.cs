@@ -24,6 +24,13 @@ public class ModifyFloatNode : SkillNode
         DefaultValue = 0f
     };
 
+    public override NodeTickResult Tick(SkillContext ctx, float deltaTime)
+    {
+        var result = inputValue.Resolve(ctx) * multiplier.Resolve(ctx) + additive.Resolve(ctx);
+        ctx.Blackboard.SetValue(outputKey, result);
+        return NodeTickResult.Success;
+    }
+
     public override IEnumerator Execute(SkillContext ctx)
     {
         var result = inputValue.Resolve(ctx) * multiplier.Resolve(ctx) + additive.Resolve(ctx);

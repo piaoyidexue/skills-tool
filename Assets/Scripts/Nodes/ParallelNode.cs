@@ -1,6 +1,6 @@
-using System;
 using System.Collections;
 using System.Linq;
+using System;
 
 /// <summary>
 ///     并行节点 —— 同时执行所有分支，全部完成后从 "output" 端口继续。
@@ -17,6 +17,56 @@ public class ParallelNode : SkillNode
     public ParallelNode()
     {
         SetPortNames(new[] { "input" }, new[] { "output" });
+    }
+
+    [System.NonSerialized] private System.Collections.Generic.List<BranchState> _branches = new();
+
+    public override void OnEnter(SkillContext ctx)
+    {
+        _branches.Clear();
+        var branchConns = SkillOutConnections
+            .Where(c => c.portName != null && c.portName.StartsWith("branches", StringComparison.Ordinal))
+            .ToList();
+
+        ctx.Blackboard.SetValue(BBKey.BranchCount, (float)branchConns.Count);
+
+        foreach (var conn in branchConns)
+        {
+            var next = conn.targetNode as SkillNode;
+            if (next == null) continue;
+
+            var state = new BranchState { Node = next, Status = NodeTickResult.Running };
+            next.OnEnter(ctx);
+            _branches.Add(state);
+        }
+    }
+
+    public override NodeTickResult Tick(SkillContext ctx, float deltaTime)
+    {
+        var allDone = true;
+
+        for (var i = 0; i < _branches.Count; i++)
+        {
+            var branch = _branches[i];
+            if (branch.Status == NodeTickResult.Running)
+            {
+                branch.Status = branch.Node.Tick(ctx, deltaTime);
+                if (branch.Status == NodeTickResult.Running)
+                    allDone = false;
+            }
+        }
+
+        return allDone ? NodeTickResult.Success : NodeTickResult.Running;
+    }
+
+    public override void OnExit(SkillContext ctx)
+    {
+        foreach (var branch in _branches)
+        {
+            if (branch.Status == NodeTickResult.Running)
+                branch.Node.OnExit(ctx);
+        }
+        _branches.Clear();
     }
 
     public override IEnumerator Execute(SkillContext ctx)
@@ -42,15 +92,20 @@ public class ParallelNode : SkillNode
         while (completed < branchCount) yield return null;
     }
 
-    /// <summary>并行节点使用 "output" 端口返回主后继</summary>
-    public override SkillNode ResolveNextNode(SkillContext ctx)
+    private System.Collections.IEnumerator RunBranch(SkillNode node, SkillContext ctx, Action onComplete)
     {
-        return GetConnectedNode("output");
+        var current = node;
+        while (current != null)
+        {
+            yield return current.Execute(ctx);
+            current = current.ResolveNextNode(ctx);
+        }
+        onComplete();
     }
 
-    private IEnumerator RunBranch(SkillNode startNode, SkillContext ctx, Action onComplete)
+    private class BranchState
     {
-        yield return SkillRunner.Instance.RunNodeChain(startNode, ctx, OwningGraph);
-        onComplete?.Invoke();
+        public SkillNode Node;
+        public NodeTickResult Status;
     }
 }

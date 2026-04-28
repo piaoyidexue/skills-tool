@@ -45,6 +45,36 @@ public class ConditionNode : SkillNode
         SetPortNames(new[] { "input" }, new[] { "truePort", "falsePort" });
     }
 
+    public override NodeTickResult Tick(SkillContext ctx, float deltaTime)
+    {
+        var thresholdValue = threshold.Resolve(ctx);
+        switch (mode)
+        {
+            case ConditionMode.BlackboardBool:
+                _result = ctx.Blackboard.GetBool(bbKey);
+                break;
+            case ConditionMode.Distance:
+                _result = ctx.Caster != null &&
+                          ctx.Target != null &&
+                          Compare(Vector3.Distance(ctx.Caster.position, ctx.Target.position), thresholdValue);
+                if (ctx.Caster != null && ctx.Target != null)
+                    ctx.Blackboard.SetValue(BBKey.TargetDistance,
+                        Vector3.Distance(ctx.Caster.position, ctx.Target.position));
+                break;
+            case ConditionMode.Random:
+                _result = Random.value <= Mathf.Clamp01(thresholdValue);
+                break;
+            case ConditionMode.CompareFloat:
+                _result = Compare(ctx.Blackboard.GetFloat(compareKey), thresholdValue);
+                break;
+            default:
+                _result = false;
+                break;
+        }
+
+        return NodeTickResult.Success;
+    }
+
     public override IEnumerator Execute(SkillContext ctx)
     {
         var thresholdValue = threshold.Resolve(ctx);

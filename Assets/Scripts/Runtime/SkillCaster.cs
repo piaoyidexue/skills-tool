@@ -56,7 +56,7 @@ public enum InterruptReason
 /// <summary>
 ///     施法者组件 —— 管理技能释放全生命周期。
 ///     职责：释放前检查 → 状态机 → 前腰等待 → 启动 SkillRunner → 后摇等待 → 打断监听 → 冷却。
-///     【设计要点】CastPipeline 是前腰/后摇的权威计时源，PreCastNode/PostCastNode 仅负责 VFX。
+///     支持两种模式：Tick 驱动（默认）和协程模式（向后兼容）。
 /// </summary>
 [RequireComponent(typeof(SkillRunner))]
 public class SkillCaster : MonoBehaviour, IInterruptible
@@ -80,9 +80,17 @@ public class SkillCaster : MonoBehaviour, IInterruptible
 
     // -- internal state --
     private SkillRunner _runner;
+    private SkillTickManager _tickManager;
+    private SkillExecution _currentExecution;
     private Coroutine _castCoroutine;
     private float _lastCastTime = -999f;
     private int _activeSkillId;
+
+    // -- Tick pipeline state --
+    private CastPipelineState _pipelineState;
+    private float _pipelineTimer;
+    private SkillConfig _pipelineConfig;
+    private SkillGraph _pipelineGraph;
 
     public CastStage CurrentStage { get; private set; } = CastStage.Idle;
     public InterruptReason LastInterruptReason { get; private set; }
@@ -96,12 +104,6 @@ public class SkillCaster : MonoBehaviour, IInterruptible
     public bool IsBusy => CurrentStage != CastStage.Idle && CurrentStage != CastStage.Interrupted;
 
     /// <summary>是否处于可被中断的阶段</summary>
-    /// <remarks>
-    ///     PreCasting: 前腰等待期间可中断
-    ///     Executing: 图运行时 PreCastNode/ChannelNode 等节点检测 ctx.IsInterrupted 退出
-    ///     Channeling: 吟唱期间可中断
-    ///     注意：PostCasting（后摇）阶段不可中断（收招已完成）
-    /// </remarks>
     public bool IsInterruptibleStage =>
         CurrentStage == CastStage.PreCasting ||
         CurrentStage == CastStage.Executing ||
@@ -113,9 +115,118 @@ public class SkillCaster : MonoBehaviour, IInterruptible
     /// <summary>阶段变更回调</summary>
     public event Action<CastStage, CastStage> OnStageChanged;
 
+    /// <summary>是否使用 Tick 驱动模式</summary>
+    [Header("Execution Mode")]
+    [SerializeField] private bool _useTickMode = true;
+
+    private enum CastPipelineState
+    {
+        Idle,
+        PreCast,
+        Executing,
+        PostCast,
+        Complete
+    }
+
     private void Awake()
     {
         _runner = GetComponent<SkillRunner>();
+        _tickManager = SkillTickManager.Instance;
+        if (_tickManager == null)
+            _tickManager = FindObjectOfType<SkillTickManager>();
+    }
+
+    private void Update()
+    {
+        if (!_useTickMode) return;
+        TickPipeline(Time.deltaTime);
+    }
+
+    /// <summary>
+    ///     Tick 驱动的施法管线 —— 替代协程，每帧推进。
+    /// </summary>
+    private void TickPipeline(float deltaTime)
+    {
+        if (_pipelineState == CastPipelineState.Idle) return;
+
+        switch (_pipelineState)
+        {
+            case CastPipelineState.PreCast:
+            {
+                var castTime = _pipelineConfig.CastTime * castTimeMultiplier;
+                if (castTime > 0f)
+                {
+                    _pipelineTimer += deltaTime;
+                    ActiveContext.Blackboard.SetValue(BBKey.PreCastProgress,
+                        Mathf.Clamp01(_pipelineTimer / Mathf.Max(castTime, 0.01f)));
+
+                    if (_pipelineTimer < castTime) return; // 继续等待
+                }
+
+                // 前腰完成，进入执行阶段
+                ActiveContext.Blackboard.SetValue(BBKey.IsPreCasting, false);
+                ActiveContext.Blackboard.SetValue(BBKey.PreCastProgress, 1f);
+
+                ChangeStage(CastStage.Executing);
+                _currentExecution = _runner.RunSkillTick(_pipelineGraph, ActiveContext);
+                _pipelineState = CastPipelineState.Executing;
+                break;
+            }
+
+            case CastPipelineState.Executing:
+            {
+                if (_currentExecution != null && _currentExecution.IsRunning)
+                    return; // 图仍在运行
+
+                // 图执行完成或被中断
+                if (ActiveContext != null && ActiveContext.IsInterrupted)
+                {
+                    CleanupAndSetInterrupted();
+                    break;
+                }
+
+                // 进入后摇
+                ChangeStage(CastStage.PostCasting);
+                _pipelineTimer = 0f;
+                ActiveContext.Blackboard.SetValue(BBKey.IsPostCasting, true);
+                ActiveContext.Blackboard.SetValue(BBKey.PostCastTime,
+                    _pipelineConfig.PostCastTime * postCastMultiplier);
+                _pipelineState = CastPipelineState.PostCast;
+                break;
+            }
+
+            case CastPipelineState.PostCast:
+            {
+                var postCastTime = _pipelineConfig.PostCastTime * postCastMultiplier;
+                if (postCastTime > 0f)
+                {
+                    _pipelineTimer += deltaTime;
+                    ActiveContext.Blackboard.SetValue(BBKey.PostCastProgress,
+                        Mathf.Clamp01(_pipelineTimer / Mathf.Max(postCastTime, 0.01f)));
+
+                    if (_pipelineTimer < postCastTime) return;
+                }
+
+                // 完成
+                ActiveContext.Blackboard.SetValue(BBKey.IsPostCasting, false);
+                ActiveContext.Blackboard.SetValue(BBKey.PostCastProgress, 1f);
+
+                _lastCastTime = Time.time;
+                ChangeStage(CastStage.Idle);
+                ActiveContext = null;
+                _activeSkillId = 0;
+                _currentExecution = null;
+                _pipelineState = CastPipelineState.Idle;
+                break;
+            }
+        }
+    }
+
+    private void ChangeStage(CastStage newStage)
+    {
+        var prev = CurrentStage;
+        CurrentStage = newStage;
+        OnStageChanged?.Invoke(prev, newStage);
     }
 
     /// <summary>
@@ -123,7 +234,6 @@ public class SkillCaster : MonoBehaviour, IInterruptible
     /// </summary>
     public bool TryCast(int skillId, Transform target)
     {
-        // ---- release logic check ----
         var config = ConfigLoader.GetSkillConfig(skillId);
         if (config == null)
         {
@@ -163,10 +273,7 @@ public class SkillCaster : MonoBehaviour, IInterruptible
             return false;
         }
 
-        // ---- consume resource ----
         currentResource = Mathf.Max(0f, currentResource - config.ResourceCost);
-
-        // ---- start cast ----
         _activeSkillId = skillId;
         ActiveContext = new SkillContext(skillId, transform, target)
         {
@@ -174,26 +281,37 @@ public class SkillCaster : MonoBehaviour, IInterruptible
             CasterComponent = this
         };
 
-        _castCoroutine = StartCoroutine(CastPipeline(config, graph));
+        if (_useTickMode) {
+            StartTickPipeline(config, graph);
+        } else {
+            _castCoroutine = StartCoroutine(CastPipeline(config, graph));
+        }
+
         return true;
+    }
+
+    private void StartTickPipeline(SkillConfig config, SkillGraph graph)
+    {
+        _pipelineConfig = config;
+        _pipelineGraph = graph;
+        _pipelineTimer = 0f;
+
+        ChangeStage(CastStage.PreCasting);
+        ActiveContext.Blackboard.SetValue(BBKey.IsPreCasting, true);
+        ActiveContext.Blackboard.SetValue(BBKey.PreCastTime, config.CastTime * castTimeMultiplier);
+        _pipelineState = CastPipelineState.PreCast;
     }
 
     /// <summary>
     ///     打断当前技能。
-    ///     检查 IsInterruptibleStage 和 SkillConfig.IsInterruptible 双重条件。
-    ///     Death 原因始终生效（死亡强制中断）。
     /// </summary>
     public void Interrupt(InterruptReason reason = InterruptReason.Manual)
     {
         if (!IsBusy) return;
 
-        // 死亡强制中断，不受任何限制
         if (reason != InterruptReason.Death)
         {
-            // 检查阶段是否可中断
             if (!IsInterruptibleStage) return;
-
-            // 检查技能配置是否允许中断
             if (ActiveContext?.Config != null && !ActiveContext.Config.IsInterruptible)
             {
                 Debug.Log($"[SkillCaster] Skill {_activeSkillId} is not interruptible (config).");
@@ -203,7 +321,6 @@ public class SkillCaster : MonoBehaviour, IInterruptible
 
         LastInterruptReason = reason;
 
-        // 传播中断标志到上下文和 Blackboard（图内节点检测用）
         if (ActiveContext != null)
         {
             ActiveContext.IsInterrupted = true;
@@ -211,51 +328,42 @@ public class SkillCaster : MonoBehaviour, IInterruptible
             ActiveContext.Blackboard.SetValue(BBKey.InterruptReason, reason.ToString());
         }
 
-        // 终止协程（打断正在等待的前腰/后摇/图执行）
+        if (_currentExecution != null)
+        {
+            _runner.InterruptTick(_currentExecution);
+        }
+
         if (_castCoroutine != null)
         {
             StopCoroutine(_castCoroutine);
             _castCoroutine = null;
         }
 
-        var prev = CurrentStage;
-        CurrentStage = CastStage.Interrupted;
-        OnStageChanged?.Invoke(prev, CurrentStage);
+        ChangeStage(CastStage.Interrupted);
         OnInterrupted?.Invoke(reason);
 
         Debug.Log($"[SkillCaster] Interrupted skill {_activeSkillId} due to {reason}");
 
-        // 清理上下文
         ActiveContext = null;
         _activeSkillId = 0;
+        _currentExecution = null;
+        _pipelineState = CastPipelineState.Idle;
     }
 
-    /// <summary>
-    ///     IInterruptible 接口实现。
-    /// </summary>
     void IInterruptible.InterruptCast() => Interrupt(InterruptReason.System);
 
     bool IInterruptible.IsCasting => IsBusy;
 
-    /// <summary>
-    ///     添加资源（法力回复等）。
-    /// </summary>
     public void AddResource(float amount)
     {
         currentResource = Mathf.Clamp(currentResource + amount, 0f, maxResource);
     }
 
-    /// <summary>
-    ///     重置冷却（调试用）。
-    /// </summary>
     public void ResetCooldown()
     {
         _lastCastTime = -999f;
     }
 
-    /// <summary>
-    ///     强制回到 Idle（调试用）。
-    /// </summary>
     public void ForceIdle()
     {
         if (_castCoroutine != null)
@@ -264,23 +372,28 @@ public class SkillCaster : MonoBehaviour, IInterruptible
             _castCoroutine = null;
         }
 
+        if (_currentExecution != null)
+        {
+            _runner.InterruptTick(_currentExecution);
+        }
+
         CurrentStage = CastStage.Idle;
         ActiveContext = null;
         _activeSkillId = 0;
+        _currentExecution = null;
+        _pipelineState = CastPipelineState.Idle;
     }
 
     // ---- internal ----
 
     /// <summary>
-    ///     施法管线 —— 权威计时源。
-    ///     前腰和后摇等待在此处完成，图内 PreCastNode/PostCastNode 仅负责 VFX。
-    ///     吟唱由 ChannelNode 自主管理（不在管线内计时）。
+    ///     施法管线（协程模式，向后兼容）。
     /// </summary>
     private IEnumerator CastPipeline(SkillConfig config, SkillGraph graph)
     {
         var prev = CurrentStage;
 
-        // ===== Stage: PreCast (前腰) =====
+        // ===== Stage: PreCast =====
         CurrentStage = CastStage.PreCasting;
         OnStageChanged?.Invoke(prev, CurrentStage);
 
@@ -290,7 +403,6 @@ public class SkillCaster : MonoBehaviour, IInterruptible
             ActiveContext.Blackboard.SetValue(BBKey.IsPreCasting, true);
             ActiveContext.Blackboard.SetValue(BBKey.PreCastTime, castTime);
 
-            // 逐帧等待，持续更新进度（供 UI 读条），检查中断
             var elapsed = 0f;
             while (elapsed < castTime)
             {
@@ -312,23 +424,20 @@ public class SkillCaster : MonoBehaviour, IInterruptible
             ActiveContext.Blackboard.SetValue(BBKey.PreCastProgress, 1f);
         }
 
-        // ===== Stage: Executing (运行技能图) =====
-        // PreCastNode（VFX 版）在图开头，播放前腰 VFX
-        // ChannelNode 自行管理吟唱 timing
+        // ===== Stage: Executing =====
         prev = CurrentStage;
         CurrentStage = CastStage.Executing;
         OnStageChanged?.Invoke(prev, CurrentStage);
 
         yield return _runner.RunSkill(graph, ActiveContext);
 
-        // 图执行期间被中断（PreCastNode / ChannelNode 内部设了 ctx.IsInterrupted）
         if (ActiveContext.IsInterrupted)
         {
             CleanupAndSetInterrupted();
             yield break;
         }
 
-        // ===== Stage: PostCast (后摇) =====
+        // ===== Stage: PostCast =====
         prev = CurrentStage;
         CurrentStage = CastStage.PostCasting;
         OnStageChanged?.Invoke(prev, CurrentStage);
@@ -339,7 +448,6 @@ public class SkillCaster : MonoBehaviour, IInterruptible
             ActiveContext.Blackboard.SetValue(BBKey.IsPostCasting, true);
             ActiveContext.Blackboard.SetValue(BBKey.PostCastTime, postCastTime);
 
-            // 后摇不检查中断（已进入收招），但更新进度
             var elapsed = 0f;
             while (elapsed < postCastTime)
             {
@@ -366,9 +474,7 @@ public class SkillCaster : MonoBehaviour, IInterruptible
 
     private void CleanupAndSetInterrupted()
     {
-        var prev = CurrentStage;
-        CurrentStage = CastStage.Interrupted;
-        OnStageChanged?.Invoke(prev, CurrentStage);
+        ChangeStage(CastStage.Interrupted);
         _castCoroutine = null;
         ActiveContext = null;
         _activeSkillId = 0;

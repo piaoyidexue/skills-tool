@@ -38,6 +38,15 @@ public static class ConfigLoader
         return cfg;
     }
 
+    /// <summary>
+    ///     获取所有技能配置（按 SkillID 排序）。
+    ///     用于编辑器工具、自动化测试、沙盒控制器等需要遍历全部技能的场合。
+    /// </summary>
+    public static IReadOnlyList<SkillConfig> GetAllSkillConfigs()
+    {
+        return SkillConfigs.Values.OrderBy(cfg => cfg.SkillID).ToList();
+    }
+
     public static BuffConfig GetBuffConfig(int id)
     {
         BuffConfigs.TryGetValue(id, out var cfg);

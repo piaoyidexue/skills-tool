@@ -7,9 +7,10 @@ namespace SkillAI
     /// <summary>
     ///     AI 控制器 —— MonoBehaviour 组件，挂载到 AI 角色上驱动行为树运行。
     ///     继承 BehaviourTreeOwner，获得完整的 GraphOwner 功能（序列化、启动、暂停等）。
+    ///     支持空间哈希网格查询（替代 Physics.OverlapSphere）。
     /// </summary>
     [AddComponentMenu("Skill System/AI Controller")]
-    public class AIController : BehaviourTreeOwner
+    public class AIController : BehaviourTreeOwner, ISpatialEntity
     {
         [Header("AI 配置")]
         [Tooltip("AI 类型标签")]
@@ -24,9 +25,21 @@ namespace SkillAI
         [SerializeField] [Range(0f, 1f)] private float tickInterval;
         public float TickInterval => tickInterval;
 
+        [Header("队伍配置")]
+        [Tooltip("队伍 ID（用于空间网格过滤）")]
+        [SerializeField] private int _teamId = 1;
+        public int TeamId { get => _teamId; set => _teamId = value; }
+
         [Header("运行时状态")]
         [SerializeField] private AIStateType currentState = AIStateType.Idle;
         [SerializeField] private AIAlertLevel alertLevel = AIAlertLevel.None;
+
+        // ---- ISpatialEntity ----
+        private int _spatialEntityId = -1;
+        int ISpatialEntity.EntityId => _spatialEntityId;
+        Vector3 ISpatialEntity.Position => transform.position;
+        int ISpatialEntity.TeamId => _teamId;
+        bool ISpatialEntity.IsActive => isActiveAndEnabled;
 
         public AIStateType CurrentAIState
         {
@@ -78,6 +91,30 @@ namespace SkillAI
         protected void Start()
         {
             base.Start();
+            // 注册到空间哈希网格
+            var grid = SpatialHashGrid.Instance;
+            if (grid != null)
+            {
+                _spatialEntityId = grid.Register(this);
+            }
+        }
+
+        protected void OnDestroy()
+        {
+            if (_spatialEntityId >= 0)
+            {
+                SpatialHashGrid.Instance?.Unregister(_spatialEntityId);
+                _spatialEntityId = -1;
+            }
+        }
+
+        protected void Update()
+        {
+            // 更新空间哈希网格中的位置
+            if (_spatialEntityId >= 0)
+            {
+                SpatialHashGrid.Instance?.UpdatePosition(_spatialEntityId, transform.position);
+            }
         }
 
         /// <summary>通过运行时黑板写入变量</summary>
@@ -127,6 +164,7 @@ namespace SkillAI
     /// <summary>
     ///     AI 传感器基类 —— 负责环境感知（视野、听觉等）。
     ///     挂载在 AI 角色或子对象上，由 AIController 驱动。
+    ///     支持空间哈希网格查询和传统 Physics 查询两种模式。
     /// </summary>
     public abstract class AISensor : MonoBehaviour
     {
@@ -148,6 +186,9 @@ namespace SkillAI
         [Tooltip("障碍物层级掩码")]
         [SerializeField] protected LayerMask obstacleMask;
 
+        [Tooltip("是否优先使用空间哈希网格查询（高性能模式）")]
+        [SerializeField] protected bool _useSpatialHash = true;
+
         [Header("运行时")]
 
         [SerializeField] protected Transform currentTarget;
@@ -164,6 +205,9 @@ namespace SkillAI
 
         protected AIController controller;
 
+        /// <summary>空间查询结果缓存</summary>
+        private readonly System.Collections.Generic.List<ISpatialEntity> _spatialResults = new(32);
+
         protected virtual void Awake()
         {
             controller = GetComponentInParent<AIController>();
@@ -172,7 +216,17 @@ namespace SkillAI
         /// <summary>执行感知扫描（由行为树 Action 或 AIController Update 驱动）</summary>
         public virtual void Scan()
         {
-            var newTarget = DetectTarget();
+            Transform newTarget;
+
+            if (_useSpatialHash)
+            {
+                newTarget = DetectTargetSpatial();
+            }
+            else
+            {
+                newTarget = DetectTarget();
+            }
+
             if (newTarget != currentTarget)
             {
                 var old = currentTarget;
@@ -192,6 +246,46 @@ namespace SkillAI
                 else
                     OnTargetLost?.Invoke(old);
             }
+        }
+
+        /// <summary>
+        ///     使用空间哈希网格检测目标（O(1) 查询，推荐）。
+        /// </summary>
+        protected virtual Transform DetectTargetSpatial()
+        {
+            var grid = SpatialHashGrid.Instance;
+            if (grid == null) return DetectTarget(); // fallback
+
+            _spatialResults.Clear();
+            grid.QueryRange(transform.position, detectionRange, _spatialResults,
+                teamFilter: -1, excludeEntityId: controller?.GetHashCode() ?? -1);
+
+            Transform bestTarget = null;
+            var bestScore = float.MaxValue;
+
+            foreach (var entity in _spatialResults)
+            {
+                var entityTransform = (entity as MonoBehaviour)?.transform;
+                if (entityTransform == null) continue;
+
+                // FOV 检查
+                if (fieldOfView < 360f && !IsInFieldOfView(entityTransform))
+                    continue;
+
+                // 视线检查
+                if (obstacleMask != 0 && !HasLineOfSight(entityTransform))
+                    continue;
+
+                // 距离加权评分（越近越好）
+                var dist = Vector3.Distance(transform.position, entityTransform.position);
+                if (dist < bestScore)
+                {
+                    bestScore = dist;
+                    bestTarget = entityTransform;
+                }
+            }
+
+            return bestTarget;
         }
 
         /// <summary>检测目标，子类实现具体检测逻辑</summary>
@@ -236,6 +330,13 @@ namespace SkillAI
             {
                 Gizmos.color = Color.green;
                 Gizmos.DrawLine(transform.position, currentTarget.position);
+            }
+
+            // 空间哈希模式提示
+            if (_useSpatialHash)
+            {
+                Gizmos.color = Color.cyan;
+                Gizmos.DrawWireSphere(transform.position, detectionRange * 0.5f);
             }
         }
     }

@@ -8,72 +8,126 @@ using UnityEngine;
 /// </summary>
 public class ProjectileNode : SkillNode
 {
-    public enum LaunchMode
-    {
-        /// <summary>朝向目标直线发射</summary>
-        TowardTarget,
+    public enum LaunchMode { TowardTarget, CasterForward, CustomDirection }
+    public enum HomingMode { None, TrackTarget, TrackNearest }
 
-        /// <summary>施法者前方发射</summary>
-        CasterForward,
-
-        /// <summary>自定义方向</summary>
-        CustomDirection
-    }
-
-    public enum HomingMode
-    {
-        /// <summary>不追踪</summary>
-        None,
-
-        /// <summary>追踪初始目标</summary>
-        TrackTarget,
-
-        /// <summary>追踪最近敌人</summary>
-        TrackNearest
-    }
-
-    /// <summary>发射模式</summary>
     public LaunchMode launchMode = LaunchMode.TowardTarget;
-
-    /// <summary>追踪模式</summary>
     public HomingMode homing = HomingMode.None;
-
-    /// <summary>自定义方向（仅 CustomDirection 时生效）</summary>
     public Vector3 customDirection = Vector3.forward;
 
-    /// <summary>投射物飞行速度，留空从 SkillConfig.ProjectileSpeed 读取</summary>
     public FloatBinding projectileSpeed = new()
     {
         Source = FloatBinding.SourceType.SkillConfig,
         SkillField = SkillFloatField.ProjectileSpeed
     };
 
-    /// <summary>投射物预制体 Key</summary>
     public StringBinding projectilePrefab = new()
     {
         Source = StringBinding.SourceType.SkillConfigField,
         SkillConfigFieldName = nameof(SkillConfig.ProjectilePrefab)
     };
 
-    /// <summary>伤害值，留空用 SkillConfig.Damage</summary>
     public FloatBinding damage = new()
     {
         Source = FloatBinding.SourceType.SkillConfig,
         SkillField = SkillFloatField.Damage
     };
 
-    /// <summary>命中特效 Key</summary>
     public StringBinding impactVfxKey = new()
     {
         Source = StringBinding.SourceType.SkillConfigField,
         SkillConfigFieldName = nameof(SkillConfig.ImpactVFXKey)
     };
 
-    /// <summary>最大存活时间</summary>
     public float lifetime = 5f;
-
-    /// <summary>是否等待投射物完成后再继续后继节点</summary>
     public bool waitForCompletion = true;
+
+    [System.NonSerialized] private Projectile _projectile;
+    [System.NonSerialized] private bool _launched;
+
+    public override void OnEnter(SkillContext ctx)
+    {
+        _launched = false;
+        _projectile = null;
+    }
+
+    public override NodeTickResult Tick(SkillContext ctx, float deltaTime)
+    {
+        var speed = projectileSpeed.Resolve(ctx);
+        if (speed <= 0f)
+        {
+            Debug.LogWarning("[ProjectileNode] ProjectileSpeed is 0, cannot launch.");
+            return NodeTickResult.Success;
+        }
+
+        if (!_launched)
+        {
+            // 首次：获取并启动投射物
+            _projectile = GetProjectile(ctx);
+            if (_projectile == null)
+            {
+                Debug.LogError("[ProjectileNode] Failed to get projectile instance.");
+                return NodeTickResult.Success;
+            }
+
+            var launchPos = ctx.Caster != null ? ctx.Caster.position : Vector3.zero;
+            var launchDir = ResolveDirection(ctx);
+
+            var request = new VFXRequest
+            {
+                VFXKey = "Projectile_Auto",
+                Position = launchPos,
+                Direction = launchDir,
+                Length = speed,
+                Intensity = damage.Resolve(ctx),
+                ScaleMultiplier = 1f,
+                StyleKey = ctx.Config?.VFXProfileKey,
+                Parent = homing != HomingMode.None ? ctx.Target : null
+            };
+
+            if (homing == HomingMode.TrackTarget && ctx.Target != null)
+                _projectile.SetTarget(ctx.Target);
+
+            _projectile.impactVfxKey = impactVfxKey.Resolve(ctx);
+            _projectile.critChance = ctx.Config?.CritChance ?? 0f;
+            _projectile.lifetime = lifetime;
+
+            _projectile.Launch(request, null);
+            _launched = true;
+            ctx.Blackboard.SetValue(BBKey.ProjectileActive, true);
+        }
+
+        // 等待完成
+        if (waitForCompletion)
+        {
+            if (_projectile != null && _projectile.HasHit)
+            {
+                ctx.Blackboard.SetValue(BBKey.ProjectileHitPosition, _projectile.HitPosition);
+                if (_projectile.HitTarget != null)
+                    ctx.Blackboard.SetValue(BBKey.ProjectileHitTarget, _projectile.HitTarget.gameObject.name);
+
+                ctx.Blackboard.SetValue(BBKey.ProjectileActive, false);
+                return NodeTickResult.Success;
+            }
+
+            // 持续更新追踪目标
+            if (homing == HomingMode.TrackNearest && _projectile != null)
+            {
+                var nearest = FindNearestEnemy(ctx);
+                if (nearest != null) _projectile.SetTarget(nearest);
+            }
+
+            return NodeTickResult.Running;
+        }
+
+        ctx.Blackboard.SetValue(BBKey.ProjectileActive, false);
+        return NodeTickResult.Success;
+    }
+
+    public override void OnExit(SkillContext ctx)
+    {
+        ctx.Blackboard.SetValue(BBKey.ProjectileActive, false);
+    }
 
     public override IEnumerator Execute(SkillContext ctx)
     {
@@ -84,7 +138,6 @@ public class ProjectileNode : SkillNode
             yield break;
         }
 
-        // 获取或创建投射物实例
         var projectile = GetProjectile(ctx);
         if (projectile == null)
         {
@@ -92,11 +145,9 @@ public class ProjectileNode : SkillNode
             yield break;
         }
 
-        // 解析发射信息
         var launchPos = ctx.Caster != null ? ctx.Caster.position : Vector3.zero;
         var launchDir = ResolveDirection(ctx);
 
-        // 启动投射物
         var request = new VFXRequest
         {
             VFXKey = "Projectile_Auto",
@@ -109,11 +160,8 @@ public class ProjectileNode : SkillNode
             Parent = homing != HomingMode.None ? ctx.Target : null
         };
 
-        // 设置追踪目标
         if (homing == HomingMode.TrackTarget && ctx.Target != null)
-        {
             projectile.SetTarget(ctx.Target);
-        }
 
         projectile.impactVfxKey = impactVfxKey.Resolve(ctx);
         projectile.critChance = ctx.Config?.CritChance ?? 0f;
@@ -124,12 +172,10 @@ public class ProjectileNode : SkillNode
 
         ctx.Blackboard.SetValue(BBKey.ProjectileActive, true);
 
-        // 等待完成或立即继续
         if (waitForCompletion)
         {
             while (!completed && !ctx.IsInterrupted)
             {
-                // 持续更新追踪目标位置（追踪最近敌人）
                 if (homing == HomingMode.TrackNearest)
                 {
                     var nearest = FindNearestEnemy(ctx);
@@ -139,25 +185,15 @@ public class ProjectileNode : SkillNode
                 yield return null;
             }
 
-            // 命中后写入 Blackboard
             if (projectile.HasHit)
             {
                 ctx.Blackboard.SetValue(BBKey.ProjectileHitPosition, projectile.HitPosition);
                 if (projectile.HitTarget != null)
-                {
-                    ctx.Blackboard.SetValue(BBKey.ProjectileHitTarget,
-                        projectile.HitTarget.gameObject.name);
-                }
+                    ctx.Blackboard.SetValue(BBKey.ProjectileHitTarget, projectile.HitTarget.gameObject.name);
             }
         }
 
         ctx.Blackboard.SetValue(BBKey.ProjectileActive, false);
-    }
-
-    public override SkillNode ResolveNextNode(SkillContext ctx)
-    {
-        if (ctx.IsInterrupted) return null;
-        return base.ResolveNextNode(ctx);
     }
 
     private Vector3 ResolveDirection(SkillContext ctx)
@@ -175,7 +211,6 @@ public class ProjectileNode : SkillNode
 
     private static Projectile GetProjectile(SkillContext ctx)
     {
-        // 从 SkillConfig 读取预制体 Key
         var prefabKey = ctx.Config?.ProjectilePrefab;
         if (!string.IsNullOrWhiteSpace(prefabKey))
         {
@@ -187,7 +222,6 @@ public class ProjectileNode : SkillNode
             }
         }
 
-        // fallback: 动态创建
         var fallback = new GameObject("Projectile_Dynamic");
         fallback.hideFlags = HideFlags.HideAndDontSave;
         return fallback.AddComponent<Projectile>();
@@ -198,8 +232,7 @@ public class ProjectileNode : SkillNode
         if (ctx.Target != null) return ctx.Target;
 
         var colliders = Physics.OverlapSphere(
-            ctx.Caster != null ? ctx.Caster.position : Vector3.zero,
-            20f);
+            ctx.Caster != null ? ctx.Caster.position : Vector3.zero, 20f);
 
         Transform nearest = null;
         var nearestDist = float.MaxValue;
@@ -207,19 +240,11 @@ public class ProjectileNode : SkillNode
         foreach (var col in colliders)
         {
             if (col.transform == ctx.Caster) continue;
-
             var dmg = col.GetComponent<IDamageable>();
             if (dmg == null) continue;
-
             var dist = Vector3.Distance(
-                ctx.Caster != null ? ctx.Caster.position : Vector3.zero,
-                col.transform.position);
-
-            if (dist < nearestDist)
-            {
-                nearestDist = dist;
-                nearest = col.transform;
-            }
+                ctx.Caster != null ? ctx.Caster.position : Vector3.zero, col.transform.position);
+            if (dist < nearestDist) { nearestDist = dist; nearest = col.transform; }
         }
 
         return nearest;

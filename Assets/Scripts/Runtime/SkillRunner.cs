@@ -2,23 +2,69 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
+/// <summary>
+///     技能执行器 —— 兼容协程与 Tick 系统的桥接层。
+///     新代码应使用 SkillTickManager.Register() 进行 Tick 驱动执行，
+///     旧协程兼容 API 保留用于过渡期。
+/// </summary>
 public class SkillRunner : MonoBehaviour
 {
     [HideInInspector] public bool IsDebugMode;
-    private readonly Stack<SkillExecutionFrame> _frames = new();
 
-    private bool _pauseRequested;
-    private bool _stepRequested;
+    /// <summary>当前执行上下文（用于调试窗口读取）</summary>
+    public SkillContext CurrentContext { get; private set; }
+    public SkillExecution CurrentExecution { get; private set; }
 
     public static SkillRunner Instance { get; private set; }
-    public SkillContext CurrentContext => _frames.Count > 0 ? _frames.Peek().Context : null;
-    public SkillExecutionFrame CurrentFrame => _frames.Count > 0 ? _frames.Peek() : null;
+
+    private SkillTickManager _tickManager;
 
     private void Awake()
     {
         Instance = this;
+        _tickManager = SkillTickManager.Instance;
+        if (_tickManager == null)
+            _tickManager = FindObjectOfType<SkillTickManager>();
     }
 
+    // ============================================================
+    //  新接口：Tick 驱动（0 GC）
+    // ============================================================
+
+    /// <summary>
+    ///     启动技能图执行（Tick 驱动模式）。
+    ///     注册到全局 SkillTickManager，每帧自动推进。
+    /// </summary>
+    public SkillExecution RunSkillTick(SkillGraph graph, SkillContext ctx)
+    {
+        if (_tickManager == null)
+        {
+            Debug.LogError("[SkillRunner] SkillTickManager not found. Falling back to coroutine.");
+            StartCoroutine(RunSkill(graph, ctx));
+            return null;
+        }
+
+        var execution = _tickManager.Register(graph, ctx);
+        CurrentExecution = execution;
+        CurrentContext = ctx;
+        return execution;
+    }
+
+    /// <summary>
+    ///     中断 Tick 驱动的技能执行。
+    /// </summary>
+    public void InterruptTick(SkillExecution execution)
+    {
+        _tickManager?.Interrupt(execution);
+    }
+
+    // ============================================================
+    //  旧接口：协程驱动（向后兼容）
+    // ============================================================
+
+    /// <summary>
+    ///     启动技能图执行（协程驱动模式，向后兼容）。
+    /// </summary>
     public IEnumerator RunSkill(SkillGraph graph, SkillContext ctx)
     {
         if (graph == null || ctx == null) yield break;
@@ -31,13 +77,16 @@ public class SkillRunner : MonoBehaviour
         }
 
         var frame = new SkillExecutionFrame(graph, ctx);
-        _frames.Push(frame);
+        var frames = new Stack<SkillExecutionFrame>();
+        frames.Push(frame);
+
+        CurrentContext = ctx;
 
         SkillNode current = graph.GetStartNode();
         if (current == null)
         {
             Debug.LogError($"[SkillRunner] Graph {graph.name} has no StartNode.");
-            _frames.Pop();
+            frames.Pop();
             ctx.ExitGraph();
             yield break;
         }
@@ -50,13 +99,10 @@ public class SkillRunner : MonoBehaviour
 
             if ((IsDebugMode || ctx.DebugEnabled) && current.HasBreakpoint)
             {
-                _pauseRequested = true;
                 Debug.Log($"[SkillRunner] Breakpoint hit: {graph.GraphId}/{current.name}");
+                yield return new WaitWhile(() => !IsDebugMode && !ctx.DebugEnabled);
             }
 
-            while (_pauseRequested && !_stepRequested) yield return null;
-
-            _stepRequested = false;
             yield return current.Execute(ctx);
             ctx.Recorder.Record(graph.GraphId, current.name, "Exit", ctx.Blackboard);
 
@@ -64,10 +110,14 @@ public class SkillRunner : MonoBehaviour
             current = current.ResolveNextNode(ctx);
         }
 
-        _frames.Pop();
+        frames.Pop();
         ctx.ExitGraph();
+        CurrentContext = null;
     }
 
+    /// <summary>
+    ///     执行部分节点链（协程模式，向后兼容）。
+    /// </summary>
     public IEnumerator RunNodeChain(SkillNode startNode, SkillContext ctx, SkillGraph owningGraph)
     {
         var current = startNode;
@@ -77,11 +127,6 @@ public class SkillRunner : MonoBehaviour
             ctx.Recorder.Record(owningGraph != null ? owningGraph.GraphId : "<Detached>", current.name, "Enter",
                 ctx.Blackboard);
 
-            if ((IsDebugMode || ctx.DebugEnabled) && current.HasBreakpoint) _pauseRequested = true;
-
-            while (_pauseRequested && !_stepRequested) yield return null;
-
-            _stepRequested = false;
             yield return current.Execute(ctx);
             ctx.Recorder.Record(owningGraph != null ? owningGraph.GraphId : "<Detached>", current.name, "Exit",
                 ctx.Blackboard);
@@ -90,20 +135,8 @@ public class SkillRunner : MonoBehaviour
         }
     }
 
-    public void Pause()
-    {
-        _pauseRequested = true;
-    }
-
-    public void Step()
-    {
-        _pauseRequested = false;
-        _stepRequested = true;
-    }
-
-    public void Continue()
-    {
-        _pauseRequested = false;
-        _stepRequested = false;
-    }
+    // ---- 调试 ----
+    public void Pause() => CurrentExecution?.Pause();
+    public void Step() => CurrentExecution?.Step();
+    public void Continue() => CurrentExecution?.Continue();
 }
