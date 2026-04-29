@@ -1,293 +1,226 @@
-# 商业级技能系统落地执行方案（CSV数据驱动 + NodeCanvas逻辑 + 高性能表现）
+# 技能系统 & AI 行为树 — 商业级战斗框架
+
+**CSV 数据驱动 + CanvasCore 可视化逻辑 + Tick 驱动执行 + GE 状态系统 + AI 行为树 + 高性能表现**
 
 ---
 
-## 0. 项目目标与验收标准
+## 0. 项目目标
 
-**目标（4–6周）：**
-- 在编辑器中通过拖拽连线创建技能（NodeCanvas CanvasCore）
-- 支持顺序、并行、条件、子图（模块复用）
-- 所有数值参数来自 CSV 表格，逻辑完全可视化
-- VFX 使用 Shader + 对象池，中端机连续触发 10 次无明显卡顿
-- 提供调试工具：实时执行节点高亮、Blackboard 变量查看
+构建一套完整的 **ARPG / 塔防 战斗框架**，覆盖以下能力域：
 
-**验收标准：**
-- 新增技能只需配置 CSV 一行数据 + 拼装 NodeCanvas 子图，**零代码改动**
-- 同一子图被 ≥3 个技能复用
-- 连锁闪电 10 次同时触发，帧率稳定且无明显 GC Alloc
+| 域 | 能力 | 状态 |
+|----|------|------|
+| **技能图** | CanvasCore 可视化连线，CSV 数值驱动，子图复用 | ✅ 52 技能配方 |
+| **GE/Buff** | GAS 风格 Gameplay Effect，Tag 驱动 Modifier 队列，事件拦截 | ✅ |
+| **EQS** | 可插拔 Filter/Sorter 目标查询，类 Unreal EQS | ✅ |
+| **动画同步** | 动画事件驱动技能逻辑，替代 DelayNode，攻速自动对齐 | ✅ |
+| **AI 行为树** | NodeCanvas BT + CSV 配置自动生成，优先级选择 + 并行 | ✅ 8 Action / 3 Tier |
+| **AI 感知** | SpatialHashGrid + Burst Job 并行 FOV 检测，0 主线程开销 | ✅ |
+| **VFX** | Shader + 对象池 + 投射物，中端机 10 次连续触发无卡顿 | ✅ |
 
 ---
 
-## 1. 总体架构（严格分层）
+## 1. 总体架构（五层分离）
 
 ```text
-┌─────────────────┐
-│   CSV 数值层     │  ← 策划维护，技能所有参数（伤害、范围、冷却等）
-├─────────────────┤
-│ NodeCanvas 逻辑层│  ← 策划/程序合作，定义执行流程与条件
-├─────────────────┤
-│  SkillRuntime   │  ← 程序维护，协程驱动，支持暂停/断点
-├─────────────────┤
-│  表现层 (VFX)    │  ← 特效/程序，对象池 + Shader 实现
-└─────────────────┘
+┌──────────────────────┐
+│  CSV 配置层          │ ← 策划维护：Skill.csv、Buff.csv、AITree.csv、SkillRecipe.csv
+├──────────────────────┤
+│  NodeCanvas 逻辑层   │ ← 可视化连线：SkillGraph（技能图）+ AIGraph（行为树）
+├──────────────────────┤
+│  GameplayEffect 层   │ ← GE/Buff + GameplayTag + DamagePipeline 事件拦截
+├──────────────────────┤
+│  Tick 运行时引擎     │ ← SkillTickManager + SkillCaster + SkillRunner（0 GC 驱动）
+├──────────────────────┤
+│  表现层 & AI 感知    │ ← VFXManager (对象池) + SpatialHashGrid + Burst Jobs
+└──────────────────────┘
 ```
 
 **核心原则：**
-- **CSV 管数值，NodeCanvas 管逻辑，Runtime 管执行，表现层只做展示**
-- 禁止在 CSV 中存放逻辑（如公式、条件），禁止在节点中硬编码数值
-- 所有运行时数据通过 Blackboard 在节点间传递
+- **CSV 管数值，CanvasCore 管逻辑，Runtime 管执行，GE 管状态，表现层只做展示**
+- **技能节点必须使用 Tick 驱动（NodeTickResult），禁止 IEnumerator 协程**
+- 目标筛选走 **EQS Filter/Sorter 管道**，不硬编码查找逻辑
+- 伤害结算走 **DamagePipeline 事件拦截**，不在节点中直调 IDamageable
+- AI 感知走 **SpatialHashGrid + Burst Job**，不使用 Physics.OverlapSphere
 
 ---
 
-## 2. 项目目录结构（最终版）
+## 2. 项目目录结构
 
 ```text
 Assets/
 ├── Scripts/
-│   ├── Data/                   # 数据模型与加载
-│   │   ├── SkillConfig.cs
-│   │   └── ConfigLoader.cs
+│   ├── AI/                          # AI 行为树 + 感知系统
+│   │   ├── Core/                    # AIController、AISensor、MinionBrain、SpatialHashGrid、AISensorJobSystem
+│   │   ├── Actions/                 # 8 个行为节点（Attack、Move、Flee、Idle…）
+│   │   ├── Conditions/              # 7 个条件节点
+│   │   ├── Composites/              # PrioritizedSelector、ParallelAll
+│   │   ├── Decorators/              # Cooldown、TargetObserver
+│   │   ├── Data/                    # AITreeConfig（CSV 行）
+│   │   ├── Editor/                  # AIGraphMenu、AITreeGenerator、AITreeSyncPostprocessor
+│   │   └── Graph/                   # AIGraph 资产定义
 │   │
-│   ├── Graph/                  # NodeCanvas 图定义
-│   │   ├── SkillGraph.cs       (继承 NodeCanvas.Framework.Graph)
-│   │   └── SkillConnection.cs  (命名端口连接)
+│   ├── Data/                        # SkillConfig、ConfigLoader、FloatBinding、StringBinding
 │   │
-│   ├── Nodes/                  # 所有节点脚本
-│   │   ├── SkillNode.cs        (基类，继承 NodeCanvas.Framework.Node)
-│   │   ├── StartNode.cs
-│   │   ├── EndNode.cs
-│   │   ├── DelayNode.cs
-│   │   ├── LogNode.cs
-│   │   ├── SetValueNode.cs
-│   │   ├── ConditionNode.cs
-│   │   ├── ParallelNode.cs
-│   │   ├── SubGraphNode.cs
-│   │   └── DamageNode.cs
+│   ├── Graph/                       # SkillGraph（技能图定义）、SkillConnection
 │   │
-│   ├── Runtime/                # 运行时核心
-│   │   ├── SkillRunner.cs
-│   │   ├── SkillContext.cs
-│   │   ├── SkillCaster.cs
-│   │   ├── Blackboard.cs
-│   │   ├── BBKey.cs
-│   │   └── DebugRecorder.cs
+│   ├── Nodes/                       # 24 种技能节点
+│   │   ├── SkillNode.cs             # 基类（Tick 驱动，NodeTickResult）
+│   │   ├── StartNode / EndNode / DelayNode / LogNode / ParallelNode
+│   │   ├── ConditionNode / SubGraphNode / SetValueNode
+│   │   ├── DamageNode / ApplyStatusNode / ReactionNode / ResonanceNode
+│   │   ├── PlayVFXNode / ProjectileNode / PaintTerrainNode
+│   │   ├── PreCastNode / ChannelNode / PostCastNode
+│   │   ├── FinisherStagedNode / ModifyFloatNode / RollChanceNode
+│   │   └── AnimationEventWaitNode   # 动画事件等待（替代 DelayNode）
 │   │
-│   ├── Editor/                 # 编辑器扩展
+│   ├── Runtime/                     # 运行时核心
+│   │   ├── SkillRunner.cs           # 图执行器（Tick 驱动）
+│   │   ├── SkillCaster.cs           # 释放管线（CastStage 状态机）
+│   │   ├── SkillTickManager.cs      # 全局 Tick 调度
+│   │   ├── SkillContext.cs          # 单次释放上下文
+│   │   ├── SkillExecution.cs        # 执行实例（暂停/单步/继续）
+│   │   ├── Blackboard.cs / BBKey.cs # 黑板系统
+│   │   ├── DebugRecorder.cs         # 执行记录与回放
+│   │   │
+│   │   ├── GameplayEffectSystem.cs  # GE/Buff 系统 + AttributeSet
+│   │   ├── GameplayTag.cs           # 分层级 GameplayTag + GameplayTagContainer
+│   │   ├── DamagePipeline.cs        # 事件驱动伤害管道
+│   │   │
+│   │   ├── TargetQueryConfig.cs     # EQS 查询配置（可插拔 Filter/Sorter）
+│   │   ├── TargetFilter.cs          # ITargetFilter / ITargetSorter 接口 + 内置实现
+│   │   │
+│   │   ├── SkillAnimatorController.cs # 动画→技能图桥接层
+│   │   ├── IDamageable.cs           # 伤害接口
+│   │   └── Projectile.cs            # 投射物
+│   │
+│   ├── Editor/                      # 编辑器扩展
 │   │   ├── ElementLineGraphGenerator.cs
-│   │   ├── SkillNodeEditor.cs
+│   │   ├── ElementLineSkillConfigGenerator.cs
 │   │   ├── SkillDebugWindow.cs
-│   │   ├── SkillGraphContextMenu.cs
 │   │   ├── SkillGraphValidatorWindow.cs
 │   │   └── BreakpointDatabase.cs
 │   │
-│   ├── Entity/                 # 实体组件
+│   ├── Entity/                      # 实体组件
 │   │   ├── SkillOwner.cs
 │   │   └── TargetDummy.cs
 │   │
-│   └── VFX/                    # 特效模块
+│   └── VFX/                         # 特效模块
 │       ├── VFXManager.cs
-│       └── VFXObjectPool.cs
+│       ├── VFXObjectPool.cs
+│       └── ElementLineVFXProfile.cs
 │
-├── Plugins/                    # 第三方（NodeCanvas/ParadoxNotion）
-└── Resources/
-    ├── Config/                 # CSV 配置
-    └── SkillGraphs/             # 技能图资产
+├── Resources/
+│   ├── Config/                      # CSV 配置（单一数据源）
+│   │   ├── Skill.csv
+│   │   ├── SkillRecipe.csv
+│   │   ├── NodePreset.csv
+│   │   ├── Buff.csv
+│   │   ├── Effect.csv
+│   │   └── AITree.csv
+│   ├── SkillGraphs/                 # 技能图资产
+│   │   ├── ElementLine/Recipes/
+│   │   └── ElementLine/Common/
+│   ├── AITrees/                     # AI 行为树资产（自动生成）
+│   ├── AIGraphs/                    # AI 行为树模板
+│   └── VFX/                         # 特效预制体
+│
+├── Shaders/                         # ElementLine 特效 Shader
+└── doc/                             # 文档
+    ├── readme.md                    ← 本文档
+    ├── SkillDesignGuide.md          # 系统设计说明书
+    ├── NodeAuthoringWorkbook.md     # 节点搭建工作手册
+    ├── ElementLineSkillCatalog.md   # 技能总表
+    └── AIModuleDocumentation.md     # AI 模块说明
 ```
 
 ---
 
-## 3. 核心设计决策（避坑指南）
+## 3. 核心系统速览
+
+### 3.1 技能图（SkillGraph）
+
+- 基于 **CanvasCore Graph**，22+ 节点类型
+- **Tick 驱动**：`public abstract NodeTickResult Tick(SkillContext ctx, float deltaTime)` — 0 GC，无 IEnumerator 装箱
+- 释放管线：`Idle → PreCast → Executing → PostCast → Idle`（可打断）
+- 子图复用：`SubGraphNode` 引用共享 `Common_*` 资产
+
+### 3.2 GE / Buff 系统
+
+- GAS 风格：`GEConfig`（CSV 行）→ `GameplayEffectInstance`（运行时实例）→ `GEHost`（组件）
+- **Modifier 队列**：`Add → Override → Multiply` 顺序计算属性最终值
+- **GameplayTag**：分层级匹配（`"tag.status.burn"` 被 `"tag.status"` 命中）
+- **事件拦截**：`DamagePipeline.OnPreCalculate += (ctx) => { ctx.Value *= 1.5f; }`
+- `AttributeSet`：基础属性容器，配合 `GEHost.EvaluateAttribute()` 动态计算
+
+### 3.3 EQS 目标查询
+
+- 可插拔 `ITargetFilter` + `ITargetSorter` 接口
+- 内置实现：`DistanceFilter`、`TagFilter`、`HPThresholdFilter`、`TeamFilter`
+- 内置排序：`ByDistanceSorter`、`ByHPSorter`、`ByThreatSorter`
+- `TargetQueryConfig.Execute()` — 空间哈希范围查询 → 过滤链 → 排序 → Top-N
+
+### 3.4 动画同步
+
+- `SkillAnimatorController`：播放动画 + 绑定 `SkillContext`，攻速自动同步
+- `AnimationEventReceiver`：AnimationClip Event 入口
+- `AnimationEventWaitNode`：等待动画事件推进（替代 `DelayNode`）
+- 黑板通信：`BBKey.AnimEvent` / `AnimOnHit` / `AnimOnCastEnd`
+
+### 3.5 AI 行为树
+
+- 基于 NodeCanvas `BehaviourTree`，8 个 Action、7 个 Condition
+- **CSV 驱动生成**：`AITree.csv` → `AITreeGenerator` → `AIGraph` 资产
+- 三层 Tier 策略：
+  - **Minion**：轻量级 FSM（`MinionBrain`，0 序列化开销）
+  - **Elite / Boss**：完整 NodeCanvas BT（`AIController`）
+  - **Tower**：专用 BT（包含站位、索敌、技能循环）
+
+### 3.6 AI 感知（高性能）
+
+- **SpatialHashGrid**：O(1) 范围查询，替代 Physics.OverlapSphere
+- **Burst Job 并行**：`AISensorJobSystem` + `FOVDistanceJob`，FOV + 距离检测跑在多线程
+- 数据流：`SpatialHashGrid` 导出 `NativeArray<AIEntityNativeData>` → Job 并行计算 → 主线程回读
+
+---
+
+## 4. 关键设计决策
 
 | 原则 | 说明 |
 |------|------|
-| **单一数据源** | CSV 是唯一数值来源，节点通过 `ConfigLoader.GetSkill(id)` 获取参数 |
-| **不直接操作 GameObject** | 节点只通过 `SkillContext.caster/target` 传递 Transform，伤害通过 `IDamageable` 接口解耦 |
-| **协程执行，不依赖 async/await** | 统一用 `IEnumerator`，主线程安全，可暂停/单步调试 |
-| **对象池是强制项** | 所有 VFX 通过 `VFXObjectPool` 获取，`Release` 回收，禁止 Instantiate/Destroy |
-| **Blackboard 隔离上下文** | 节点间不直接传参，通过 Blackboard 读写，方便调试和子图复用 |
+| **Tick 驱动，0 GC** | 所有节点返回 `NodeTickResult`，由 `SkillTickManager` 统一调度，禁止 `IEnumerator` |
+| **事件拦截，非硬编码** | 伤害通过 `DamagePipeline.CalculateAndApply()`，GE 通过 `OnPreCalculate` 事件拦截修改 |
+| **Tag 驱动逻辑** | 状态判定使用 `GEHost.HasTag("tag.status.burn")`，不在节点中写 switch-case |
+| **动画替代延时** | 使用 `AnimationEventWaitNode`，不依赖 `DelayNode` 对齐动画帧 |
+| **空间哈希替代物理** | AI 感知使用 `SpatialHashGrid.QueryRange()`，不调用 `Physics.OverlapSphere` |
+| **对象池强制** | 所有 VFX 通过 `VFXObjectPool.Get/Release`，禁用 `Instantiate/Destroy` |
+| **Blackboard 通信** | 节点间不直接传参，全部通过 `Blackboard.SetValue/GetValue` |
 
 ---
 
-## 4. 关键代码骨架（只列最核心部分）
+## 5. 开发规范
 
-### 4.1 数据层
-```csharp
-// SkillConfig.cs
-public class SkillConfig {
-    public int skill_id;
-    public float damage;
-    public float range;
-    public float cooldown;
-}
-
-// ConfigLoader.cs - 游戏启动时加载，全局缓存
-public static class ConfigLoader {
-    static Dictionary<int, SkillConfig> dict;
-    [RuntimeInitializeOnLoadMethod]
-    static void Load() { /* 从 Resources/Config/Skill.csv 加载 */ }
-    public static SkillConfig GetSkill(int id) => dict[id];
-}
-```
-
-### 4.2 节点基类（基于 NodeCanvas CanvasCore）
-```csharp
-public abstract class SkillNode : NodeCanvas.Framework.Node {
-    // 命名端口系统（通过 SkillConnection 实现）
-    // 输出端口类型由 outConnectionType 指定
-    public abstract IEnumerator Execute(SkillContext ctx);
-    public virtual SkillNode ResolveNextNode(SkillContext ctx) {
-        return GetConnectedNode("output");
-    }
-    // 使用 CanvasCore 内置的 isBreakpoint
-    public bool HasBreakpoint {
-        get => isBreakpoint;
-        set => isBreakpoint = value;
-    }
-    [NonSerialized] public bool IsExecuting;
-}
-
-// SkillConnection.cs — 命名端口连接
-public class SkillConnection : NodeCanvas.Framework.Connection {
-    [SerializeField] private string _portName = "output";
-    public string portName { get; set; }
-    public static SkillConnection Create(SkillNode source, SkillNode target, string portName);
-}
-```
-
-### 4.3 关键节点
-- `StartNode`：入口，直接调用 `ContinueAt("start");`
-- `DamageNode`：从 `ConfigLoader` 取伤害，调用 `ctx.target.GetComponent<IDamageable>().TakeDamage(damage, ctx.caster)`
-- `ConditionNode`：根据 Random/Distance/Blackboard 变量选择 `trueNode` 或 `falseNode` 端口推进
-- `ParallelNode`：遍历所有 `branches` 端口，分别启动协程执行
-- `SubGraphNode`：查找子图 `StartNode` 并调用 `SkillRunner.Run(start, ctx)`，复用整个子图
-- `DelayNode`：`yield return new WaitForSeconds(delay)` 后推进
-
-### 4.4 运行时引擎
-```csharp
-public class SkillRunner : MonoBehaviour {
-    public static SkillRunner Instance;
-    public SkillContext currentContext; // 调试窗口用
-    public IEnumerator Run(SkillNode currentNode, SkillContext ctx) {
-        while (currentNode != null) {
-            currentNode.isExecuting = true;
-            if (isDebug && currentNode.hasBreakpoint) PauseHere();
-            yield return currentNode.Execute(ctx);
-            currentNode.isExecuting = false;
-            currentNode = GetNextNode(currentNode, ctx); // 处理条件分支
-        }
-    }
-    // 断点控制方法 Pause(), Step(), Continue()
-}
-```
-
-### 4.5 角色接入
-```csharp
-public class SkillOwner : MonoBehaviour {
-    public void PlaySkill(SkillGraph graph, Transform target = null) {
-        // 冷却检查、构建 SkillContext、调用 SkillRunner.Run
-    }
-}
-```
+| 规范 | 内容 |
+|------|------|
+| **CSV 单一数据源** | 所有运行时数值从 CSV 获取，节点内不硬编码 |
+| **节点命名** | `XxxNode`；子图命名 `Skill_Xxx`；BBKey 为 PascalCase 常量 |
+| **协程禁止** | 全部节点必须实现 `Tick()` 返回 `NodeTickResult`，不得使用 `IEnumerator` |
+| **新增 Node** | 必须同时在 `SkillNode.cs` 的 switch 中添加类别/颜色注册 |
+| **新增 BBKey** | 必须使用 `BBKey.cs` 中的 `const string`，禁止裸字符串 |
+| **VFX 必须对象池** | 通过 `VFXManager.Play(key, ...)` 调用 |
+| **伤害必须管道** | 通过 `DamagePipeline.CalculateAndApply()` 结算，不直调 `IDamageable.TakeDamage()` |
 
 ---
 
-## 5. 里程碑与任务拆分（按周执行）
+## 6. 相关文档索引
 
-### W1：骨架与数据驱动基础
-- **任务**：
-    - 引入 NodeCanvas，运行一键生成脚本拿到全部目录与文件
-    - 跑通 `Start → Delay → End`
-    - 实现 CSV 加载器，`DamageNode` 能从 CSV 读取伤害并施加
-    - 完成 `SkillOwner` 基础调用
-- **验收**：按空格释放一个最简单的受伤技能，伤害值来自 CSV
-
-### W2：Blackboard 与流程控制
-- **任务**：
-    - Blackboard 读写节点（SetValue、内部 Get）
-    - ConditionNode（随机、距离、BB 布尔）
-    - ParallelNode 并行执行
-    - SubGraphNode 子图复用
-- **验收**：制作"连锁闪电+暴击分支"技能，子图至少被 2 个技能复用
-
-### W3：VFX 高性能表现
-- **任务**：
-    - 实现 BeamVFX、ImpactVFX 模块，全部基于对象池
-    - 编写对应的简单 Shader（UV 动画闪光）
-    - 在 `DamageNode` 或新增 `VFXNode` 中调用 VFX 播放
-- **验收**：同时释放 10 个技能，无明显卡顿，Profiler 无 GC Alloc 尖峰
-
-### W4：编辑器与调试工具
-- **任务**：
-    - 节点执行高亮（绿色标题栏）
-    - 断点设置/取消（右键菜单），运行时断点暂停
-    - Blackboard 监视面板（Window 实时显示变量）
-    - 执行记录与回放（`DebugRecorder` + 编辑器滑块）
-    - 一步创建节点的右键菜单
-- **验收**：能在编辑器中单步执行技能，查看变量变化，回放历史执行路径
-
-### W5（可选）：模板库与规范制定
-- **任务**：
-    - 制作 `ChainLightning`、`AOEExplosion` 等子图模板（右键生成）
-    - 统一命名规范、子图制作指南
-    - 集成技能冷却、资源消耗
-- **验收**：新策划可直接从模板拼出新技能，不写一行代码
+| 文档 | 内容 |
+|------|------|
+| [SkillDesignGuide.md](SkillDesignGuide.md) | 全面设计说明书 — 节点目录、BBKey 参考、CSV 字段、释放管线 |
+| [NodeAuthoringWorkbook.md](NodeAuthoringWorkbook.md) | 节点搭建手册 — 预设→图流程、绑定规范、通信模式 |
+| [ElementLineSkillCatalog.md](ElementLineSkillCatalog.md) | 《元素阵线》技能总表 — 52 配方 × 4 元素 × 12 预设 |
+| [AIModuleDocumentation.md](AIModuleDocumentation.md) | AI 行为树模块说明 — CSV 驱动生成、Action/Condition 节点、感知系统 |
 
 ---
 
-## 6. 开发规范（强制执行）
-
-- **所有参数**使用 CSV 配置，节点内通过 `ConfigLoader` 获取，严禁硬编码
-- **节点命名**：`XxxNode`；子图命名：`Skill_Xxx`；BBKey：PascalCase 常量
-- **子图**必须包含 `StartNode`，参数通过 Blackboard 传递，禁止循环引用
-- **VFX** 一律通过 `VFXManager.Play(key, ...)` 调用，内部使用对象池
-- **代码提交**前需通过验收测试，且不能有 `Instantiate/Destroy` 在运行时频繁调用
-
----
-
-## 7. 团队分工与协作
-
-| 角色 | 负责内容 | 交付物 |
-|------|----------|--------|
-| **技能程序** | 节点基类、Runner、条件/并行/子图、调试系统 | 所有 `Runtime/`、`Nodes/` 脚本 |
-| **数据程序** | CSV 结构与加载器、SkillConfig、ConfigLoader | `Data/` 脚本与 CSV 示例 |
-| **特效程序** | VFX 模块、Shader、对象池 | `VFX/` 脚本与材质 |
-| **策划/设计** | 配置 CSV 数值、制作技能图、设计子图 | 可玩的 `.asset` 技能图、CSV 数据 |
-| **QA** | 按验收标准测试，提供性能报告 | 测试用例与 Profiler 截图 |
-
----
-
-## 8. 风险控制与常见陷阱
-
-| 陷阱 | 应对方案 |
-|------|----------|
-| 逻辑误入 CSV | 评估：CSV 只放纯数字，任何条件判断必须用节点 |
-| 频繁 Instantiate | 代码审查：强制使用 `VFXObjectPool.Get/Release` |
-| 子图循环引用 | 工具限制：编辑器脚本检测子图嵌套深度 ≤ 3 |
-| 性能回退 | 每周五固定 Profiler 跑 10 次连锁闪电，对比帧时间 |
-| 多人合并冲突 | 技能图使用 NodeCanvas 资产或专用文件夹分人负责 |
-
----
-
-## 9. 最终交付物清单
-
-- [ ] 可视化技能编辑器（NodeCanvas CanvasCore）
-- [ ] 十几种基础功能节点（Start、Delay、Damage、Condition、Parallel、SubGraph 等）
-- [ ] CSV 配置读取与热重载（策划改表即生效）
-- [ ] 基于 Blackboard 的上下文变量系统
-- [ ] 至少 3 个可复用子图（如连锁闪电、范围爆炸、Buff 应用）
-- [ ] 高性能 VFX 模块（Beam、Impact）与配套 Shader
-- [ ] 调试工具箱（断点、单步、变量监视、执行回放）
-- [ ] 角色技巧释放组件（SkillOwner）含冷却功能
-- [ ] 示例场景与一键测试脚本
-
----
-
-## 🚀 启动命令
-
-1. 导入 NodeCanvas (ParadoxNotion)，将一键生成脚本放入 `Editor`，执行 `Tools/Skills/Bootstrap All`
-2. 检查 CSV 路径，运行示例场景验证 `Start→Damage→End`
-3. 按 W1 任务逐项推进，每周五对照验收标准演示
-
----
-
-> **核心宗旨**：这是一条**技能生产流水线**——策划填表，设计师连线，程序守护管道。三者各司其职，系统才能规模化和可维护。
+> **核心宗旨**：这是一条 **战斗系统生产流水线** —— 策划填表（CSV），设计师连线（CanvasCore），程序守护管道（Runtime / GE / EQS / AI）。四者各司其职，系统才能规模化和可维护。
