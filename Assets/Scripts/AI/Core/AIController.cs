@@ -8,6 +8,7 @@ namespace SkillAI
     ///     AI 控制器 —— MonoBehaviour 组件，挂载到 AI 角色上驱动行为树运行。
     ///     继承 BehaviourTreeOwner，获得完整的 GraphOwner 功能（序列化、启动、暂停等）。
     ///     支持空间哈希网格查询（替代 Physics.OverlapSphere）。
+    ///     注册元数据至 SpatialHashGrid，供 Burst Job System 并行处理 FOV/距离检测。
     /// </summary>
     [AddComponentMenu("Skill System/AI Controller")]
     public class AIController : BehaviourTreeOwner, ISpatialEntity
@@ -16,6 +17,10 @@ namespace SkillAI
         [Tooltip("AI 类型标签")]
         [SerializeField] private AIType aiType = AIType.Combat;
         public AIType AITypeTag => aiType;
+
+        [Tooltip("AI 层级：Elite/Boss(行为树)")]
+        [SerializeField] private AITier _aiTier = AITier.Elite;
+        public AITier Tier => _aiTier;
 
         [Tooltip("探测器组件引用")]
         [SerializeField] private AISensor sensor;
@@ -40,6 +45,7 @@ namespace SkillAI
         Vector3 ISpatialEntity.Position => transform.position;
         int ISpatialEntity.TeamId => _teamId;
         bool ISpatialEntity.IsActive => isActiveAndEnabled;
+        int ISpatialEntity.EntityType => _aiTier == AITier.Boss ? 2 : 1;
 
         public AIStateType CurrentAIState
         {
@@ -91,11 +97,21 @@ namespace SkillAI
         protected void Start()
         {
             base.Start();
-            // 注册到空间哈希网格
+            // 注册到空间哈希网格并附带 Job 元数据
             var grid = SpatialHashGrid.Instance;
             if (grid != null)
             {
-                _spatialEntityId = grid.Register(this);
+                var meta = new AIEntityNativeData
+                {
+                    Position = transform.position,
+                    Forward = transform.forward,
+                    TeamId = _teamId,
+                    EntityType = _aiTier == AITier.Boss ? 2 : 1,
+                    DetectionRange = sensor != null ? sensor.DetectionRange : 15f,
+                    AttackRange = sensor != null ? sensor.AttackRange : 3f,
+                    FieldOfView = sensor != null ? sensor.FieldOfView : 120f
+                };
+                _spatialEntityId = grid.RegisterWithMeta(this, meta);
             }
         }
 
@@ -110,7 +126,7 @@ namespace SkillAI
 
         protected void Update()
         {
-            // 更新空间哈希网格中的位置
+            // 更新空间哈希网格（脏标记模式；位置由 UpdatePosition 同步至 NativeArray 元数据）
             if (_spatialEntityId >= 0)
             {
                 SpatialHashGrid.Instance?.UpdatePosition(_spatialEntityId, transform.position);
@@ -157,14 +173,23 @@ namespace SkillAI
 
         public override string ToString()
         {
-            return $"[AIController] {name} | State: {currentState} | Alert: {alertLevel} | Tree: {(AITree != null ? AITree.TreeName : "None")}";
+            return $"[AIController] {name} | Tier: {_aiTier} | State: {currentState} | Alert: {alertLevel} | Tree: {(AITree != null ? AITree.TreeName : "None")}";
         }
+    }
+
+    /// <summary>AI 层级 —— 决定使用行为树还是轻量 FSM。</summary>
+    public enum AITier
+    {
+        Minion = 0,
+        Elite = 1,
+        Boss = 2,
+        Tower = 3,
     }
 
     /// <summary>
     ///     AI 传感器基类 —— 负责环境感知（视野、听觉等）。
     ///     挂载在 AI 角色或子对象上，由 AIController 驱动。
-    ///     支持空间哈希网格查询和传统 Physics 查询两种模式。
+    ///     优先使用空间哈希网格查询；FOV/距离检测可交由 Job System 并行处理。
     /// </summary>
     public abstract class AISensor : MonoBehaviour
     {
@@ -179,6 +204,7 @@ namespace SkillAI
 
         [Tooltip("视野角度（度）")]
         [SerializeField] [Range(0f, 360f)] protected float fieldOfView = 120f;
+        public float FieldOfView => fieldOfView;
 
         [Tooltip("检测层级掩码")]
         [SerializeField] protected LayerMask detectionMask = -1;
@@ -218,7 +244,7 @@ namespace SkillAI
         {
             Transform newTarget;
 
-            if (_useSpatialHash)
+            if (_useSpatialHash && SpatialHashGrid.Instance != null)
             {
                 newTarget = DetectTargetSpatial();
             }
@@ -249,12 +275,12 @@ namespace SkillAI
         }
 
         /// <summary>
-        ///     使用空间哈希网格检测目标（O(1) 查询，推荐）。
+        ///     使用空间哈希网格检测目标（O(1) 查询，无 Physics.OverlapSphere）。
         /// </summary>
         protected virtual Transform DetectTargetSpatial()
         {
             var grid = SpatialHashGrid.Instance;
-            if (grid == null) return DetectTarget(); // fallback
+            if (grid == null) return DetectTarget();
 
             _spatialResults.Clear();
             grid.QueryRange(transform.position, detectionRange, _spatialResults,
@@ -332,7 +358,6 @@ namespace SkillAI
                 Gizmos.DrawLine(transform.position, currentTarget.position);
             }
 
-            // 空间哈希模式提示
             if (_useSpatialHash)
             {
                 Gizmos.color = Color.cyan;

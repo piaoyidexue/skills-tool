@@ -1,5 +1,3 @@
-using System.Collections;
-
 public class SetValueNode : SkillNode
 {
     public enum ValueType
@@ -37,23 +35,5 @@ public class SetValueNode : SkillNode
         }
 
         return NodeTickResult.Success;
-    }
-
-    public override IEnumerator Execute(SkillContext ctx)
-    {
-        switch (valueType)
-        {
-            case ValueType.Float:
-                ctx.Blackboard.SetValue(key, floatValue.Resolve(ctx));
-                break;
-            case ValueType.Bool:
-                ctx.Blackboard.SetValue(key, boolValue);
-                break;
-            case ValueType.String:
-                ctx.Blackboard.SetValue(key, stringValue.Resolve(ctx));
-                break;
-        }
-
-        yield break;
     }
 }

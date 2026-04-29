@@ -1,4 +1,3 @@
-using System.Collections;
 using UnityEngine;
 
 public class RollChanceNode : SkillNode
@@ -17,12 +16,5 @@ public class RollChanceNode : SkillNode
         var chance = Mathf.Clamp01(probability.Resolve(ctx));
         ctx.Blackboard.SetValue(outputKey, Random.value <= chance);
         return NodeTickResult.Success;
-    }
-
-    public override IEnumerator Execute(SkillContext ctx)
-    {
-        var chance = Mathf.Clamp01(probability.Resolve(ctx));
-        ctx.Blackboard.SetValue(outputKey, Random.value <= chance);
-        yield break;
     }
 }

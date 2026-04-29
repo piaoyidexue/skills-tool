@@ -1,4 +1,3 @@
-using System.Collections;
 using UnityEngine;
 
 /// <summary>
@@ -46,31 +45,5 @@ public class PostCastNode : SkillNode
         }
 
         return NodeTickResult.Success;
-    }
-
-    public override IEnumerator Execute(SkillContext ctx)
-    {
-        var duration = postCastTime.Resolve(ctx);
-
-        if (duration <= 0f) yield break;
-
-        var vfxKey = postCastVfxKey.Resolve(ctx);
-        if (!string.IsNullOrWhiteSpace(vfxKey))
-        {
-            var manager = VFXManager.EnsureInstance();
-            if (manager != null && ctx.Caster != null)
-            {
-                manager.Play(new VFXRequest
-                {
-                    VFXKey = vfxKey,
-                    StyleKey = ctx.Config?.VFXProfileKey,
-                    Position = ctx.Caster.position,
-                    Parent = ctx.Caster,
-                    Duration = duration
-                });
-            }
-        }
-
-        yield break;
     }
 }

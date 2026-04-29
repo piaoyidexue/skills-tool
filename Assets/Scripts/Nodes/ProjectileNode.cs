@@ -1,10 +1,9 @@
-using System.Collections;
 using UnityEngine;
 
 /// <summary>
 ///     投射物发射节点 —— 生成投射物，沿指定方向飞行，命中后自动写 Blackboard。
 ///     支持直线 / 追踪 / 抛物线三种弹道。
-///     【对象池】优先从 VFX 对象池获取预制体实例。
+///     目标查询使用空间哈希网格（替代 Physics.OverlapSphere）。
 /// </summary>
 public class ProjectileNode : SkillNode
 {
@@ -62,7 +61,6 @@ public class ProjectileNode : SkillNode
 
         if (!_launched)
         {
-            // 首次：获取并启动投射物
             _projectile = GetProjectile(ctx);
             if (_projectile == null)
             {
@@ -97,7 +95,6 @@ public class ProjectileNode : SkillNode
             ctx.Blackboard.SetValue(BBKey.ProjectileActive, true);
         }
 
-        // 等待完成
         if (waitForCompletion)
         {
             if (_projectile != null && _projectile.HasHit)
@@ -110,10 +107,9 @@ public class ProjectileNode : SkillNode
                 return NodeTickResult.Success;
             }
 
-            // 持续更新追踪目标
             if (homing == HomingMode.TrackNearest && _projectile != null)
             {
-                var nearest = FindNearestEnemy(ctx);
+                var nearest = FindNearestEnemySpatial(ctx);
                 if (nearest != null) _projectile.SetTarget(nearest);
             }
 
@@ -126,73 +122,6 @@ public class ProjectileNode : SkillNode
 
     public override void OnExit(SkillContext ctx)
     {
-        ctx.Blackboard.SetValue(BBKey.ProjectileActive, false);
-    }
-
-    public override IEnumerator Execute(SkillContext ctx)
-    {
-        var speed = projectileSpeed.Resolve(ctx);
-        if (speed <= 0f)
-        {
-            Debug.LogWarning("[ProjectileNode] ProjectileSpeed is 0, cannot launch.");
-            yield break;
-        }
-
-        var projectile = GetProjectile(ctx);
-        if (projectile == null)
-        {
-            Debug.LogError("[ProjectileNode] Failed to get projectile instance.");
-            yield break;
-        }
-
-        var launchPos = ctx.Caster != null ? ctx.Caster.position : Vector3.zero;
-        var launchDir = ResolveDirection(ctx);
-
-        var request = new VFXRequest
-        {
-            VFXKey = "Projectile_Auto",
-            Position = launchPos,
-            Direction = launchDir,
-            Length = speed,
-            Intensity = damage.Resolve(ctx),
-            ScaleMultiplier = 1f,
-            StyleKey = ctx.Config?.VFXProfileKey,
-            Parent = homing != HomingMode.None ? ctx.Target : null
-        };
-
-        if (homing == HomingMode.TrackTarget && ctx.Target != null)
-            projectile.SetTarget(ctx.Target);
-
-        projectile.impactVfxKey = impactVfxKey.Resolve(ctx);
-        projectile.critChance = ctx.Config?.CritChance ?? 0f;
-        projectile.lifetime = lifetime;
-
-        var completed = false;
-        projectile.Launch(request, _ => { completed = true; });
-
-        ctx.Blackboard.SetValue(BBKey.ProjectileActive, true);
-
-        if (waitForCompletion)
-        {
-            while (!completed && !ctx.IsInterrupted)
-            {
-                if (homing == HomingMode.TrackNearest)
-                {
-                    var nearest = FindNearestEnemy(ctx);
-                    if (nearest != null) projectile.SetTarget(nearest);
-                }
-
-                yield return null;
-            }
-
-            if (projectile.HasHit)
-            {
-                ctx.Blackboard.SetValue(BBKey.ProjectileHitPosition, projectile.HitPosition);
-                if (projectile.HitTarget != null)
-                    ctx.Blackboard.SetValue(BBKey.ProjectileHitTarget, projectile.HitTarget.gameObject.name);
-            }
-        }
-
         ctx.Blackboard.SetValue(BBKey.ProjectileActive, false);
     }
 
@@ -227,26 +156,20 @@ public class ProjectileNode : SkillNode
         return fallback.AddComponent<Projectile>();
     }
 
-    private Transform FindNearestEnemy(SkillContext ctx)
+    /// <summary>使用空间哈希网格查找最近敌人（O(1) 查询）。</summary>
+    private Transform FindNearestEnemySpatial(SkillContext ctx)
     {
         if (ctx.Target != null) return ctx.Target;
 
-        var colliders = Physics.OverlapSphere(
-            ctx.Caster != null ? ctx.Caster.position : Vector3.zero, 20f);
+        var grid = SpatialHashGrid.Instance;
+        if (grid == null) return null;
 
-        Transform nearest = null;
-        var nearestDist = float.MaxValue;
+        var center = ctx.Caster != null ? ctx.Caster.position : Vector3.zero;
+        var selfId = ctx.Caster != null
+            ? ctx.Caster.GetComponent<ISpatialEntity>()?.EntityId ?? -1
+            : -1;
 
-        foreach (var col in colliders)
-        {
-            if (col.transform == ctx.Caster) continue;
-            var dmg = col.GetComponent<IDamageable>();
-            if (dmg == null) continue;
-            var dist = Vector3.Distance(
-                ctx.Caster != null ? ctx.Caster.position : Vector3.zero, col.transform.position);
-            if (dist < nearestDist) { nearestDist = dist; nearest = col.transform; }
-        }
-
-        return nearest;
+        var nearest = grid.QueryNearest(center, 20f, teamFilter: -1, excludeEntityId: selfId);
+        return (nearest as MonoBehaviour)?.transform;
     }
 }

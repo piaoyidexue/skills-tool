@@ -1,4 +1,3 @@
-using System.Collections;
 using UnityEngine;
 
 public class PlayVFXNode : SkillNode
@@ -77,35 +76,6 @@ public class PlayVFXNode : SkillNode
 
         manager.Play(request);
         return NodeTickResult.Success;
-    }
-
-    public override IEnumerator Execute(SkillContext ctx)
-    {
-        var manager = VFXManager.EnsureInstance();
-        if (manager == null) yield break;
-
-        var anchor = ctx.Target != null ? ctx.Target : ctx.Caster;
-        if (anchor == null) yield break;
-
-        var resolvedVfxKey = ResolveVfxKey(ctx);
-        if (string.IsNullOrWhiteSpace(resolvedVfxKey)) yield break;
-
-        var request = new VFXRequest
-        {
-            VFXKey = resolvedVfxKey,
-            StyleKey = styleKey.Resolve(ctx),
-            Position = anchor.position,
-            Direction = ResolveDirection(ctx),
-            Parent = ResolveParent(ctx),
-            ScaleMultiplier = scaleMultiplier.Resolve(ctx),
-            WidthMultiplier = widthMultiplier.Resolve(ctx),
-            Length = lengthOverride.Resolve(ctx),
-            Duration = durationOverride.Resolve(ctx),
-            Intensity = intensityMultiplier.Resolve(ctx)
-        };
-
-        manager.Play(request);
-        yield break;
     }
 
     private string ResolveVfxKey(SkillContext ctx)

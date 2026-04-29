@@ -1,4 +1,3 @@
-using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -51,23 +50,5 @@ public class TargetQueryNode : SkillNode
         }
 
         return NodeTickResult.Success;
-    }
-
-    public override IEnumerator Execute(SkillContext ctx)
-    {
-        var center = ctx.Caster != null ? ctx.Caster.position : Vector3.zero;
-        _results = QueryConfig.Execute(center, ctx.Caster, ctx);
-
-        ctx.Blackboard.SetValue(countKey, _results.Count);
-
-        if (_results.Count > 0)
-        {
-            if (updateContextTarget)
-            {
-                ctx.Target = _results[0];
-            }
-        }
-
-        yield break;
     }
 }

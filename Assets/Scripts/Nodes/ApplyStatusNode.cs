@@ -1,4 +1,3 @@
-using System.Collections;
 using UnityEngine;
 
 public class ApplyStatusNode : SkillNode
@@ -46,48 +45,6 @@ public class ApplyStatusNode : SkillNode
         }
 
         return NodeTickResult.Success;
-    }
-
-    public override IEnumerator Execute(SkillContext ctx)
-    {
-        var tags = statusTags.Resolve(ctx);
-        if (string.IsNullOrWhiteSpace(tags)) yield break;
-
-        if (append)
-        {
-            var existing = ctx.Blackboard.GetString(blackboardKey, string.Empty);
-            if (string.IsNullOrWhiteSpace(existing))
-                ctx.Blackboard.SetValue(blackboardKey, tags);
-            else if (!existing.Contains(tags)) ctx.Blackboard.SetValue(blackboardKey, existing + "|" + tags);
-        }
-        else
-        {
-            ctx.Blackboard.SetValue(blackboardKey, tags);
-        }
-
-        var receiver = ctx.Target != null ? ctx.Target.GetComponent<IStatusReceiver>() : null;
-        if (receiver != null)
-        {
-            foreach (var rawTag in tags.Split('|'))
-            {
-                var tag = rawTag.Trim();
-                if (string.IsNullOrWhiteSpace(tag))
-                {
-                    continue;
-                }
-
-                var duration = ResolveStatusDuration(tag);
-                receiver.ApplyStatus(new StatusRuntime
-                {
-                    Type = ToStatusType(tag),
-                    SourceTag = tag,
-                    Value = ResolveStatusValue(tag),
-                    Duration = duration,
-                    Remaining = duration,
-                    Instigator = ctx.Caster
-                });
-            }
-        }
     }
 
     private float ResolveStatusValue(string tag)

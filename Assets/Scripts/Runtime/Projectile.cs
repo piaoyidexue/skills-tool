@@ -1,11 +1,12 @@
 using System;
-using System.Collections;
+using Cysharp.Threading.Tasks;
 using UnityEngine;
 
 /// <summary>
 ///     投射物 MonoBehaviour —— 沿方向/目标飞行，命中后触发 VFX + 伤害，自动回收。
 ///     支持直线弹道 / 追踪弹道 / 抛物线（通过 trajectory 枚举）。
 ///     统一走对象池，禁止直接 Instantiate/Destroy。
+///     使用 UniTask 替代协程，0 GC。
 /// </summary>
 public class Projectile : MonoBehaviour
 {
@@ -228,13 +229,13 @@ public class Projectile : MonoBehaviour
             }
         }
 
-        // 延迟回收
-        StartCoroutine(FinishAfterDelay(0.15f));
+        // 延迟回收（UniTask 异步，无 GC）
+        FinishAfterDelayAsync(0.15f, this.GetCancellationTokenOnDestroy());
     }
 
-    private IEnumerator FinishAfterDelay(float delay)
+    private async UniTaskVoid FinishAfterDelayAsync(float delay, System.Threading.CancellationToken ct)
     {
-        yield return new WaitForSeconds(delay);
+        await UniTask.Delay(System.TimeSpan.FromSeconds(delay), cancellationToken: ct);
         Finish();
     }
 

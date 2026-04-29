@@ -1,4 +1,3 @@
-using System.Collections;
 using UnityEngine;
 
 /// <summary>
@@ -116,60 +115,6 @@ public class FinisherStagedNode : SkillNode
         }
 
         return NodeTickResult.Success;
-    }
-
-    public override IEnumerator Execute(SkillContext ctx)
-    {
-        var manager = VFXManager.EnsureInstance();
-        if (manager == null || ctx == null) yield break;
-
-        var anchor = ResolveAnchor(ctx);
-        var direction = ResolveDirection(ctx);
-        var parent = ResolveParent(ctx);
-
-        // --- Stage 1: Energy Absorb ---
-        var absorbKey = absorbVfxKey.Resolve(ctx);
-        if (!string.IsNullOrWhiteSpace(absorbKey))
-        {
-            var absorbRequest = new VFXRequest
-            {
-                VFXKey = absorbKey,
-                StyleKey = ctx.Config?.VFXProfileKey,
-                Position = anchor.position,
-                Direction = direction,
-                Parent = parent,
-                ScaleMultiplier = scaleMultiplier.Resolve(ctx) * 1.35f,
-                Duration = absorbDuration.Resolve(ctx),
-                Intensity = 1.2f
-            };
-
-            manager.Play(absorbRequest);
-
-            var waitTime = absorbRequest.Duration > 0f ? absorbRequest.Duration : 0.55f;
-            yield return new WaitForSeconds(waitTime);
-        }
-
-        // --- Stage 2: Burst ---
-        var burstKey = burstVfxKey.Resolve(ctx);
-        if (!string.IsNullOrWhiteSpace(burstKey))
-        {
-            var burstRequest = new VFXRequest
-            {
-                VFXKey = burstKey,
-                StyleKey = ctx.Config?.VFXProfileKey,
-                Position = anchor.position,
-                Direction = direction,
-                Parent = parent,
-                ScaleMultiplier = scaleMultiplier.Resolve(ctx) * 1.5f,
-                Duration = burstDuration.Resolve(ctx),
-                Intensity = 1.35f,
-                Length = ctx.Config?.Radius ?? 4f
-            };
-
-            manager.Play(burstRequest);
-        }
-
-        yield break;
     }
 
     private Transform ResolveAnchor(SkillContext ctx)

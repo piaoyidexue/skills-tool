@@ -1,6 +1,7 @@
 using System;
-using System.Collections;
 using System.Collections.Generic;
+using System.Threading;
+using Cysharp.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.Pool;
 using Object = UnityEngine.Object;
@@ -26,7 +27,11 @@ public class VFXObjectPool
 
     public bool TryPlay(VFXRequest request, float duration, MonoBehaviour host)
     {
-        if (_entries.TryGetValue(request.VFXKey, out var entry)) return entry.TryPlay(request, duration, host);
+        if (_entries.TryGetValue(request.VFXKey, out var entry))
+        {
+            var ct = host != null ? host.GetCancellationTokenOnDestroy() : CancellationToken.None;
+            return entry.TryPlay(request, duration, ct);
+        }
 
         return false;
     }
@@ -34,7 +39,7 @@ public class VFXObjectPool
     private interface IEntry
     {
         void Prewarm(int count);
-        bool TryPlay(VFXRequest request, float duration, MonoBehaviour host);
+        bool TryPlay(VFXRequest request, float duration, CancellationToken ct);
     }
 
     private sealed class ParticleEntry : IEntry
@@ -66,7 +71,7 @@ public class VFXObjectPool
             foreach (var item in list) _pool.Release(item);
         }
 
-        public bool TryPlay(VFXRequest request, float duration, MonoBehaviour host)
+        public bool TryPlay(VFXRequest request, float duration, CancellationToken ct)
         {
             var ps = _pool.Get();
             ps.transform.position = request.Position;
@@ -75,13 +80,13 @@ public class VFXObjectPool
                 : Quaternion.identity;
             ps.transform.SetParent(request.Parent);
             ps.Play(true);
-            host.StartCoroutine(ReleaseAfter(ps, duration));
+            ReleaseAfterAsync(ps, duration, ct);
             return true;
         }
 
-        private IEnumerator ReleaseAfter(ParticleSystem ps, float duration)
+        private async UniTaskVoid ReleaseAfterAsync(ParticleSystem ps, float duration, CancellationToken ct)
         {
-            yield return new WaitForSeconds(duration);
+            await UniTask.Delay(TimeSpan.FromSeconds(duration), cancellationToken: ct);
             _pool.Release(ps);
         }
     }
@@ -115,17 +120,17 @@ public class VFXObjectPool
             foreach (var item in list) _pool.Release(item);
         }
 
-        public bool TryPlay(VFXRequest request, float duration, MonoBehaviour host)
+        public bool TryPlay(VFXRequest request, float duration, CancellationToken ct)
         {
             var vfx = _pool.Get();
             vfx.Play(request);
-            host.StartCoroutine(ReleaseAfter(vfx, duration));
+            ReleaseAfterAsync(vfx, duration, ct);
             return true;
         }
 
-        private IEnumerator ReleaseAfter(VFXBase vfx, float duration)
+        private async UniTaskVoid ReleaseAfterAsync(VFXBase vfx, float duration, CancellationToken ct)
         {
-            yield return new WaitForSeconds(duration);
+            await UniTask.Delay(TimeSpan.FromSeconds(duration), cancellationToken: ct);
             _pool.Release(vfx);
         }
     }

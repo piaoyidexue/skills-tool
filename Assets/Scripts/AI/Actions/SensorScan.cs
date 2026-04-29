@@ -6,6 +6,7 @@ namespace SkillAI
 {
     /// <summary>
     ///     传感器扫描 —— 驱动 AI 传感器执行环境检测，更新黑板中的目标信息。
+    ///     完全依赖空间哈希网格（无 Physics.OverlapSphere 回退）。
     /// </summary>
     [Name("★ Sensor Scan")]
     [Category("Composites/AI/Actions")]
@@ -37,23 +38,6 @@ namespace SkillAI
             if (_sensor != null)
             {
                 _sensor.Scan();
-            }
-            else
-            {
-                // Fallback: 简单的球形检测
-                var range = blackboard.GetVariableValue<float>(AIBBKey.DetectionRange);
-                if (range <= 0) range = 10f;
-                var hits = Physics.OverlapSphere(agent.transform.position, range);
-                foreach (var hit in hits)
-                {
-                    if (hit.CompareTag("Enemy") || hit.CompareTag("Player"))
-                    {
-                        blackboard.SetVariableValue(AIBBKey.Target, hit.transform);
-                        blackboard.SetVariableValue(AIBBKey.TargetPosition, hit.transform.position);
-                        blackboard.SetVariableValue(AIBBKey.HasTarget, true);
-                        break;
-                    }
-                }
             }
 
             return Status.Success;

@@ -31,7 +31,7 @@ namespace Animancer.Examples.StateMachines.GameManager
             /************************************************************************************************************************/
 
             public override string DisplayText
-                => $"Wait for the ball to stop\nCurrent Speed: {_Ball.velocity.magnitude:0.00}m/s";
+                => $"Wait for the ball to stop\nCurrent Speed: {_Ball.linearVelocity.magnitude:0.00}m/s";
 
             /************************************************************************************************************************/
 

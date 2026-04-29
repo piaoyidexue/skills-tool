@@ -144,7 +144,7 @@ namespace Animancer.Examples.StateMachines.GameManager
                     break;
 
                 case State.Action:
-                    _Text.text = $"Wait for the ball to stop\nCurrent Speed: {_Ball.velocity.magnitude:0.00}m/s";
+                    _Text.text = $"Wait for the ball to stop\nCurrent Speed: {_Ball.linearVelocity.magnitude:0.00}m/s";
 
                     var targetRotation = Quaternion.LookRotation(_Ball.position - _Camera.position);
                     _Camera.rotation = Quaternion.Slerp(_Camera.rotation, targetRotation, _CameraTurnSpeedFactor * Time.deltaTime);

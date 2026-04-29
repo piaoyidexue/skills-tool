@@ -383,4 +383,5 @@ public class SandboxSpatialEntity : MonoBehaviour, ISpatialEntity
     public Vector3 Position { get; }
     public int TeamId { get; }
     public bool IsActive { get; }
+    public int EntityType { get; }
 }

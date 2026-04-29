@@ -1,5 +1,3 @@
-using System.Collections;
-
 public class ModifyFloatNode : SkillNode
 {
     public string outputKey = BBKey.DamageOverride;
@@ -29,12 +27,5 @@ public class ModifyFloatNode : SkillNode
         var result = inputValue.Resolve(ctx) * multiplier.Resolve(ctx) + additive.Resolve(ctx);
         ctx.Blackboard.SetValue(outputKey, result);
         return NodeTickResult.Success;
-    }
-
-    public override IEnumerator Execute(SkillContext ctx)
-    {
-        var result = inputValue.Resolve(ctx) * multiplier.Resolve(ctx) + additive.Resolve(ctx);
-        ctx.Blackboard.SetValue(outputKey, result);
-        yield break;
     }
 }

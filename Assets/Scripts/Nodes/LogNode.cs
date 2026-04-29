@@ -1,4 +1,3 @@
-using System.Collections;
 using UnityEngine;
 
 public class LogNode : SkillNode
@@ -9,11 +8,5 @@ public class LogNode : SkillNode
     {
         Debug.Log($"[SkillLog] {message.Resolve(ctx)}");
         return NodeTickResult.Success;
-    }
-
-    public override IEnumerator Execute(SkillContext ctx)
-    {
-        Debug.Log($"[SkillLog] {message.Resolve(ctx)}");
-        yield break;
     }
 }

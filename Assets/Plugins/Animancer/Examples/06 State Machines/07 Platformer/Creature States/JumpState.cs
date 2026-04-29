@@ -34,7 +34,7 @@ namespace Animancer.Examples.StateMachines.Platformer
 
         protected virtual void OnEnable()
         {
-            Creature.Rigidbody.velocity += new Vector2(0, CalculateJumpSpeed(_Height));
+            Creature.Rigidbody.linearVelocity += new Vector2(0, CalculateJumpSpeed(_Height));
 
             AnimancerState = Creature.Animancer.Play(_Animation);
         }

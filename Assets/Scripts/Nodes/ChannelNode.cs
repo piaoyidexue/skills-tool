@@ -1,4 +1,3 @@
-using System.Collections;
 using UnityEngine;
 
 /// <summary>
@@ -118,59 +117,6 @@ public class ChannelNode : SkillNode
             return null;
 
         return base.ResolveNextNode(ctx);
-    }
-
-    public override IEnumerator Execute(SkillContext ctx)
-    {
-        var duration = channelDuration.Resolve(ctx);
-        if (duration <= 0f)
-        {
-            yield break;
-        }
-
-        ctx.Blackboard.SetValue(BBKey.IsChanneling, true);
-        ctx.Blackboard.SetValue(BBKey.ChannelDuration, duration);
-
-        PlayChannelVFX(ctx);
-
-        var elapsed = 0f;
-        var nextTickTime = 0f;
-        var tickIndex = 0;
-
-        while (elapsed < duration)
-        {
-            if (ctx.IsInterrupted)
-            {
-                ctx.Blackboard.SetValue(BBKey.IsChanneling, false);
-                ctx.Blackboard.SetValue(BBKey.ChannelProgress, elapsed / Mathf.Max(duration, 0.01f));
-                ctx.Blackboard.SetValue(BBKey.ChannelTotalTicks, tickIndex);
-                ExecuteInterruptFallback(ctx, tickIndex);
-                yield break;
-            }
-
-            if (elapsed >= nextTickTime)
-            {
-                nextTickTime += tickInterval;
-                tickIndex++;
-                ctx.Blackboard.SetValue(BBKey.ChannelTick(tickIndex), true);
-
-                var tickDamage = (ctx.Config?.Damage ?? 0f) * tickDamageRate.Resolve(ctx);
-                ctx.Blackboard.SetValue(BBKey.DamageOverride, tickDamage);
-                ctx.Blackboard.SetValue(BBKey.ChannelCurrentTick, tickIndex);
-
-                ApplyTickDamage(ctx, tickDamage);
-            }
-
-            elapsed += Time.deltaTime;
-            ctx.Blackboard.SetValue(BBKey.ChannelProgress, Mathf.Clamp01(elapsed / Mathf.Max(duration, 0.01f)));
-            yield return null;
-        }
-
-        PlayFinishVFX(ctx);
-
-        ctx.Blackboard.SetValue(BBKey.IsChanneling, false);
-        ctx.Blackboard.SetValue(BBKey.ChannelProgress, 1f);
-        ctx.Blackboard.SetValue(BBKey.ChannelTotalTicks, tickIndex);
     }
 
     private void PlayChannelVFX(SkillContext ctx)

@@ -3,93 +3,103 @@ using UnityEngine;
 
 /// <summary>
 ///     伤害结算管道 —— 事件驱动的伤害计算系统。
-///     所有伤害结算经过此管道，GE 系统可在结算前后拦截修改。
-///     替代在节点中直接调用 IDamageable.TakeDamage() 的旧模式。
+///     流程：原始伤害 → PreCalculate → GE拦截(RaiseGameplayEvent) → Modifier计算 → PostCalculate → 施加
 /// </summary>
 public static class DamagePipeline
 {
-    /// <summary>
-    ///     计算并施加最终伤害（经过所有 GE Modifier 处理）。
-    /// </summary>
-    /// <param name="rawDamage">原始伤害值</param>
-    /// <param name="target">受击者</param>
-    /// <param name="instigator">施加者</param>
-    /// <param name="tags">额外 Tag（如暴击、元素类型等）</param>
-    /// <returns>实际造成的伤害值</returns>
+    public static event System.Action<GEEventContext> OnPreCalculate;
+    public static event System.Action<GEEventContext> OnPostCalculate;
+
     public static float CalculateAndApply(float rawDamage, Transform target, Transform instigator,
         params string[] tags)
     {
         if (target == null || rawDamage <= 0f) return 0f;
 
-        // 1. 获取目标上的 GE Host
         var host = target.GetComponent<GEHost>();
-        if (host == null)
-        {
-            // 无 GE 系统，直接施加伤害（回退到简单模式）
-            return ApplyDirectDamage(rawDamage, target, instigator);
-        }
+        var instigatorHost = instigator != null ? instigator.GetComponent<GEHost>() : null;
 
-        // 2. 检查 Tag 条件（例如：目标有 "Status.Chill"，火系伤害翻倍）
-        var multiplier = 1f;
-        var additive = 0f;
-
-        // 3. 遍历目标身上的 GE Modifier
-        foreach (var ge in host.ActiveEffects)
+        // 构造共享事件上下文
+        var ctx = new GEEventContext
         {
-            foreach (var mod in ge.Modifiers)
+            EventId = "DamageCalculate", Target = target,
+            Instigator = instigator, RawValue = rawDamage, Value = rawDamage
+        };
+        if (tags != null) ctx.Tags.AddRange(tags);
+
+        // 全局事件拦截
+        OnPreCalculate?.Invoke(ctx);
+
+        // GEHost 事件拦截（通过公开方法 RaiseGameplayEvent，共享 ctx）
+        host?.RaiseGameplayEvent(ctx);
+        instigatorHost?.RaiseGameplayEvent(ctx);
+
+        // 传统 Modifier 管道
+        var value = ctx.Value;
+        if (host != null)
+        {
+            var multiplier = 1f;
+            var additive = 0f;
+
+            foreach (var ge in host.ActiveEffects)
             {
-                switch (mod.Attribute)
+                foreach (var mod in ge.Modifiers)
                 {
-                    case GEAttribute.DamageTakenMultiplier:
-                        if (mod.Operation == GEModOp.Multiply)
-                            multiplier *= mod.Magnitude;
-                        else if (mod.Operation == GEModOp.Add)
-                            additive += mod.Magnitude;
-                        break;
+                    switch (mod.Attribute)
+                    {
+                        case GEAttribute.DamageTakenMultiplier:
+                            if (mod.Operation == GEModOp.Multiply) multiplier *= mod.Magnitude;
+                            else if (mod.Operation == GEModOp.Add) additive += mod.Magnitude;
+                            break;
+                        case GEAttribute.DamageDealtMultiplier:
+                            if (mod.Operation == GEModOp.Multiply) multiplier *= mod.Magnitude;
+                            break;
+                    }
+                }
 
-                    case GEAttribute.DamageDealtMultiplier:
-                        // 施加者身上的增伤
-                        if (mod.Operation == GEModOp.Multiply)
-                            multiplier *= mod.Magnitude;
-                        break;
+                foreach (var tag in tags)
+                {
+                    if (ge.GrantedTags.Contains(tag)) { multiplier *= 1.5f; break; }
                 }
             }
 
-            // Tag 匹配：如果传入的 tags 匹配 GE 的 GrantedTags，触发额外效果
-            foreach (var tag in tags)
-            {
-                if (ge.GrantedTags.Contains(tag))
-                {
-                    // 特殊 Tag 触发（如元素反应加成）
-                    multiplier *= 1.5f; // 默认元素反应 1.5 倍
-                    break;
-                }
-            }
+            value = (value + additive) * multiplier;
         }
 
-        var finalDamage = (rawDamage + additive) * multiplier;
-        finalDamage = Mathf.Max(1f, finalDamage);
+        value = Mathf.Max(1f, value);
+        ctx.Value = value;
 
-        // 4. 施加伤害
-        ApplyDirectDamage(finalDamage, target, instigator);
-        return finalDamage;
+        OnPostCalculate?.Invoke(ctx);
+
+        // 通知吸血/回馈等后置事件
+        host?.InvokeGameplayEvent("DamageApplied", value, instigator, tags);
+
+        ApplyDirectDamage(ctx.Value, target, instigator);
+        return ctx.Value;
     }
 
-    /// <summary>
-    ///     直接施加伤害（绕过 GE 系统）。
-    /// </summary>
+    public static float Preview(float rawDamage, Transform target, Transform instigator,
+        params string[] tags)
+    {
+        if (target == null || rawDamage <= 0f) return 0f;
+
+        var host = target.GetComponent<GEHost>();
+        var ctx = new GEEventContext
+        {
+            EventId = "DamagePreview", Target = target,
+            Instigator = instigator, RawValue = rawDamage, Value = rawDamage
+        };
+        if (tags != null) ctx.Tags.AddRange(tags);
+
+        OnPreCalculate?.Invoke(ctx);
+        host?.RaiseGameplayEvent(ctx);
+        return Mathf.Max(1f, ctx.Value);
+    }
+
     private static float ApplyDirectDamage(float damage, Transform target, Transform instigator)
     {
         var damageable = target.GetComponent<IDamageable>();
-        if (damageable == null)
-            damageable = target.GetComponentInParent<IDamageable>();
-
-        if (damageable != null)
-        {
-            damageable.TakeDamage(damage, instigator);
-            return damage;
-        }
-
+        if (damageable == null) damageable = target.GetComponentInParent<IDamageable>();
+        if (damageable != null) { damageable.TakeDamage(damage, instigator); return damage; }
         return 0f;
     }
 }

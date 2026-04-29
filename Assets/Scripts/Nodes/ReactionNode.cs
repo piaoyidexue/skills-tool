@@ -1,4 +1,3 @@
-using System.Collections;
 using UnityEngine;
 
 public class ReactionNode : SkillNode
@@ -35,29 +34,6 @@ public class ReactionNode : SkillNode
         }
 
         return NodeTickResult.Success;
-    }
-
-    public override IEnumerator Execute(SkillContext ctx)
-    {
-        var receiver = ctx.Target != null ? ctx.Target.GetComponent<IStatusReceiver>() : null;
-        var reaction = ResolveReaction(ctx, receiver);
-        var summary = reaction != null ? reaction.ReactionName : reactionSummary.Resolve(ctx);
-        ctx.Blackboard.SetValue(BBKey.ReactionSummary, summary);
-
-        if (writeDamageOverride)
-        {
-            var currentDamage =
-                ctx.Blackboard.GetFloat(BBKey.DamageOverride, ctx.Config != null ? ctx.Config.Damage : 0f);
-            var multiplier = reaction != null ? reaction.DamageMultiplier : damageMultiplier.Resolve(ctx);
-            ctx.Blackboard.SetValue(BBKey.DamageOverride, currentDamage * multiplier);
-        }
-
-        if (receiver != null && reaction != null)
-        {
-            ApplyReactionSideEffects(receiver, reaction);
-        }
-
-        yield break;
     }
 
     private ReactionConfig ResolveReaction(SkillContext ctx, IStatusReceiver receiver)

@@ -1,4 +1,3 @@
-using System.Collections;
 using System.Linq;
 using System;
 
@@ -67,40 +66,6 @@ public class ParallelNode : SkillNode
                 branch.Node.OnExit(ctx);
         }
         _branches.Clear();
-    }
-
-    public override IEnumerator Execute(SkillContext ctx)
-    {
-        var branchConns = SkillOutConnections
-            .Where(c => c.portName != null && c.portName.StartsWith("branches", StringComparison.Ordinal))
-            .ToList();
-
-        var branchCount = 0;
-        var completed = 0;
-
-        foreach (var conn in branchConns)
-        {
-            var next = conn.targetNode as SkillNode;
-            if (next == null) continue;
-
-            branchCount++;
-            SkillRunner.Instance.StartCoroutine(RunBranch(next, ctx, () => completed++));
-        }
-
-        ctx.Blackboard.SetValue(BBKey.BranchCount, (float)branchCount);
-
-        while (completed < branchCount) yield return null;
-    }
-
-    private System.Collections.IEnumerator RunBranch(SkillNode node, SkillContext ctx, Action onComplete)
-    {
-        var current = node;
-        while (current != null)
-        {
-            yield return current.Execute(ctx);
-            current = current.ResolveNextNode(ctx);
-        }
-        onComplete();
     }
 
     private class BranchState

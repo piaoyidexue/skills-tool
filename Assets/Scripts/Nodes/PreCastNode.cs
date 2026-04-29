@@ -1,4 +1,3 @@
-using System.Collections;
 using UnityEngine;
 
 /// <summary>
@@ -51,36 +50,6 @@ public class PreCastNode : SkillNode
         }
 
         return NodeTickResult.Success;
-    }
-
-    public override IEnumerator Execute(SkillContext ctx)
-    {
-        var duration = castTime.Resolve(ctx);
-
-        var vfxKey = preCastVfxKey.Resolve(ctx);
-        if (!string.IsNullOrWhiteSpace(vfxKey) && duration > 0f)
-        {
-            var manager = VFXManager.EnsureInstance();
-            if (manager != null && ctx.Caster != null)
-            {
-                manager.Play(new VFXRequest
-                {
-                    VFXKey = vfxKey,
-                    StyleKey = ctx.Config?.VFXProfileKey,
-                    Position = ctx.Caster.position,
-                    Parent = ctx.Caster,
-                    Duration = duration
-                });
-            }
-        }
-
-        if (ctx.IsInterrupted)
-        {
-            ExecuteInterruptFallback(ctx);
-            yield break;
-        }
-
-        yield break;
     }
 
     public override SkillNode ResolveNextNode(SkillContext ctx)
