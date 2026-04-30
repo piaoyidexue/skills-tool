@@ -1,5 +1,35 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
+--- !u!114 &-3983180573755056691
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fef7ac9782582cd498e1c419ef8c0e49, type: 3}
+  m_Name: ConditionNode
+  m_EditorClassIdentifier: Assembly-CSharp::ConditionNode
+  _nodeGuid: 304ef9de40d3ebb4e9937aba86e34f33
+  _position: {x: 320, y: 120}
+  _inputPortNames:
+  - input
+  _outputPortNames:
+  - truePort
+  - falsePort
+  _isBreakpoint: 0
+  mode: 2
+  compareMode: 0
+  bbKey: IsCrit
+  compareKey: LastDamage
+  threshold:
+    Source: 0
+    SkillField: 5
+    BlackboardKey: DamageOverride
+    LiteralValue: 0
+    DefaultValue: 0
 --- !u!114 &11400000
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -9,135 +39,120 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: d806ff6e468f4804e8bab31c8796e20e, type: 3}
+  m_Script: {fileID: 11500000, guid: 27773d9782edc754f9ac8e26070c55fd, type: 3}
   m_Name: Common_ExecuteCheck
-  m_EditorClassIdentifier: 
-  _serializedGraph: '{"type":"SkillGraph","nodes":[{"nodeGuid":"bfacd50f29e641c8b22a80d1f1d01d26","_inputPortNames":["input"],"_outputPortNames":["output"],"_position":{"x":80.0,"y":120.0},"$type":"StartNode","$id":"0"},{"mode":2,"threshold":{"SkillField":5},"nodeGuid":"73faf4b199ee4b91bdedbf95e613c9f0","_inputPortNames":["input"],"_outputPortNames":["truePort","falsePort"],"_position":{"x":320.0,"y":120.0},"$type":"ConditionNode","$id":"1"},{"nodeGuid":"3d45b54d11c642fcb9ca83041b9a528e","_inputPortNames":["input"],"_outputPortNames":["output"],"_position":{"x":580.0,"y":60.0},"$type":"ApplyEffectNode","$id":"2"},{"nodeGuid":"2bc3b55f34af4fca849e72fe2d2ac5d4","_inputPortNames":["input"],"_outputPortNames":["output"],"_position":{"x":820.0,"y":120.0},"$type":"EndNode","$id":"3"}],"connections":[{"_sourceNode":{"$ref":"0"},"_targetNode":{"$ref":"1"},"$type":"SkillConnection"},{"_portName":"truePort","_sourceNode":{"$ref":"1"},"_targetNode":{"$ref":"2"},"$type":"SkillConnection"},{"_portName":"falsePort","_sourceNode":{"$ref":"1"},"_targetNode":{"$ref":"3"},"$type":"SkillConnection"},{"_sourceNode":{"$ref":"2"},"_targetNode":{"$ref":"3"},"$type":"SkillConnection"}],"canvasGroups":[],"localBlackboard":{"_variables":{}}}'
-  _objectReferences: []
-  _graphSource:
-    _version: 3.05
-    _category: 
-    _comments: 
-    _translation: {x: 0, y: 0}
-    _zoomFactor: 1
-  _haltSerialization: 0
-  graphId: 2f4a8e1492ee425d8bd176ae2201b505
-#---GRAPH_START---
-#The pretty formatted json serialization bellow is only a reference to help in version control diff. Other than that it is not used at all.
-#{
-#    "type": "SkillGraph",
-#    "nodes": [
-#        {
-#            "nodeGuid": "bfacd50f29e641c8b22a80d1f1d01d26",
-#            "_inputPortNames": [
-#                "input"
-#            ],
-#            "_outputPortNames": [
-#                "output"
-#            ],
-#            "_position": {
-#                "x": 80.0,
-#                "y": 120.0
-#            },
-#            "$type": "StartNode",
-#            "$id": "0"
-#        },
-#        {
-#            "mode": 2,
-#            "threshold": {
-#                "SkillField": 5
-#            },
-#            "nodeGuid": "73faf4b199ee4b91bdedbf95e613c9f0",
-#            "_inputPortNames": [
-#                "input"
-#            ],
-#            "_outputPortNames": [
-#                "truePort",
-#                "falsePort"
-#            ],
-#            "_position": {
-#                "x": 320.0,
-#                "y": 120.0
-#            },
-#            "$type": "ConditionNode",
-#            "$id": "1"
-#        },
-#        {
-#            "nodeGuid": "3d45b54d11c642fcb9ca83041b9a528e",
-#            "_inputPortNames": [
-#                "input"
-#            ],
-#            "_outputPortNames": [
-#                "output"
-#            ],
-#            "_position": {
-#                "x": 580.0,
-#                "y": 60.0
-#            },
-#            "$type": "ApplyEffectNode",
-#            "$id": "2"
-#        },
-#        {
-#            "nodeGuid": "2bc3b55f34af4fca849e72fe2d2ac5d4",
-#            "_inputPortNames": [
-#                "input"
-#            ],
-#            "_outputPortNames": [
-#                "output"
-#            ],
-#            "_position": {
-#                "x": 820.0,
-#                "y": 120.0
-#            },
-#            "$type": "EndNode",
-#            "$id": "3"
-#        }
-#    ],
-#    "connections": [
-#        {
-#            "_sourceNode": {
-#                "$ref": "0"
-#            },
-#            "_targetNode": {
-#                "$ref": "1"
-#            },
-#            "$type": "SkillConnection"
-#        },
-#        {
-#            "_portName": "truePort",
-#            "_sourceNode": {
-#                "$ref": "1"
-#            },
-#            "_targetNode": {
-#                "$ref": "2"
-#            },
-#            "$type": "SkillConnection"
-#        },
-#        {
-#            "_portName": "falsePort",
-#            "_sourceNode": {
-#                "$ref": "1"
-#            },
-#            "_targetNode": {
-#                "$ref": "3"
-#            },
-#            "$type": "SkillConnection"
-#        },
-#        {
-#            "_sourceNode": {
-#                "$ref": "2"
-#            },
-#            "_targetNode": {
-#                "$ref": "3"
-#            },
-#            "$type": "SkillConnection"
-#        }
-#    ],
-#    "canvasGroups": [],
-#    "localBlackboard": {
-#        "_variables": {
-#
-#        }
-#    }
-#}
-#---GRAPH_END---
+  m_EditorClassIdentifier: Assembly-CSharp::SkillGraphAsset
+  graphId: bd490a804dff48d79006b36ff4bd8988
+  _nodes:
+  - {fileID: 3695368242795901988}
+  - {fileID: -3983180573755056691}
+  - {fileID: 7791749524452525354}
+  - {fileID: 1309038515784558690}
+  _edges:
+  - SourceNodeGuid: d101d1b8b5be974439a9d3d134b8eaa2
+    SourcePort: output
+    TargetNodeGuid: 304ef9de40d3ebb4e9937aba86e34f33
+    TargetPort: input
+  - SourceNodeGuid: 304ef9de40d3ebb4e9937aba86e34f33
+    SourcePort: truePort
+    TargetNodeGuid: 3b762b1a3de616a4887d8dbf44d105e8
+    TargetPort: input
+  - SourceNodeGuid: 3b762b1a3de616a4887d8dbf44d105e8
+    SourcePort: output
+    TargetNodeGuid: 1520909016c12e543a966e92f45d1ee8
+    TargetPort: input
+  - SourceNodeGuid: 304ef9de40d3ebb4e9937aba86e34f33
+    SourcePort: falsePort
+    TargetNodeGuid: 1520909016c12e543a966e92f45d1ee8
+    TargetPort: input
+--- !u!114 &1309038515784558690
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2195c972e71a3fd4a8277bff583f3084, type: 3}
+  m_Name: EndNode
+  m_EditorClassIdentifier: Assembly-CSharp::EndNode
+  _nodeGuid: 1520909016c12e543a966e92f45d1ee8
+  _position: {x: 820, y: 120}
+  _inputPortNames:
+  - input
+  _outputPortNames:
+  - output
+  _isBreakpoint: 0
+--- !u!114 &3695368242795901988
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 551f49b56a2d6324392c66b975cb256e, type: 3}
+  m_Name: StartNode
+  m_EditorClassIdentifier: Assembly-CSharp::StartNode
+  _nodeGuid: d101d1b8b5be974439a9d3d134b8eaa2
+  _position: {x: 80, y: 120}
+  _inputPortNames:
+  - input
+  _outputPortNames:
+  - output
+  _isBreakpoint: 0
+--- !u!114 &7791749524452525354
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 55d32cdda21801c4ab21c7ac5e1c1a42, type: 3}
+  m_Name: ApplyEffectNode
+  m_EditorClassIdentifier: Assembly-CSharp::ApplyEffectNode
+  _nodeGuid: 3b762b1a3de616a4887d8dbf44d105e8
+  _position: {x: 580, y: 60}
+  _inputPortNames:
+  - input
+  _outputPortNames:
+  - output
+  _isBreakpoint: 0
+  EffectData:
+    EffectId: 0
+    EffectName: 
+    DurationPolicy: 0
+    Duration: 0
+    Period: 0
+    BaseDamage: 0
+    BaseHealing: 0
+    ScalingFactor: 1
+    CritChanceBonus: 0
+    CritMultiplier: 2
+    GrantedTags: []
+    RequiredTargetTags: []
+    RequiredSourceTags: []
+    ImmuneTags: []
+    StackPolicy: 0
+    MaxStacks: 1
+    ImpactVFXKey: 
+    LoopVFXKey: 
+    RemoveVFXKey: 
+    SFXKey: 
+    IsAreaOfEffect: 0
+    AreaRadius: 0
+    AreaOffset: {x: 0, y: 0, z: 0}
+    AreaMaxTargets: 0
+    IgnoreInvulnerability: 0
+    BypassShields: 0
+    IsInterruptible: 0
+  EffectId: 0
+  AbilityLevel: 1
+  UseBlackboardTarget: 1
+  LastCalculatedDamage: 0
+  LastWasCriticalHit: 0
+  LastResult: 

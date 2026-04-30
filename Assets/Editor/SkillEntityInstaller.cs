@@ -10,11 +10,11 @@ public class SkillSystemBootstrapper : Editor
     private static void BootstrapAll()
     {
         EnsureFolder("Assets/Scripts");
-        EnsureFolder("Assets/Scripts/Data");
-        EnsureFolder("Assets/Scripts/Runtime");
-        EnsureFolder("Assets/Scripts/Graph");
-        EnsureFolder("Assets/Scripts/Nodes");
-        EnsureFolder("Assets/Scripts/VFX");
+        EnsureFolder("Assets/Scripts/Core/Data");
+        EnsureFolder("Assets/Scripts/SkillSystem/Runtime");
+        EnsureFolder("Assets/Scripts/SkillSystem/Graph");
+        EnsureFolder("Assets/Scripts/SkillSystem/Nodes");
+        EnsureFolder("Assets/Scripts/Presentation/VFX");
         EnsureFolder("Assets/Scripts/Editor");
         EnsureFolder("Assets/Scripts/Entity");
         EnsureFolder("Assets/Resources");

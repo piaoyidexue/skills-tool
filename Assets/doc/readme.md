@@ -32,7 +32,7 @@
 ├──────────────────────┤
 │  GAS 效果层          │ ← GameplayEffectData + EffectSystem + Modifier Pipeline + ReactionEngine
 ├──────────────────────┤
-│  Tick 运行时引擎     │ ← SkillTickManager + SkillCaster + SkillRunner（0 GC 驱动）
+│  Tick 运行时引擎     │ ← SkillTickManager + SkillCaster + SkillRunner + TimelineSkillRunner（0 GC 驱动）
 ├──────────────────────┤
 │  表现层 & AI 感知    │ ← VFXManager (对象池) + SpatialHashGrid + Burst Jobs
 └──────────────────────┘
@@ -52,87 +52,77 @@
 
 ## 2. 项目目录结构
 
+按 **架构层次 → 模块功能 → 生命周期** 三级划分，各模块内部保持统一的子目录模板：
+
 ```text
 Assets/
 ├── Scripts/
-│   ├── AI/                          # AI 行为树 + 感知系统（依赖 NodeCanvas）
-│   │   ├── Core/                    # AIController、AISensor、MinionBrain、SpatialHashGrid、AISensorJobSystem
-│   │   ├── Actions/                 # 8 个行为节点（Attack、Move、Flee、Idle…）
+│   ├── Core/                        # 基础设施层（跨模块共享，0 业务依赖）
+│   │   ├── Data/                    # ConfigLoader + 所有 CSV 数据映射类
+│   │   ├── Binding/                 # FloatBinding / StringBinding
+│   │   └── Tags/                    # GameplayTag + GameplayTagContainer
+│   │
+│   ├── SkillSystem/                 # 技能系统（自建技能图框架，无第三方依赖）
+│   │   ├── Graph/                   # SkillGraphAsset + SkillNodeBase + SkillEdge
+│   │   ├── Runtime/                 # 执行引擎：TickManager, Runner, Execution, Blackboard
+│   │   ├── Pipeline/                # 释放管线：SkillCaster, SkillContext, SkillTimeline
+│   │   ├── Nodes/                   # 技能节点（按生命周期/功能分组）
+│   │   │   ├── Flow/                # 流程控制：Start/End/Delay/Condition/Parallel/SubGraph
+│   │   │   ├── Casting/             # 释放管线：PreCast/Channel/PostCast
+│   │   │   ├── Animation/           # 动画同步：AnimationEventWaitNode
+│   │   │   ├── Combat/              # 战斗结算：Damage/ApplyStatus/Reaction/Resonance
+│   │   │   ├── GAS/                 # 效果应用：ApplyEffectNode
+│   │   │   ├── VFX/                 # 视觉表现：PlayVFX/Projectile/PaintTerrain
+│   │   │   └── Utility/             # 工具节点：Log/SetValue/ModifyFloat/RollChance...
+│   │   └── Editor/                  # 技能图编辑器：DebugWindow, Validator, Breakpoint
+│   │
+│   ├── GAS/                         # GameplayEffect 系统（状态驱动）
+│   │   ├── Core/                    # GEHost, GameplayEffectSystem, EffectSystem, EffectSpec
+│   │   ├── Pipeline/                # DamagePipeline, ReactionEngine
+│   │   ├── Attribute/               # IDamageable, HealthComponent
+│   │   ├── Status/                  # StatusType, StatusRuntime, IStatusReceiver
+│   │   ├── Event/                   # TagEventBus
+│   │   └── Terrain/                 # TerrainEffectSystem, TerrainRuntime
+│   │
+│   ├── EQS/                         # 环境查询系统（可插拔 Filter/Sorter）
+│   │   └── Core/                    # TargetQueryConfig, TargetFilter
+│   │
+│   ├── AI/                          # AI 行为树（NodeCanvas）
+│   │   ├── Core/                    # AIController, MinionBrain, 节点基类
+│   │   ├── Perception/              # SpatialHashGrid, AISensorJobSystem
+│   │   ├── Actions/                 # 8 个行为节点
 │   │   ├── Conditions/              # 7 个条件节点
-│   │   ├── Composites/              # PrioritizedSelector、ParallelAll
-│   │   ├── Decorators/              # Cooldown、TargetObserver
-│   │   ├── Data/                    # AITreeConfig（CSV 行）
-│   │   ├── Editor/                  # AIGraphMenu、AITreeGenerator、AITreeSyncPostprocessor
-│   │   └── Graph/                   # AIGraph 资产定义
+│   │   ├── Composites/              # 组合节点
+│   │   ├── Decorators/              # 装饰器节点
+│   │   ├── Data/                    # AITreeConfig
+│   │   ├── Graph/                   # AIGraph 资产定义
+│   │   └── Editor/                  # AIGraphMenu, AITreeGenerator
 │   │
-│   ├── Data/                        # SkillConfig、ConfigLoader（含 GameplayEffectData 加载）、FloatBinding、StringBinding
-│   │
-│   ├── Graph/                       # SkillGraphAsset（技能图容器）+ SkillNodeBase（节点基类）+ SkillEdge（有向边）
-│   │
-│   ├── Nodes/                       # 技能节点（继承 SkillNodeBase，GAS 架构版）
-│   │   ├── SkillNodeBase.cs        # 基类（ScriptableObject，实现 ISkillNodeLogic，Tick 驱动，NodeTickResult）
-│   │   ├── StartNode / EndNode / DelayNode / LogNode / ParallelNode
-│   │   ├── ConditionNode / SubGraphNode / SetValueNode
-│   │   ├── GAS/
-│   │   │   └── ApplyEffectNode.cs   # ★ 唯一战斗结算节点（CSV 驱动 GameplayEffectData）
-│   │   ├── PlayVFXNode / ProjectileNode / PaintTerrainNode
-│   │   ├── PreCastNode / ChannelNode / PostCastNode
-│   │   ├── FinisherStagedNode / RollChanceNode / ResonanceNode
-│   │   ├── AnimationEventWaitNode   # 动画事件等待
-│   │   └── [已废弃] DamageNode / ApplyStatusNode / ReactionNode / ModifyFloatNode
-│   │
-│   ├── Runtime/                     # 运行时核心
-│   │   ├── ISkillNodeLogic.cs       # ★ 逻辑执行接口（0 框架依赖，OnEnter/Tick/OnExit）
-│   │   ├── SkillRunner.cs           # 图执行器（Tick 驱动）
-│   │   ├── SkillCaster.cs           # 释放管线（CastStage 状态机）
-│   │   ├── SkillTickManager.cs      # 全局 Tick 调度
-│   │   ├── SkillContext.cs          # 单次释放上下文
-│   │   ├── SkillExecution.cs        # 执行实例（ISkillNodeLogic 驱动，暂停/单步/继续）
-│   │   ├── SkillExecutionFrame.cs   # 执行帧（子图栈，CurrentNode + CurrentLogic）
-│   │   ├── Blackboard.cs / BBKey.cs # 黑板系统（含 GAS 废弃键红线校验）
-│   │   ├── DebugRecorder.cs         # 执行记录与回放
-│   │   │
-│   │   ├── GameplayEffectSystem.cs  # GEHost + GEConfig + GameplayEffectInstance + AttributeSet + TagEventBus
-│   │   ├── GameplayEffectData.cs    # ★ 纯数据载体（CSV 驱动，禁止业务逻辑）
-│   │   ├── EffectSystem.cs          # ★ 效果派发中枢（Modifier 管线 + 反应处理器）
-│   │   ├── EffectContext.cs         # 效果上下文结构体
-│   │   ├── EffectSpec.cs            # 对象池化效果规格
-│   │   ├── DamagePipeline.cs        # 事件驱动伤害管道
-│   │   ├── GameplayTag.cs           # 分层级 GameplayTag + GameplayTagContainer
-│   │   │
-│   │   ├── TargetQueryConfig.cs     # EQS 查询配置（可插拔 Filter/Sorter）
-│   │   ├── TargetFilter.cs          # ITargetFilter / ITargetSorter 接口 + 内置实现
-│   │   │
-│   │   ├── SkillAnimatorController.cs # 动画→技能图桥接层
-│   │   ├── IDamageable.cs           # 伤害接口
-│   │   ├── Projectile.cs            # 投射物
-│   │   └── [已废弃] CombatStatusHost.cs # 被 GEHost 完全替代
-│   │
-│   ├── QA/                          # QA 测试模块
-│   │   ├── QAGalleryTestController.cs # 画廊 + 压力测试控制器
-│   │   ├── QAReactionMatrix.cs       # 元素反应矩阵穷举测试
-│   │   ├── QATargetDummy.cs         # QA 增强靶子（GEHost 驱动）
-│   │   ├── QAPerformanceMonitor.cs   # 实时性能监控
-│   │   ├── QADeadlockDetector.cs     # 死锁检测器
-│   │   ├── QAEQSDebugger.cs         # EQS 调试器
-│   │   ├── QAAITacticsSandbox.cs    # AI 战术沙盒
-│   │   └── QAFloatingText.cs        # 浮动跳字
-│   │
-│   ├── Editor/                      # 编辑器扩展
-│   │   ├── ElementLineGraphGenerator.cs
-│   │   ├── ElementLineSkillConfigGenerator.cs
-│   │   ├── SkillDebugWindow.cs
-│   │   ├── SkillGraphValidatorWindow.cs
-│   │   └── BreakpointDatabase.cs
+│   ├── Presentation/                # 表现层（只做展示，无业务逻辑）
+│   │   ├── VFX/
+│   │   │   ├── Core/                # VFXManager, ObjectPool, Base, Request
+│   │   │   └── Effects/             # 各特效实现（ArcBeam/Beam/Bulwark...）
+│   │   ├── Animation/               # SkillAnimatorController
+│   │   └── Projectiles/             # Projectile（飞行/命中/回收）
 │   │
 │   ├── Entity/                      # 实体组件
 │   │   ├── SkillOwner.cs
 │   │   └── TargetDummy.cs
 │   │
-│   └── VFX/                         # 特效模块
-│       ├── VFXManager.cs
-│       ├── VFXObjectPool.cs
-│       └── ElementLineVFXProfile.cs
+│   ├── QA/                          # QA 测试模块（零侵入）
+│   │   ├── QAGalleryTestController.cs
+│   │   ├── QAReactionMatrix.cs
+│   │   ├── QATargetDummy.cs
+│   │   ├── QAPerformanceMonitor.cs
+│   │   ├── QADeadlockDetector.cs
+│   │   ├── QAEQSDebugger.cs
+│   │   ├── QAAITacticsSandbox.cs
+│   │   └── QAFloatingText.cs
+│   │
+│   └── Editor/                      # 全局编辑器工具
+│       ├── Generators/              # 图/配置/VFX 生成器 + Postprocessor
+│       ├── Validators/              # 数据校验器
+│       └── Tools/                   # Dashboard 等综合面板
 │
 ├── Resources/
 │   ├── Config/                      # CSV 配置（单一数据源）
@@ -210,6 +200,28 @@ Assets/
 - **SpatialHashGrid**：O(1) 范围查询，替代 Physics.OverlapSphere
 - **Burst Job 并行**：`AISensorJobSystem` + `FOVDistanceJob`，FOV + 距离检测跑在多线程
 - 数据流：`SpatialHashGrid` 导出 `NativeArray<AIEntityNativeData>` → Job 并行计算 → 主线程回读
+
+### 3.7 混合编译架构（SkillBuilder → TimelineSkillRunner）
+
+为兼顾**配置灵活性**与**运行时性能**，技能系统引入可选的**编译时间轴**机制：
+
+```text
+SkillGraphAsset（编辑期描述）
+    ↓ SkillBuilder.Compile()
+SkillData（ScriptableObject，含时间轴 SkillStep[]）
+    ↓ TimelineSkillRunner.Start()
+按时间轴触发 SkillStep → SkillEffectData → EffectSystem / VFX / Animation
+```
+
+| 特性 | 说明 |
+|------|------|
+| **编译模式** | `FullTimeline`（全静态）、`Hybrid`（静动混合）、`FallbackOnly`（纯 Tick 回退） |
+| **可编译节点** | DamageNode、PlayVFXNode、ApplyEffectNode、SetValueNode → 生成 `SkillEffectData`；DelayNode / PreCastNode / PostCastNode → 贡献时间轴位移 |
+| **动态回退** | ConditionNode、RollChanceNode、AnimationEventWaitNode 标记为 `IsDynamic`，触发 `OnDynamicStep` 事件，由外部 Tick 解释器处理后回调 `ResumeAfterDynamic()` |
+| **0 GC 执行** | TimelineSkillRunner 纯数据驱动，无 IEnumerator，无反射，时间轴推进仅比较浮点数 |
+| **统一入口** | `EffectSystemDispatcher.Apply()` 将 `SkillEffectData` 映射到 `DamagePipeline` / `EffectSystem.ApplyEffect()` / `VFXManager.Play()` |
+
+**使用方式**：在 Project 窗口选中 `SkillGraphAsset` → 右键 `Skill System/Compile Selected Graph` → 生成 `Assets/Resources/SkillData/XXX_Data.asset`，运行时可通过 `TimelineSkillRunner` 直接加载执行。
 
 ---
 

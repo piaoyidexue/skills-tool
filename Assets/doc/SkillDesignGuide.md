@@ -28,6 +28,7 @@
 ├──────────────────────────────────────────────────┤
 │  第五层 — Tick 运行时引擎                          │
 │  SkillCaster / SkillTickManager / SkillRunner     │
+│  TimelineSkillRunner（混合架构时间轴执行器）        │
 │  → 状态机驱动释放管线，Blackboard 解耦节点间通信     │
 ├──────────────────────────────────────────────────┤
 │  第六层 — 表现 & AI 感知层                         │
@@ -343,16 +344,259 @@ PlayAnimNode  →  AnimationEventWaitNode(waitEvent="OnHit")  →  DamageNode
 
 ## 十、文件地图
 
+按 **架构层次 → 模块功能 → 生命周期** 三级划分后的目录：
+
 ```
 Assets/
 ├── Scripts/
-│   ├── Data/          ← SkillConfig、ConfigLoader、Binding
-│   ├── Nodes/         ← 24 种节点
-│   ├── Runtime/       ← SkillCaster、SkillRunner、GE 系统、EQS、动画同步
-│   ├── VFX/           ← VFX 模块
-│   ├── AI/            ← AI 行为树 + 感知（NodeCanvas）
-│   ├── Graph/         ← SkillGraphAsset + SkillNodeBase + SkillEdge（自建图框架）
-│   └── Editor/        ← 生成器、校验器、调试工具
-├── Resources/Config/  ← Skill.csv、Buff.csv、AITree.csv 等
-└── doc/               ← 本文档及其他说明文档
+│   ├── Core/                  ← 基础设施（Data / Binding / Tags）
+│   ├── SkillSystem/           ← 自建技能图框架
+│   │   ├── Graph/             ← SkillGraphAsset + SkillNodeBase + SkillEdge
+│   │   ├── Runtime/           ← TickManager, Runner, Execution, Blackboard
+│   │   ├── Pipeline/          ← SkillCaster, SkillContext, SkillTimeline
+│   │   ├── Nodes/             ← 24 种节点（按 Flow→Casting→Animation→Combat→GAS→VFX→Utility 分组）
+│   │   └── Editor/            ← 技能图编辑器工具
+│   ├── GAS/                   ← GameplayEffect 系统
+│   │   ├── Core/              ← GEHost, GameplayEffectSystem, EffectSystem
+│   │   ├── Pipeline/          ← DamagePipeline, ReactionEngine
+│   │   ├── Attribute/         ← IDamageable, HealthComponent
+│   │   ├── Status/            ← StatusType, StatusRuntime
+│   │   ├── Event/             ← TagEventBus
+│   │   └── Terrain/           ← TerrainEffectSystem
+│   ├── EQS/                   ← 目标查询系统
+│   │   └── Core/              ← TargetQueryConfig, TargetFilter
+│   ├── AI/                    ← AI 行为树（NodeCanvas）
+│   │   ├── Core/              ← AIController, MinionBrain
+│   │   ├── Perception/        ← SpatialHashGrid, AISensorJobSystem
+│   │   ├── Actions/           ← 行为节点
+│   │   ├── Conditions/        ← 条件节点
+│   │   ├── Composites/        ← 组合节点
+│   │   ├── Decorators/        ← 装饰器节点
+│   │   ├── Data/              ← AITreeConfig
+│   │   ├── Graph/             ← AIGraph
+│   │   └── Editor/            ← AI 编辑器工具
+│   ├── Presentation/          ← 表现层
+│   │   ├── VFX/               ← VFXManager, ObjectPool, 特效实现
+│   │   ├── Animation/         ← SkillAnimatorController
+│   │   └── Projectiles/       ← Projectile
+│   ├── Entity/                ← SkillOwner, TargetDummy
+│   ├── QA/                    ← QA 测试模块
+│   └── Editor/                ← 全局编辑器工具
+│       ├── Generators/        ← 代码/配置生成器
+│       ├── Validators/        ← 数据校验器
+│       └── Tools/             ← Dashboard 面板
+├── Resources/Config/          ← Skill.csv、Buff.csv、AITree.csv 等
+├── Resources/SkillData/       ← SkillBuilder 编译产物（SkillData ScriptableObject）
+└── doc/                       ← 本文档及其他说明文档
 ```
+
+---
+
+## 十一、混合编译架构（SkillBuilder → TimelineSkillRunner）
+
+### 11.1 设计目标
+
+在保留现有 **Tick 驱动节点图**（零 GC、高灵活性）的基础上，为**线性技能路径**提供可选的**预编译时间轴**执行路径：
+
+- **编辑期**：`SkillGraphAsset` 作为技能的唯一描述源（策划/设计师维护）
+- **编译期**：`SkillBuilder` 遍历图，将叶子节点编译为 `SkillEffectData`，按时间轴排序生成 `SkillStep[]`
+- **运行期**：`TimelineSkillRunner` 按时间轴推进，遇到动态节点时回退到现有 Tick 解释器
+
+### 11.2 核心数据结构
+
+#### SkillEffectData（纯数据效果描述）
+
+```csharp
+public struct SkillEffectData
+{
+    public SkillEffectType EffectType;   // Damage / Heal / ApplyBuff / PlayVFX / SetBlackboard / ...
+    public SkillEffectTargetMode TargetMode; // Caster / PrimaryTarget / EQSResults
+    public float BaseValue;              // 基础值（伤害/治疗/强度）
+    public float ValueMultiplier;        // 倍率
+    public string BuffKey;               // GE 配置 Key
+    public float Duration;               // 持续时间（Buff 或 VFX）
+    public int AbilityLevel;             // 技能等级（GE 数值缩放）
+    public string VFXKey;                // 特效资源 Key
+    public Vector3 VFXDirection;         // 特效方向
+    public float VFXScale;               // 特效缩放
+    public bool AttachToTarget;          // 是否附着目标
+    public string BlackboardKey;         // 黑板 Key
+    public string BlackboardValue;       // 黑板 Value（字符串形式）
+    // ... 其他扁平化字段
+}
+```
+
+- **零 GC**：不使用 `Dictionary`，所有参数为扁平字段，可直接序列化到 ScriptableObject
+- **工厂方法**：`CreateDamage()`、`CreateVFX()`、`CreateApplyBuff()`、`CreateSetBlackboard()`
+
+#### SkillStep（时间轴执行点）
+
+```csharp
+public class SkillStep
+{
+    public float TriggerTime;            // 触发时间（秒，相对于技能开始）
+    public List<SkillEffectData> Effects;// 同一时间点的并行效果
+    public bool IsDynamic;               // 是否为运行时动态节点（条件分支等）
+    public string SourceNodeGuid;        // 关联的原始图节点 GUID
+}
+```
+
+#### SkillData（编译产物）
+
+```csharp
+public class SkillData : ScriptableObject
+{
+    public int SkillId;
+    public string SkillName;
+    public SkillGraphAsset SourceGraph;  // 源图引用（用于变更检测）
+    public string SourceGraphHash;       // 图哈希（编译时校验）
+    public SkillCompileMode CompileMode; // FullTimeline / Hybrid / FallbackOnly
+    public bool HasDynamicNodes;
+    public List<SkillStep> Steps;        // 按 TriggerTime 排序的时间轴
+    public float TotalDuration;
+    public float PreCastTime;
+    public float PostCastTime;
+}
+```
+
+### 11.3 编译流程（SkillBuilder）
+
+```text
+SkillGraphAsset
+    ↓ GetStartNode()
+StartNode → TraverseAndCompile(node, state, result, compileCtx)
+    ↓ ResolveNextNode("output")
+    ├─ DelayNode        → state.CurrentTime += delayNode.GetTimelineDuration()
+    ├─ PreCastNode      → state.PreCastTime = preCast.GetTimelineDuration()
+    ├─ PostCastNode     → state.PostCastTime = postCast.GetTimelineDuration()
+    ├─ DamageNode       → node.Compile(ctx) → SkillEffectData.CreateDamage(...) → PendingStep
+    ├─ PlayVFXNode      → node.Compile(ctx) → SkillEffectData.CreateVFX(...) → PendingStep
+    ├─ ApplyEffectNode  → node.Compile(ctx) → SkillEffectData.CreateApplyBuff(...) → PendingStep
+    ├─ SetValueNode     → node.Compile(ctx) → SkillEffectData.CreateSetBlackboard(...) → PendingStep
+    ├─ ConditionNode    → 多输出分支 → 标记 IsDynamic + 继续遍历各分支（分析用）
+    └─ ...
+```
+
+**编译模式判定**：
+- `DynamicNodeCount == 0 && CompiledNodeCount > 0` → `FullTimeline`
+- `DynamicNodeCount > 0 && CompiledNodeCount > 0` → `Hybrid`
+- `CompiledNodeCount == 0` → `FallbackOnly`
+
+**编辑器入口**：`Assets/Skill System/Compile Selected Graph`（右键 SkillGraphAsset）
+
+### 11.4 执行流程（TimelineSkillRunner）
+
+```csharp
+public class TimelineSkillRunner
+{
+    public void Start(SkillData skillData, SkillContext context);
+    public void Tick(float deltaTime);   // 0 GC，纯数据比较
+    public void ResumeAfterDynamic();    // 动态节点处理完成后恢复
+}
+```
+
+**状态机**：`Idle → Running → [Paused / WaitingForDynamic] → Completed / Interrupted`
+
+**Tick 推进逻辑**：
+1. `_elapsedTime += deltaTime`
+2. `while (true)` 查找下一个未执行的 `SkillStep`
+3. 若 `step.IsDynamic` → 触发 `OnDynamicStep` 事件 → 进入 `WaitingForDynamic`
+4. 否则 `ExecuteStep(step)` → 遍历 `Effects` → 按 `EffectType` 分发给各 Dispatcher
+
+### 11.5 Effect 分发器
+
+| Dispatcher | 处理类型 | 映射目标 |
+|------------|---------|---------|
+| `EffectSystemDispatcher` | Damage / Heal / ApplyBuff / RemoveBuff / ModifyAttribute | `DamagePipeline.CalculateAndApply()` / `EffectSystem.ApplyEffect()` |
+| `PresentationDispatcher` | PlayVFX / PlaySFX / SpawnProjectile / ShakeCamera | `VFXManager.Play()` / Projectile 系统 |
+| `AnimationDispatcher` | PlayAnimation | `Animator.SetTrigger()` / `CrossFade()` |
+| `EQSQueryDispatcher` | EQSQuery | EQS 查询系统 |
+| `TerrainDispatcher` | PaintTerrain | TerrainEffectSystem |
+| `CustomEffectDispatcher` | Custom | 外部扩展事件 |
+
+### 11.6 动态回退机制
+
+当时间轴遇到**不可编译节点**（ConditionNode、RollChanceNode、AnimationEventWaitNode 等）时：
+
+1. `TimelineSkillRunner` 暂停时间轴，触发 `OnDynamicStep(step, resumeTime)`
+2. 外部处理器（如现有 `SkillTickManager`）接管，使用原始 `SkillGraphAsset` 从该节点继续 Tick 执行
+3. 动态段执行完毕后，调用 `ResumeAfterDynamic()`
+4. `TimelineSkillRunner` 从 `resumeTime` 继续推进后续时间轴
+
+**优势**：
+- 线性路径（80% 常见技能）享受 **0 GC 时间轴执行**
+- 复杂分支路径（20% 特殊技能）自动回退到 **Tick 解释器**，无需重写逻辑
+
+### 11.7 节点编译接口
+
+所有叶子节点已实现 `SkillNodeBase` 新增的编译虚方法：
+
+```csharp
+public abstract class SkillNodeBase : ScriptableObject
+{
+    public virtual bool CanCompile => false;                    // 是否可被编译
+    public virtual List<SkillEffectData> Compile(SkillContext ctx = null) { return null; }
+    public virtual float GetTimelineDuration() { return 0f; }   // 对时间轴的时间贡献
+}
+```
+
+**已支持编译的节点**：
+
+| 节点 | CanCompile | Compile 产物 | GetTimelineDuration |
+|------|-----------|-------------|---------------------|
+| **DamageNode** | `true` | `SkillEffectData.CreateDamage(rawDamage)` + `TagsToApply` | `0` |
+| **PlayVFXNode** | `true` | `SkillEffectData.CreateVFX(...)` 含方向/长度/宽度/持续时间 | `0` |
+| **ApplyEffectNode** | `true` | `SkillEffectData.CreateApplyBuff(...)` 含 AbilityLevel + Tags | `0` |
+| **SetValueNode** | `true` | `SkillEffectData.CreateSetBlackboard(key, value)` | `0` |
+| **DelayNode** | `false`（流程节点） | — | `delaySeconds.Resolve(null)` |
+| **PreCastNode** | `false`（流程节点） | — | `castTime.Resolve(null)` |
+| **PostCastNode** | `false`（流程节点） | — | `postCastTime.Resolve(null)` |
+
+### 11.8 使用示例
+
+**编译技能图**：
+
+```csharp
+// 编辑器中选中 SkillGraphAsset 右键编译
+// 或代码中调用：
+var result = SkillBuilder.Build(graph, skillId: 1001, skillName: "Fireball");
+if (result.Success)
+{
+    SkillBuilder.BuildAndSave(graph, "Assets/Resources/SkillData/Fireball_Data.asset", 1001);
+}
+```
+
+**运行时时间轴执行**：
+
+```csharp
+var skillData = Resources.Load<SkillData>("SkillData/Fireball_Data");
+var runner = new TimelineSkillRunner();
+runner.OnDynamicStep += (step, resumeTime) =>
+{
+    // 使用原始 Tick 解释器处理动态段
+    tickManager.ExecuteDynamicStep(step.SourceNodeGuid, context);
+    runner.ResumeAfterDynamic();
+};
+runner.Start(skillData, context);
+
+// 每帧调用
+runner.Tick(Time.deltaTime);
+```
+
+### 11.9 新增/修改文件清单
+
+| 文件 | 类型 | 说明 |
+|------|------|------|
+| `SkillSystem/Runtime/SkillEffectData.cs` | 新增 | 纯数据效果描述结构 |
+| `SkillSystem/Runtime/SkillStep.cs` | 新增 | 时间轴执行点 |
+| `SkillSystem/Runtime/SkillData.cs` | 新增 | 编译产物 ScriptableObject |
+| `SkillSystem/Editor/SkillBuilder.cs` | 新增 | Graph → SkillData 编译器 |
+| `SkillSystem/Runtime/TimelineSkillRunner.cs` | 新增 | 时间轴执行器 + Effect 分发器 |
+| `SkillSystem/Graph/SkillNodeBase.cs` | 修改 | 新增 `CanCompile`、`Compile()`、`GetTimelineDuration()` |
+| `SkillSystem/Nodes/Combat/DamageNode.cs` | 修改 | 新增 `CanCompile = true` + `Compile()` |
+| `SkillSystem/Nodes/VFX/PlayVFXNode.cs` | 修改 | 新增 `CanCompile = true` + `Compile()` |
+| `SkillSystem/Nodes/GAS/ApplyEffectNode.cs` | 修改 | 新增 `CanCompile = true` + `Compile()` |
+| `SkillSystem/Nodes/Utility/SetValueNode.cs` | 修改 | 新增 `CanCompile = true` + `Compile()` |
+| `SkillSystem/Nodes/Flow/DelayNode.cs` | 修改 | 新增 `GetTimelineDuration()` |
+| `SkillSystem/Nodes/Casting/PreCastNode.cs` | 修改 | 新增 `GetTimelineDuration()` |
+| `SkillSystem/Nodes/Casting/PostCastNode.cs` | 修改 | 新增 `GetTimelineDuration()` |
