@@ -5,16 +5,14 @@ using System;
 ///     并行节点 —— 同时执行所有分支，全部完成后从 "output" 端口继续。
 ///     使用命名端口系统：以 "branches" 开头的端口为并行分支，"output" 为主输出。
 /// </summary>
-public class ParallelNode : SkillNode
+public class ParallelNode : SkillNodeBase
 {
-    /// <summary>分支数量提示字段（仅供编辑器参考，运行时通过连接数确定）</summary>
+    /// <summary>分支数量提示字段（仅供编辑器参考，运行时通过边数确定）</summary>
     public int branchHint = 2;
 
-    // ---- 多端口配置 ----
-    public override int maxOutConnections => -1;
-
-    public ParallelNode()
+    protected override void OnEnable()
     {
+        base.OnEnable();
         SetPortNames(new[] { "input" }, new[] { "output" });
     }
 
@@ -23,19 +21,19 @@ public class ParallelNode : SkillNode
     public override void OnEnter(SkillContext ctx)
     {
         _branches.Clear();
-        var branchConns = SkillOutConnections
-            .Where(c => c.portName != null && c.portName.StartsWith("branches", StringComparison.Ordinal))
+        var branchEdges = GetOutputEdges()
+            .Where(e => e.SourcePort != null && e.SourcePort.StartsWith("branches", StringComparison.Ordinal))
             .ToList();
 
-        ctx.Blackboard.SetValue(BBKey.BranchCount, (float)branchConns.Count);
+        ctx.Blackboard.SetValue(BBKey.BranchCount, (float)branchEdges.Count);
 
-        foreach (var conn in branchConns)
+        foreach (var edge in branchEdges)
         {
-            var next = conn.targetNode as SkillNode;
+            var next = OwningGraph.FindNodeByGuid(edge.TargetNodeGuid) as SkillNodeBase;
             if (next == null) continue;
 
-            var state = new BranchState { Node = next, Status = NodeTickResult.Running };
             next.OnEnter(ctx);
+            var state = new BranchState { Logic = next.Logic, Status = NodeTickResult.Running };
             _branches.Add(state);
         }
     }
@@ -49,7 +47,7 @@ public class ParallelNode : SkillNode
             var branch = _branches[i];
             if (branch.Status == NodeTickResult.Running)
             {
-                branch.Status = branch.Node.Tick(ctx, deltaTime);
+                branch.Status = branch.Logic.Tick(ctx, deltaTime);
                 if (branch.Status == NodeTickResult.Running)
                     allDone = false;
             }
@@ -63,14 +61,15 @@ public class ParallelNode : SkillNode
         foreach (var branch in _branches)
         {
             if (branch.Status == NodeTickResult.Running)
-                branch.Node.OnExit(ctx);
+                branch.Logic.OnExit(ctx);
         }
         _branches.Clear();
     }
 
     private class BranchState
     {
-        public SkillNode Node;
+        /// <summary>分支节点的逻辑接口（0 框架依赖，执行引擎使用）</summary>
+        public ISkillNodeLogic Logic;
         public NodeTickResult Status;
     }
 }

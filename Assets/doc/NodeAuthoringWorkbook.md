@@ -2,14 +2,14 @@
 
 ## 目标
 
-使用当前工程中的 `CanvasCore + CSV + GE + EQS` 运行时，快速搭建技能图。
+使用当前工程中的 `自建技能图框架 + CSV + GE + EQS` 运行时，快速搭建技能图。
 
 ## 最短制作路径
 
 1. 在 `Resources/Config/SkillRecipe.csv` 中挑选一条技能配方
 2. 查看其对应的 `node_preset_id`
 3. 自动生成器已预先创建了图，路径为 `Resources/SkillGraphs/ElementLine/Recipes/{RecipeId}_{Recipe}.asset`
-4. 在 CanvasCore 编辑器中打开，所有节点已预连线
+4. 在 Inspector / 自定义编辑器中打开，所有节点已预连线
 5. 仅在行为确实需要变更时，才调整绑定覆盖和 Blackboard 键名
 6. 运行 `Tools/Skills/Validate Graph` 校验
 7. 进入运行模式，打开 `Tools/Skills/Debug Window`

@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d806ff6e468f4804e8bab31c8796e20e, type: 3}
   m_Name: Common_ExecuteCheck
   m_EditorClassIdentifier: 
-  _serializedGraph: '{"type":"SkillGraph","nodes":[{"nodeGuid":"ed50a3682d02436faac4130933c0ba3a","_inputPortNames":["input"],"_outputPortNames":["output"],"_position":{"x":80.0,"y":120.0},"$type":"StartNode","$id":"0"},{"mode":2,"threshold":{"SkillField":5},"nodeGuid":"2a221932c49847bc9731cb021cdc0824","_inputPortNames":["input"],"_outputPortNames":["truePort","falsePort"],"_position":{"x":320.0,"y":120.0},"$type":"ConditionNode","$id":"1"},{"reactionSummary":{"LiteralValue":"\u516c\u5171\u5b50\u56fe\uff1a\u5904\u51b3\u6821\u9a8c"},"damageMultiplier":{"Source":2,"LiteralValue":2.0,"DefaultValue":1.5},"nodeGuid":"d8409b49045842e6a7d0a054b2f52709","_inputPortNames":["input"],"_outputPortNames":["output"],"_position":{"x":580.0,"y":60.0},"$type":"ReactionNode","$id":"2"},{"nodeGuid":"937083aa7b3f438daa25d16b8735f710","_inputPortNames":["input"],"_outputPortNames":["output"],"_position":{"x":820.0,"y":120.0},"$type":"EndNode","$id":"3"}],"connections":[{"_sourceNode":{"$ref":"0"},"_targetNode":{"$ref":"1"},"$type":"SkillConnection"},{"_portName":"truePort","_sourceNode":{"$ref":"1"},"_targetNode":{"$ref":"2"},"$type":"SkillConnection"},{"_portName":"falsePort","_sourceNode":{"$ref":"1"},"_targetNode":{"$ref":"3"},"$type":"SkillConnection"},{"_sourceNode":{"$ref":"2"},"_targetNode":{"$ref":"3"},"$type":"SkillConnection"}],"canvasGroups":[],"localBlackboard":{"_variables":{}}}'
+  _serializedGraph: '{"type":"SkillGraph","nodes":[{"nodeGuid":"bfacd50f29e641c8b22a80d1f1d01d26","_inputPortNames":["input"],"_outputPortNames":["output"],"_position":{"x":80.0,"y":120.0},"$type":"StartNode","$id":"0"},{"mode":2,"threshold":{"SkillField":5},"nodeGuid":"73faf4b199ee4b91bdedbf95e613c9f0","_inputPortNames":["input"],"_outputPortNames":["truePort","falsePort"],"_position":{"x":320.0,"y":120.0},"$type":"ConditionNode","$id":"1"},{"nodeGuid":"3d45b54d11c642fcb9ca83041b9a528e","_inputPortNames":["input"],"_outputPortNames":["output"],"_position":{"x":580.0,"y":60.0},"$type":"ApplyEffectNode","$id":"2"},{"nodeGuid":"2bc3b55f34af4fca849e72fe2d2ac5d4","_inputPortNames":["input"],"_outputPortNames":["output"],"_position":{"x":820.0,"y":120.0},"$type":"EndNode","$id":"3"}],"connections":[{"_sourceNode":{"$ref":"0"},"_targetNode":{"$ref":"1"},"$type":"SkillConnection"},{"_portName":"truePort","_sourceNode":{"$ref":"1"},"_targetNode":{"$ref":"2"},"$type":"SkillConnection"},{"_portName":"falsePort","_sourceNode":{"$ref":"1"},"_targetNode":{"$ref":"3"},"$type":"SkillConnection"},{"_sourceNode":{"$ref":"2"},"_targetNode":{"$ref":"3"},"$type":"SkillConnection"}],"canvasGroups":[],"localBlackboard":{"_variables":{}}}'
   _objectReferences: []
   _graphSource:
     _version: 3.05
@@ -28,7 +28,7 @@ MonoBehaviour:
 #    "type": "SkillGraph",
 #    "nodes": [
 #        {
-#            "nodeGuid": "ed50a3682d02436faac4130933c0ba3a",
+#            "nodeGuid": "bfacd50f29e641c8b22a80d1f1d01d26",
 #            "_inputPortNames": [
 #                "input"
 #            ],
@@ -47,7 +47,7 @@ MonoBehaviour:
 #            "threshold": {
 #                "SkillField": 5
 #            },
-#            "nodeGuid": "2a221932c49847bc9731cb021cdc0824",
+#            "nodeGuid": "73faf4b199ee4b91bdedbf95e613c9f0",
 #            "_inputPortNames": [
 #                "input"
 #            ],
@@ -63,15 +63,7 @@ MonoBehaviour:
 #            "$id": "1"
 #        },
 #        {
-#            "reactionSummary": {
-#                "LiteralValue": "\u516c\u5171\u5b50\u56fe\uff1a\u5904\u51b3\u6821\u9a8c"
-#            },
-#            "damageMultiplier": {
-#                "Source": 2,
-#                "LiteralValue": 2.0,
-#                "DefaultValue": 1.5
-#            },
-#            "nodeGuid": "d8409b49045842e6a7d0a054b2f52709",
+#            "nodeGuid": "3d45b54d11c642fcb9ca83041b9a528e",
 #            "_inputPortNames": [
 #                "input"
 #            ],
@@ -82,11 +74,11 @@ MonoBehaviour:
 #                "x": 580.0,
 #                "y": 60.0
 #            },
-#            "$type": "ReactionNode",
+#            "$type": "ApplyEffectNode",
 #            "$id": "2"
 #        },
 #        {
-#            "nodeGuid": "937083aa7b3f438daa25d16b8735f710",
+#            "nodeGuid": "2bc3b55f34af4fca849e72fe2d2ac5d4",
 #            "_inputPortNames": [
 #                "input"
 #            ],

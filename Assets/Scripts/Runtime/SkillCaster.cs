@@ -88,7 +88,7 @@ public class SkillCaster : MonoBehaviour, IInterruptible
     private CastPipelineState _pipelineState;
     private float _pipelineTimer;
     private SkillConfig _pipelineConfig;
-    private SkillGraph _pipelineGraph;
+    private SkillGraphAsset _pipelineGraph;
 
     public CastStage CurrentStage { get; private set; } = CastStage.Idle;
     public InterruptReason LastInterruptReason { get; private set; }
@@ -282,7 +282,7 @@ public class SkillCaster : MonoBehaviour, IInterruptible
         return true;
     }
 
-    private void StartTickPipeline(SkillConfig config, SkillGraph graph)
+    private void StartTickPipeline(SkillConfig config, SkillGraphAsset graph)
     {
         _pipelineConfig = config;
         _pipelineGraph = graph;
@@ -398,11 +398,11 @@ public class SkillCaster : MonoBehaviour, IInterruptible
         _activeSkillId = 0;
     }
 
-    private SkillGraph ResolveGraph(SkillConfig config)
+    private SkillGraphAsset ResolveGraph(SkillConfig config)
     {
         if (!string.IsNullOrWhiteSpace(config.GraphPath))
         {
-            var resourceGraph = Resources.Load<SkillGraph>(config.GraphPath);
+            var resourceGraph = Resources.Load<SkillGraphAsset>(config.GraphPath);
             if (resourceGraph != null) return resourceGraph;
         }
 

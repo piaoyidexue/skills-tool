@@ -1,8 +1,8 @@
 using UnityEngine;
 
-public class SubGraphNode : SkillNode
+public class SubGraphNode : SkillNodeBase
 {
-    public SkillGraph subGraph;
+    public SkillGraphAsset subGraph;
 
     public override NodeTickResult Tick(SkillContext ctx, float deltaTime)
     {

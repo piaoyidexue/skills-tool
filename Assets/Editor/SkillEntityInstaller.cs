@@ -1,4 +1,6 @@
+using System;
 using System.IO;
+using System.Reflection;
 using UnityEditor;
 using UnityEngine;
 
@@ -81,6 +83,65 @@ public class SkillSystemBootstrapper : Editor
 
         AssetDatabase.Refresh();
         Debug.Log("[SkillSystemBootstrapper] Bootstrap complete. Existing runtime code was preserved.");
+    }
+
+    /// <summary>
+    ///     为场景中的所有战斗实体自动安装 GAS 架构组件。
+    ///     确保每个实体都挂载 GEHost（Tag Container + Effect 管理），
+    ///     移除旧的 CombatStatusHost（已废弃）。
+    /// </summary>
+    [MenuItem("Tools/Skills/Install GEHost on All Entities")]
+    private static void InstallGEHostOnAllEntities()
+    {
+        var count = 0;
+        // 查找所有可能需要 GEHost 的实体
+        foreach (var obj in FindObjectsOfType<MonoBehaviour>())
+        {
+            var go = obj.gameObject;
+
+            // 跳过已有 GEHost 的实体
+            if (go.GetComponent<GEHost>() != null) continue;
+
+            // 检测是否是需要 GEHost 的实体类型
+            var needsHost = obj is IDamageable
+                || obj is IStatusReceiver
+                || go.GetComponent<HealthComponent>() != null
+                || go.GetComponent<SkillOwner>() != null;
+
+            if (!needsHost) continue;
+
+            // 添加 GEHost
+            go.AddComponent<GEHost>();
+            count++;
+            Debug.Log($"[SkillEntityInstaller] Added GEHost to {go.name}");
+        }
+
+        // 移除旧的 CombatStatusHost（通过反射避免直接引用已废弃类型）
+        var combatStatusHostType = Type.GetType("CombatStatusHost, Assembly-CSharp");
+        if (combatStatusHostType != null)
+        {
+            var findMethod = typeof(UnityEngine.Object).GetMethod("FindObjectsOfType", new Type[] { typeof(Type) });
+            if (findMethod != null)
+            {
+                var oldObjects = findMethod.Invoke(null, new object[] { combatStatusHostType }) as UnityEngine.Object[];
+                if (oldObjects != null)
+                {
+                    foreach (var old in oldObjects)
+                    {
+                        if (old is MonoBehaviour mb)
+                        {
+                            Debug.LogWarning($"[SkillEntityInstaller] Removing deprecated CombatStatusHost from {mb.gameObject.name}. Use GEHost instead.");
+                            DestroyImmediate(mb);
+                        }
+                    }
+                }
+            }
+        }
+
+        if (count > 0)
+            Debug.Log($"[SkillEntityInstaller] Installed GEHost on {count} entities.");
+        else
+            Debug.Log("[SkillEntityInstaller] All entities already have GEHost.");
     }
 
     private static void EnsureFolder(string folderPath)

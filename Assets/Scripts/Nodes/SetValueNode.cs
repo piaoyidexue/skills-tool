@@ -1,4 +1,4 @@
-public class SetValueNode : SkillNode
+public class SetValueNode : SkillNodeBase
 {
     public enum ValueType
     {

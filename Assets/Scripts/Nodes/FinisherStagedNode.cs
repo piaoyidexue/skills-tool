@@ -5,7 +5,7 @@ using UnityEngine;
 ///     Stage 1: 播放吸能特效，能量从周围向目标中心塌缩。
 ///     Stage 2: 吸能完成后立即播放终结爆发特效。
 /// </summary>
-public class FinisherStagedNode : SkillNode
+public class FinisherStagedNode : SkillNodeBase
 {
     public enum StagedDirectionMode { CasterToTarget, TargetForward, CustomDirection }
     public enum TransformBinding { World, Target, Caster }

@@ -13,6 +13,9 @@ public static class ConfigLoader
     private static readonly Dictionary<string, TerrainConfig> TerrainConfigs = new(StringComparer.OrdinalIgnoreCase);
     private static readonly Dictionary<string, VFXArtProfileConfig> VfxArtProfiles = new(StringComparer.OrdinalIgnoreCase);
 
+    /// <summary>GAS 架构：GameplayEffectData 配置字典，effect_id → GameplayEffectData</summary>
+    private static readonly Dictionary<int, GameplayEffectData> GameplayEffectConfigs = new();
+
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
     public static void Initialize()
     {
@@ -25,11 +28,12 @@ public static class ConfigLoader
         LoadSkillVisualsFromCsv();
         LoadBuffsFromCsv();
         LoadEffectsFromCsv();
+        LoadGameplayEffectsFromCsv();
         LoadReactionsFromCsv();
         LoadTerrainsFromCsv();
         LoadVfxArtProfilesFromCsv();
         Debug.Log(
-            $"[ConfigLoader] Reload complete. Skills={SkillConfigs.Count}, Buffs={BuffConfigs.Count}, Effects={EffectConfigs.Count}, Reactions={ReactionConfigs.Count}, Terrains={TerrainConfigs.Count}, VFXProfiles={VfxArtProfiles.Count}");
+            $"[ConfigLoader] Reload complete. Skills={SkillConfigs.Count}, Buffs={BuffConfigs.Count}, Effects={EffectConfigs.Count}, GameplayEffects={GameplayEffectConfigs.Count}, Reactions={ReactionConfigs.Count}, Terrains={TerrainConfigs.Count}, VFXProfiles={VfxArtProfiles.Count}");
     }
 
     public static SkillConfig GetSkillConfig(int id)
@@ -96,6 +100,25 @@ public static class ConfigLoader
         VfxArtProfiles.TryGetValue(profileKey, out var cfg);
         return cfg;
     }
+
+    /// <summary>
+    ///     根据 effect_id 获取 GameplayEffectData 配置。
+    ///     GAS 架构核心接口：ApplyEffectNode 通过此方法将 CSV 配置解析为运行时数据。
+    /// </summary>
+    public static GameplayEffectData GetGameplayEffectData(int effectId)
+    {
+        GameplayEffectConfigs.TryGetValue(effectId, out var data);
+        return data;
+    }
+
+    /// <summary>获取所有 GameplayEffectData 配置</summary>
+    public static IReadOnlyList<GameplayEffectData> GetAllGameplayEffectDatas()
+    {
+        return GameplayEffectConfigs.Values.OrderBy(d => d.EffectId).ToList();
+    }
+
+    /// <summary>公开的反应配置字典（用于编辑器工具和测试沙盒）。</summary>
+    public static IReadOnlyDictionary<string, ReactionConfig> GetAllReactionConfigs() => ReactionConfigs;
 
     private static void LoadSkillsFromCsv()
     {
@@ -219,6 +242,65 @@ public static class ConfigLoader
 
             EffectConfigs[cfg.EffectID] = cfg;
         });
+    }
+
+    private static void LoadGameplayEffectsFromCsv()
+    {
+        GameplayEffectConfigs.Clear();
+
+        var csv = LoadConfigText("GameplayEffect");
+        if (csv == null)
+        {
+            Debug.LogWarning("[ConfigLoader] Missing GameplayEffect.csv.");
+            return;
+        }
+
+        ForEachRow(csv.text, row =>
+        {
+            var data = new GameplayEffectData
+            {
+                EffectId = ParseInt(row, "effect_id"),
+                EffectName = GetString(row, "effect_name"),
+                DurationPolicy = (GEDurationPolicy)ParseInt(row, "duration_policy"),
+                Duration = ParseFloat(row, "duration"),
+                Period = ParseFloat(row, "period"),
+                BaseDamage = ParseFloat(row, "base_damage"),
+                CritChanceBonus = ParseFloat(row, "crit_chance_bonus"),
+                CritMultiplier = ParseFloat(row, "crit_multiplier", 2f),
+                StackPolicy = (GEStackPolicy)ParseInt(row, "stack_policy"),
+                MaxStacks = ParseInt(row, "max_stacks", 1),
+                IsAreaOfEffect = GetString(row, "is_area_of_effect").ToLowerInvariant() == "true",
+                AreaRadius = ParseFloat(row, "area_radius"),
+                AreaMaxTargets = ParseInt(row, "area_max_targets"),
+                BypassShields = GetString(row, "bypass_shields").ToLowerInvariant() == "true",
+                IgnoreInvulnerability = GetString(row, "ignore_invulnerability").ToLowerInvariant() == "true",
+                GrantedTags = ParseTagList(row, "granted_tags"),
+                RequiredTargetTags = ParseTagList(row, "required_target_tags"),
+                ImmuneTags = ParseTagList(row, "immune_tags")
+            };
+
+            if (data.EffectId > 0)
+            {
+                GameplayEffectConfigs[data.EffectId] = data;
+            }
+        });
+    }
+
+    /// <summary>解析管道符分隔的标签列表（如 burn|chill|conductive）</summary>
+    private static List<string> ParseTagList(IReadOnlyDictionary<string, string> row, string key)
+    {
+        var raw = GetString(row, key);
+        if (string.IsNullOrWhiteSpace(raw)) return new List<string>();
+
+        var tags = raw.Split('|', StringSplitOptions.RemoveEmptyEntries);
+        var result = new List<string>();
+        foreach (var tag in tags)
+        {
+            var trimmed = tag.Trim();
+            if (!string.IsNullOrEmpty(trimmed)) result.Add(trimmed);
+        }
+
+        return result;
     }
 
     private static void LoadReactionsFromCsv()

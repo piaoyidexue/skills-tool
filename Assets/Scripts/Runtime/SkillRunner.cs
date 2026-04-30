@@ -32,7 +32,7 @@ public class SkillRunner : MonoBehaviour
     ///     启动技能图执行（Tick 驱动模式）。
     ///     注册到全局 SkillTickManager，每帧自动推进。
     /// </summary>
-    public SkillExecution RunSkillTick(SkillGraph graph, SkillContext ctx)
+    public SkillExecution RunSkillTick(SkillGraphAsset graph, SkillContext ctx)
     {
         if (_tickManager == null)
         {

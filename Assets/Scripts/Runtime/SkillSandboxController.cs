@@ -138,7 +138,7 @@ public class SkillSandboxController : MonoBehaviour
             return;
         }
 
-        var graph = Resources.Load<SkillGraph>(config.GraphPath);
+        var graph = Resources.Load<SkillGraphAsset>(config.GraphPath);
         if (graph == null)
         {
             Debug.LogError($"[SkillSandbox] Skill graph not found: {config.GraphPath}");
@@ -156,9 +156,7 @@ public class SkillSandboxController : MonoBehaviour
         // 构建上下文（使用带参构造函数，确保 SkillID / Config 正确初始化）
         var context = new SkillContext(config.SkillID, _caster.transform, target.transform);
 
-        // 注入技能配置数据到黑板
-        context.Blackboard.SetValue(BBKey.DamagePercent, config.DamageRate);
-        context.Blackboard.SetValue(BBKey.CritChance, config.CritChance);
+        // GAS架构：DamageRate/CritChance 由 GameplayEffectData 携带，不再注入黑板
 
         Debug.Log($"[SkillSandbox] Executing: {config.SkillName} (ID={config.SkillID}) → Target={target.name}");
 

@@ -27,7 +27,7 @@ public class SkillGraphValidationTests
 
             if (!string.IsNullOrWhiteSpace(config.GraphPath))
             {
-                var graph = Resources.Load<SkillGraph>(config.GraphPath);
+                var graph = Resources.Load<SkillGraphAsset>(config.GraphPath);
                 Assert.NotNull(graph,
                     $"Skill '{config.SkillName}' (ID={config.SkillID}) graph not found at path: {config.GraphPath}");
             }
@@ -47,19 +47,17 @@ public class SkillGraphValidationTests
         {
             if (string.IsNullOrWhiteSpace(config.GraphPath)) continue;
 
-            var graph = Resources.Load<SkillGraph>(config.GraphPath);
+            var graph = Resources.Load<SkillGraphAsset>(config.GraphPath);
             if (graph == null) continue;
 
             var startNode = graph.GetStartNode();
             Assert.NotNull(startNode,
                 $"Skill '{config.SkillName}' (ID={config.SkillID}) has no StartNode.");
 
-            // 检查所有节点连接关系
-            var allNodes = graph.allNodes.OfType<SkillNode>().ToList();
+            var allNodes = graph.Nodes;
             Assert.IsNotEmpty(allNodes,
                 $"Skill '{config.SkillName}' (ID={config.SkillID}) has no nodes.");
 
-            // 检查是否有 EndNode
             var hasEndNode = allNodes.Any(n => n is EndNode);
             Assert.IsTrue(hasEndNode,
                 $"Skill '{config.SkillName}' (ID={config.SkillID}) has no EndNode.");
@@ -69,12 +67,12 @@ public class SkillGraphValidationTests
             {
                 if (node is EndNode || node is StartNode) continue;
 
-                var outConns = node.SkillOutConnections;
+                var outConns = node.GetOutputEdges();
                 // 条件/并行等节点允许无直连（通过端口连接）
                 if (outConns.Count == 0 && !(node is ConditionNode) && !(node is ParallelNode))
                 {
                     Debug.LogWarning(
-                        $"Skill '{config.SkillName}': Node '{node.name}' has no output connections.");
+                        $"Skill '{config.SkillName}': Node '{node.NodeName}' has no output edges.");
                 }
             }
         }

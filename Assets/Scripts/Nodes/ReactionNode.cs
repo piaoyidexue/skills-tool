@@ -1,6 +1,7 @@
 using UnityEngine;
 
-public class ReactionNode : SkillNode
+[System.Obsolete("GAS架构迁移：请使用 ApplyEffectNode 替代。元素反应已迁移到 ReactionEngine。", false)]
+public class ReactionNode : SkillNodeBase
 {
     public StringBinding reactionSummary = new() { LiteralValue = "无反应" };
 

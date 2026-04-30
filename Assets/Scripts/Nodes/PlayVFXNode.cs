@@ -1,6 +1,6 @@
 using UnityEngine;
 
-public class PlayVFXNode : SkillNode
+public class PlayVFXNode : SkillNodeBase
 {
     public enum VFXStage
     {

@@ -4,6 +4,11 @@ using System.IO;
 using UnityEditor;
 using UnityEngine;
 
+/// <summary>
+///     元素阵线技能图生成器（GAS 架构版）。
+///     生成极简线性流程：PreCastVFX → Delay → ApplyEffectNode → PostCastVFX。
+///     复杂的元素反应判定、暴击分支、数值覆写全部由 EffectSystem + ReactionEngine + Modifier Pipeline 接管。
+/// </summary>
 public static class ElementLineGraphGenerator
 {
     private const string RecipeCsvPath = "Assets/Resources/Config/SkillRecipe.csv";
@@ -42,9 +47,9 @@ public static class ElementLineGraphGenerator
         if (logResult) Debug.Log($"[ElementLineGraphGenerator] 已根据配置生成 {recipes.Count} 个技能图。");
     }
 
-    private static Dictionary<string, SkillGraph> CreateCommonGraphs()
+    private static Dictionary<string, SkillGraphAsset> CreateCommonGraphs()
     {
-        var result = new Dictionary<string, SkillGraph>(StringComparer.OrdinalIgnoreCase);
+        var result = new Dictionary<string, SkillGraphAsset>(StringComparer.OrdinalIgnoreCase);
         result["Common_ImpactDamage"] = BuildCommonImpactDamage();
         result["Common_StatusPrime"] = BuildCommonStatusPrime();
         result["Common_RowPulse"] = BuildCommonRowPulse();
@@ -53,74 +58,79 @@ public static class ElementLineGraphGenerator
         return result;
     }
 
-    private static SkillGraph BuildCommonImpactDamage()
+    /// <summary>
+    ///     公共子图：命中伤害。
+    ///     GAS架构版：VFX → ApplyEffectNode，所有伤害/状态由 EffectSystem 接管。
+    /// </summary>
+    private static SkillGraphAsset BuildCommonImpactDamage()
     {
         var graph = LoadOrCreateGraph(CommonFolder + "/Common_ImpactDamage.asset", "Common_ImpactDamage");
         ClearGraph(graph);
 
-        var start = graph.AddNodeToGraph<StartNode>();
-        var vfx = graph.AddNodeToGraph<PlayVFXNode>();
-        var damage = graph.AddNodeToGraph<DamageNode>();
-        var status = graph.AddNodeToGraph<ApplyStatusNode>();
-        var end = graph.AddNodeToGraph<EndNode>();
+        var start = graph.AddNode<StartNode>();
+        var vfx = graph.AddNode<PlayVFXNode>();
+        var applyEffect = graph.AddNode<ApplyEffectNode>();
+        var end = graph.AddNode<EndNode>();
 
-        start.position = new Vector2(80f, 120f);
-        vfx.position = new Vector2(280f, 120f);
-        damage.position = new Vector2(520f, 120f);
-        status.position = new Vector2(760f, 120f);
-        end.position = new Vector2(980f, 120f);
+        start.Position = new Vector2(80f, 120f);
+        vfx.Position = new Vector2(280f, 120f);
+        applyEffect.Position = new Vector2(520f, 120f);
+        end.Position = new Vector2(760f, 120f);
 
         vfx.stage = PlayVFXNode.VFXStage.Impact;
-        status.statusTags.Source = StringBinding.SourceType.Literal;
-        status.statusTags.LiteralValue = "default";
+        applyEffect.UseBlackboardTarget = true;
 
         Connect(start, "output", vfx, "input");
-        Connect(vfx, "output", damage, "input");
-        Connect(damage, "output", status, "input");
-        Connect(status, "output", end, "input");
+        Connect(vfx, "output", applyEffect, "input");
+        Connect(applyEffect, "output", end, "input");
         EditorUtility.SetDirty(graph);
         return graph;
     }
 
-    private static SkillGraph BuildCommonStatusPrime()
+    /// <summary>
+    ///     公共子图：状态挂载。
+    ///     GAS架构版：ApplyEffectNode → Log，状态施加由 EffectSystem 接管。
+    /// </summary>
+    private static SkillGraphAsset BuildCommonStatusPrime()
     {
         var graph = LoadOrCreateGraph(CommonFolder + "/Common_StatusPrime.asset", "Common_StatusPrime");
         ClearGraph(graph);
 
-        var start = graph.AddNodeToGraph<StartNode>();
-        var status = graph.AddNodeToGraph<ApplyStatusNode>();
-        var log = graph.AddNodeToGraph<LogNode>();
-        var end = graph.AddNodeToGraph<EndNode>();
+        var start = graph.AddNode<StartNode>();
+        var applyEffect = graph.AddNode<ApplyEffectNode>();
+        var log = graph.AddNode<LogNode>();
+        var end = graph.AddNode<EndNode>();
 
-        start.position = new Vector2(80f, 120f);
-        status.position = new Vector2(300f, 120f);
-        log.position = new Vector2(520f, 120f);
-        end.position = new Vector2(760f, 120f);
+        start.Position = new Vector2(80f, 120f);
+        applyEffect.Position = new Vector2(300f, 120f);
+        log.Position = new Vector2(520f, 120f);
+        end.Position = new Vector2(760f, 120f);
 
+        applyEffect.UseBlackboardTarget = true;
         log.message.Source = StringBinding.SourceType.Literal;
         log.message.LiteralValue = "公共子图：状态挂载";
 
-        Connect(start, "output", status, "input");
-        Connect(status, "output", log, "input");
+        Connect(start, "output", applyEffect, "input");
+        Connect(applyEffect, "output", log, "input");
         Connect(log, "output", end, "input");
         EditorUtility.SetDirty(graph);
         return graph;
     }
 
-    private static SkillGraph BuildCommonRowPulse()
+    private static SkillGraphAsset BuildCommonRowPulse()
     {
         var graph = LoadOrCreateGraph(CommonFolder + "/Common_RowPulse.asset", "Common_RowPulse");
         ClearGraph(graph);
 
-        var start = graph.AddNodeToGraph<StartNode>();
-        var resonance = graph.AddNodeToGraph<ResonanceNode>();
-        var vfx = graph.AddNodeToGraph<PlayVFXNode>();
-        var end = graph.AddNodeToGraph<EndNode>();
+        var start = graph.AddNode<StartNode>();
+        var resonance = graph.AddNode<ResonanceNode>();
+        var vfx = graph.AddNode<PlayVFXNode>();
+        var end = graph.AddNode<EndNode>();
 
-        start.position = new Vector2(80f, 120f);
-        resonance.position = new Vector2(280f, 120f);
-        vfx.position = new Vector2(520f, 120f);
-        end.position = new Vector2(760f, 120f);
+        start.Position = new Vector2(80f, 120f);
+        resonance.Position = new Vector2(280f, 120f);
+        vfx.Position = new Vector2(520f, 120f);
+        end.Position = new Vector2(760f, 120f);
 
         resonance.resonanceTags.Source = StringBinding.SourceType.Literal;
         resonance.resonanceTags.LiteralValue = "row_resonance";
@@ -133,18 +143,18 @@ public static class ElementLineGraphGenerator
         return graph;
     }
 
-    private static SkillGraph BuildCommonTerrainPaint()
+    private static SkillGraphAsset BuildCommonTerrainPaint()
     {
         var graph = LoadOrCreateGraph(CommonFolder + "/Common_TerrainPaint.asset", "Common_TerrainPaint");
         ClearGraph(graph);
 
-        var start = graph.AddNodeToGraph<StartNode>();
-        var terrain = graph.AddNodeToGraph<PaintTerrainNode>();
-        var end = graph.AddNodeToGraph<EndNode>();
+        var start = graph.AddNode<StartNode>();
+        var terrain = graph.AddNode<PaintTerrainNode>();
+        var end = graph.AddNode<EndNode>();
 
-        start.position = new Vector2(80f, 120f);
-        terrain.position = new Vector2(320f, 120f);
-        end.position = new Vector2(560f, 120f);
+        start.Position = new Vector2(80f, 120f);
+        terrain.Position = new Vector2(320f, 120f);
+        end.Position = new Vector2(560f, 120f);
 
         terrain.terrainTags.Source = StringBinding.SourceType.Literal;
         terrain.terrainTags.LiteralValue = "scorch";
@@ -155,133 +165,125 @@ public static class ElementLineGraphGenerator
         return graph;
     }
 
-    private static SkillGraph BuildCommonExecuteCheck()
+    /// <summary>
+    ///     公共子图：处决校验。
+    ///     GAS架构版：Condition → ApplyEffectNode，暴击/反应由 EffectSystem 接管。
+    /// </summary>
+    private static SkillGraphAsset BuildCommonExecuteCheck()
     {
         var graph = LoadOrCreateGraph(CommonFolder + "/Common_ExecuteCheck.asset", "Common_ExecuteCheck");
         ClearGraph(graph);
 
-        var start = graph.AddNodeToGraph<StartNode>();
-        var condition = graph.AddNodeToGraph<ConditionNode>();
-        var reaction = graph.AddNodeToGraph<ReactionNode>();
-        var end = graph.AddNodeToGraph<EndNode>();
+        var start = graph.AddNode<StartNode>();
+        var condition = graph.AddNode<ConditionNode>();
+        var applyEffect = graph.AddNode<ApplyEffectNode>();
+        var end = graph.AddNode<EndNode>();
 
-        start.position = new Vector2(80f, 120f);
-        condition.position = new Vector2(320f, 120f);
-        reaction.position = new Vector2(580f, 60f);
-        end.position = new Vector2(820f, 120f);
+        start.Position = new Vector2(80f, 120f);
+        condition.Position = new Vector2(320f, 120f);
+        applyEffect.Position = new Vector2(580f, 60f);
+        end.Position = new Vector2(820f, 120f);
 
         condition.mode = ConditionMode.Random;
         condition.threshold.Source = FloatBinding.SourceType.SkillConfig;
         condition.threshold.SkillField = SkillFloatField.CritChance;
-        reaction.reactionSummary.Source = StringBinding.SourceType.Literal;
-        reaction.reactionSummary.LiteralValue = "公共子图：处决校验";
-        reaction.damageMultiplier.LiteralValue = 2f;
+        applyEffect.UseBlackboardTarget = true;
 
         Connect(start, "output", condition, "input");
-        Connect(condition, "truePort", reaction, "input");
-        Connect(reaction, "output", end, "input");
+        Connect(condition, "truePort", applyEffect, "input");
+        Connect(applyEffect, "output", end, "input");
         Connect(condition, "falsePort", end, "input");
         EditorUtility.SetDirty(graph);
         return graph;
     }
 
-    private static void BuildRecipeGraph(RecipeRow row, IReadOnlyDictionary<string, SkillGraph> commonGraphs)
+    private static void BuildRecipeGraph(RecipeRow row, IReadOnlyDictionary<string, SkillGraphAsset> commonGraphs)
     {
         var safeName = SanitizeFileName(row.RecipeId + "_" + row.Recipe);
         var graph = LoadOrCreateGraph($"{RecipeFolder}/{safeName}.asset", $"Skill_{row.Name}");
         ClearGraph(graph);
 
-        var start = graph.AddNodeToGraph<StartNode>();
-        start.position = new Vector2(80f, 220f);
+        // ============================================================
+        //  GAS 架构版：极简线性流程
+        //  PreCastVFX → Delay → ApplyEffectNode → PostCastVFX
+        //  所有害数计算、反应判定、暴击分支由 EffectSystem 接管
+        // ============================================================
 
+        var start = graph.AddNode<StartNode>();
+        start.Position = new Vector2(80f, 220f);
+
+        var cursorX = 280f;
+
+        // 日志节点
         var log = default(LogNode);
-        var end = graph.AddNodeToGraph<EndNode>();
-        end.position = new Vector2(1700f, 220f);
-
-        var entry = (SkillNode)start;
-        var cursorX = 360f;
-
-        // 公共子图引用
-        var commonImpact = commonGraphs.TryGetValue("Common_ImpactDamage", out var ci) ? ci : null;
-        var commonStatusPrime = commonGraphs.TryGetValue("Common_StatusPrime", out var csp) ? csp : null;
-        var commonRowPulse = commonGraphs.TryGetValue("Common_RowPulse", out var crp) ? crp : null;
-        var commonTerrainPaint = commonGraphs.TryGetValue("Common_TerrainPaint", out var ctp) ? ctp : null;
-        var commonExecuteCheck = commonGraphs.TryGetValue("Common_ExecuteCheck", out var cec) ? cec : null;
-
-        // 添加技能描述日志
         if (!string.IsNullOrWhiteSpace(row.Name))
         {
-            log = graph.AddNodeToGraph<LogNode>();
-            log.position = new Vector2(160f, 100f);
+            log = graph.AddNode<LogNode>();
+            log.Position = new Vector2(cursorX, 100f);
             log.message.Source = StringBinding.SourceType.Literal;
             log.message.LiteralValue = BuildSummary(row);
+            cursorX += 220f;
+        }
+
+        // PreCastVFX
+        var castVfx = CreateVfxNode(graph, row, cursorX, 220f, PlayVFXNode.VFXStage.Cast, false);
+        cursorX += 240f;
+
+        // Delay
+        var delay = CreateDelayNode(graph, row, cursorX, 220f);
+        cursorX += 220f;
+
+        // ★ ApplyEffectNode —— 唯一战斗结算节点
+        var applyEffect = graph.AddNode<ApplyEffectNode>();
+        applyEffect.Position = new Vector2(cursorX, 220f);
+        applyEffect.EffectId = row.EffectId > 0 ? row.EffectId : 0;
+        applyEffect.UseBlackboardTarget = true;
+        cursorX += 280f;
+
+        // ImpactVFX
+        var impactVfx = CreateVfxNode(graph, row, cursorX, 220f,
+            UsesBeamVfx(row) ? PlayVFXNode.VFXStage.Beam : PlayVFXNode.VFXStage.Impact,
+            UsesBeamVfx(row));
+        cursorX += 240f;
+
+        // TerrainVFX + Terrain（可选）
+        var terrainVfx = CreateVfxNode(graph, row, cursorX, 220f, PlayVFXNode.VFXStage.Terrain, false);
+        cursorX += 240f;
+        var terrain = CreateTerrainNode(graph, row, cursorX, 220f);
+        cursorX += 240f;
+
+        // PostCastVFX
+        var postCast = CreatePostCastNode(graph, row, cursorX, 220f);
+        cursorX += 220f;
+
+        var end = graph.AddNode<EndNode>();
+        end.Position = new Vector2(cursorX, 220f);
+
+        // ---- 连线：线性流程 ----
+        SkillNodeBase entry = start;
+
+        if (log != null)
+        {
             Connect(entry, "output", log, "input");
             entry = log;
         }
 
-        // 插入 PreCastNode（释放前腰）
-        entry = InsertPreCastNode(graph, row, entry, ref cursorX);
-
-        // 插入 ChannelNode（吟唱支持 —— channelDuration=0 时为 no-op）
-        var needsChannel = row.AttackPattern.Contains("射线") ||
-                           row.AttackPattern.Contains("雷链") ||
-                           row.NodePresetId == "Preset_BeamLane" ||
-                           row.NodePresetId == "Preset_ConductiveChain";
-        if (needsChannel)
-        {
-            entry = InsertChannelNode(graph, row, entry, ref cursorX);
-        }
-
-        // 根据预设选择构造
-        switch (row.NodePresetId)
-        {
-            case "Preset_BeamLane":
-                BuildBeamLane(graph, row, entry, end, cursorX);
-                break;
-            case "Preset_CritBranch":
-                if (commonImpact != null) BuildCritBranch(graph, row, commonImpact, entry, end, cursorX);
-                else BuildImpactLane(graph, row, entry, end, cursorX);
-                break;
-            case "Preset_ConductiveChain":
-                BuildConductiveChain(graph, row, entry, end, cursorX);
-                break;
-            case "Preset_StatusAmplify":
-                BuildStatusAmplify(graph, row, entry, end, cursorX);
-                break;
-            case "Preset_ReactionBurst":
-                BuildReactionBurst(graph, row, entry, end, cursorX);
-                break;
-            case "Preset_RowResonance":
-                if (commonRowPulse != null) BuildRowResonance(graph, row, commonRowPulse, entry, end, cursorX);
-                else BuildBeamLane(graph, row, entry, end, cursorX);
-                break;
-            case "Preset_TerrainUltimate":
-                BuildTerrainUltimate(graph, row, entry, end, cursorX);
-                break;
-            case "Preset_ChainUltimate":
-                BuildChainUltimate(graph, row, entry, end, cursorX);
-                break;
-            case "Preset_ElementCollapse":
-                BuildElementCollapse(graph, row, entry, end, cursorX);
-                break;
-            case "Preset_ExecuteUltimate":
-                BuildExecuteUltimate(graph, row, entry, end, cursorX);
-                break;
-            case "Preset_TrapExecute":
-                BuildTrapExecute(graph, row, entry, end, cursorX);
-                break;
-            default:
-                BuildImpactLane(graph, row, entry, end, cursorX);
-                break;
-        }
+        Connect(entry, "output", castVfx, "input");
+        Connect(castVfx, "output", delay, "input");
+        Connect(delay, "output", applyEffect, "input");
+        Connect(applyEffect, "output", impactVfx, "input");
+        Connect(impactVfx, "output", terrainVfx, "input");
+        Connect(terrainVfx, "output", terrain, "input");
+        Connect(terrain, "output", postCast, "input");
+        Connect(postCast, "output", end, "input");
 
         EditorUtility.SetDirty(graph);
     }
 
-    private static SkillNode InsertPreCastNode(SkillGraph graph, RecipeRow row, SkillNode entry, ref float cursorX)
+    private static SkillNodeBase InsertPreCastNode(SkillGraphAsset graph, RecipeRow row, SkillNodeBase entry, ref float cursorX)
     {
-        var preCast = graph.AddNodeToGraph<PreCastNode>();
-        preCast.position = new Vector2(cursorX, 140f);
+        var preCast = graph.AddNode<PreCastNode>();
+        preCast.Position = new Vector2(cursorX, 140f);
         preCast.castTime.Source = FloatBinding.SourceType.SkillConfig;
         preCast.castTime.SkillField = SkillFloatField.CastTime;
 
@@ -290,10 +292,10 @@ public static class ElementLineGraphGenerator
         return preCast;
     }
 
-    private static SkillNode InsertChannelNode(SkillGraph graph, RecipeRow row, SkillNode entry, ref float cursorX)
+    private static SkillNodeBase InsertChannelNode(SkillGraphAsset graph, RecipeRow row, SkillNodeBase entry, ref float cursorX)
     {
-        var channel = graph.AddNodeToGraph<ChannelNode>();
-        channel.position = new Vector2(cursorX, 180f);
+        var channel = graph.AddNode<ChannelNode>();
+        channel.Position = new Vector2(cursorX, 180f);
         channel.channelDuration.Source = FloatBinding.SourceType.SkillConfig;
         channel.channelDuration.SkillField = SkillFloatField.ChannelDuration;
 
@@ -302,439 +304,40 @@ public static class ElementLineGraphGenerator
         return channel;
     }
 
-    // ==================== Build Templates ====================
-
-    private static void BuildImpactLane(SkillGraph graph, RecipeRow row, SkillNode entry, EndNode end, float startX)
-    {
-        var castVfx = CreateVfxNode(graph, row, startX, 220f, PlayVFXNode.VFXStage.Cast, false);
-        var delay = CreateDelayNode(graph, row, startX + 220f, 220f);
-        var vfx = CreateVfxNode(graph, row, startX + 460f, 220f, PlayVFXNode.VFXStage.Impact, false);
-        var damage = CreateDamageNode(graph, row, startX + 700f, 220f, false);
-        var status = CreateStatusNode(graph, row, startX + 940f, 220f);
-        var terrainVfx = CreateVfxNode(graph, row, startX + 1180f, 220f, PlayVFXNode.VFXStage.Terrain, false);
-        var terrain = CreateTerrainNode(graph, row, startX + 1420f, 220f);
-        var postCast = CreatePostCastNode(graph, row, startX + 1660f, 220f);
-
-        Connect(entry, "output", castVfx, "input");
-        Connect(castVfx, "output", delay, "input");
-        Connect(vfx, "output", damage, "input");
-        Connect(damage, "output", status, "input");
-        Connect(status, "output", terrainVfx, "input");
-        Connect(terrainVfx, "output", terrain, "input");
-        Connect(terrain, "output", postCast, "input");
-        Connect(postCast, "output", end, "input");
-        Connect(delay, "output", vfx, "input");
-    }
-
-    private static void BuildBeamLane(SkillGraph graph, RecipeRow row, SkillNode entry, EndNode end, float startX)
-    {
-        var castVfx = CreateVfxNode(graph, row, startX, 220f, PlayVFXNode.VFXStage.Cast, false);
-        var delay = CreateDelayNode(graph, row, startX + 220f, 220f);
-        var vfx = CreateVfxNode(graph, row, startX + 460f, 220f, PlayVFXNode.VFXStage.Beam, true);
-        var damage = CreateDamageNode(graph, row, startX + 700f, 220f, false);
-        var status = CreateStatusNode(graph, row, startX + 940f, 220f);
-        var terrainVfx = CreateVfxNode(graph, row, startX + 1180f, 220f, PlayVFXNode.VFXStage.Terrain, false);
-        var terrain = CreateTerrainNode(graph, row, startX + 1420f, 220f);
-        var postCast = CreatePostCastNode(graph, row, startX + 1660f, 220f);
-
-        Connect(entry, "output", castVfx, "input");
-        Connect(castVfx, "output", delay, "input");
-        Connect(delay, "output", vfx, "input");
-        Connect(vfx, "output", damage, "input");
-        Connect(damage, "output", status, "input");
-        Connect(status, "output", terrainVfx, "input");
-        Connect(terrainVfx, "output", terrain, "input");
-        Connect(terrain, "output", postCast, "input");
-        Connect(postCast, "output", end, "input");
-    }
-
-    private static void BuildCritBranch(SkillGraph graph, RecipeRow row, SkillGraph commonImpact, SkillNode entry,
-        EndNode end, float startX)
-    {
-        var castVfx = CreateVfxNode(graph, row, startX, 220f, PlayVFXNode.VFXStage.Cast, false);
-        var delay = CreateDelayNode(graph, row, startX + 220f, 220f);
-        var roll = graph.AddNodeToGraph<RollChanceNode>();
-        var condition = graph.AddNodeToGraph<ConditionNode>();
-        var modifier = graph.AddNodeToGraph<ModifyFloatNode>();
-        var critVfx = CreateVfxNode(graph, row, startX + 1180f, 320f, PlayVFXNode.VFXStage.Finisher, UsesBeamVfx(row));
-        var critDamage = CreateDamageNode(graph, row, startX + 1420f, 320f, true);
-        var fallback = graph.AddNodeToGraph<SubGraphNode>();
-        var status = CreateStatusNode(graph, row, startX + 1660f, 220f);
-        var terrainVfx = CreateVfxNode(graph, row, startX + 1900f, 220f, PlayVFXNode.VFXStage.Terrain, false);
-        var terrain = CreateTerrainNode(graph, row, startX + 2140f, 220f);
-        var postCast = CreatePostCastNode(graph, row, startX + 2380f, 220f);
-
-        roll.position = new Vector2(startX + 460f, 220f);
-        condition.position = new Vector2(startX + 700f, 220f);
-        modifier.position = new Vector2(startX + 940f, 320f);
-        fallback.position = new Vector2(startX + 940f, 120f);
-
-        roll.outputKey = BBKey.IsCrit;
-        modifier.outputKey = BBKey.DamageOverride;
-        modifier.inputValue.Source = FloatBinding.SourceType.SkillConfig;
-        modifier.inputValue.SkillField = SkillFloatField.Damage;
-        modifier.multiplier.Source = FloatBinding.SourceType.Literal;
-        modifier.multiplier.LiteralValue = row.SlotCount >= 4 ? 2.5f : 2f;
-        condition.mode = ConditionMode.BlackboardBool;
-        condition.bbKey = BBKey.IsCrit;
-        fallback.subGraph = commonImpact;
-
-        Connect(entry, "output", castVfx, "input");
-        Connect(castVfx, "output", delay, "input");
-        Connect(delay, "output", roll, "input");
-        Connect(roll, "output", condition, "input");
-        Connect(condition, "truePort", modifier, "input");
-        Connect(modifier, "output", critVfx, "input");
-        Connect(critVfx, "output", critDamage, "input");
-        Connect(condition, "falsePort", fallback, "input");
-        Connect(critDamage, "output", status, "input");
-        Connect(fallback, "output", status, "input");
-        Connect(status, "output", terrainVfx, "input");
-        Connect(terrainVfx, "output", terrain, "input");
-        Connect(terrain, "output", postCast, "input");
-        Connect(postCast, "output", end, "input");
-    }
-
-    private static void BuildConductiveChain(SkillGraph graph, RecipeRow row, SkillNode entry, EndNode end,
-        float startX)
-    {
-        var castVfx = CreateVfxNode(graph, row, startX, 220f, PlayVFXNode.VFXStage.Cast, false);
-        var delay = CreateDelayNode(graph, row, startX + 220f, 220f);
-        var vfx = CreateVfxNode(graph, row, startX + 460f, 220f, PlayVFXNode.VFXStage.Beam, true);
-        var damage = CreateDamageNode(graph, row, startX + 700f, 220f, false);
-        var status = CreateStatusNode(graph, row, startX + 940f, 220f);
-        var reaction = graph.AddNodeToGraph<ReactionNode>();
-        var reactionVfx = CreateVfxNode(graph, row, startX + 1180f, 220f, PlayVFXNode.VFXStage.Reaction, false);
-        var terrainVfx = CreateVfxNode(graph, row, startX + 1420f, 220f, PlayVFXNode.VFXStage.Terrain, false);
-        var terrain = CreateTerrainNode(graph, row, startX + 1660f, 220f);
-        var postCast = CreatePostCastNode(graph, row, startX + 1900f, 220f);
-
-        reaction.position = new Vector2(startX + 1180f, 100f);
-        reaction.reactionSummary.Source = StringBinding.SourceType.Literal;
-        reaction.reactionSummary.LiteralValue = row.SynergyLogic;
-        reaction.damageMultiplier.Source = FloatBinding.SourceType.Literal;
-        reaction.damageMultiplier.LiteralValue = 1.2f;
-        reaction.writeDamageOverride = false;
-
-        Connect(entry, "output", castVfx, "input");
-        Connect(castVfx, "output", delay, "input");
-        Connect(delay, "output", vfx, "input");
-        Connect(vfx, "output", damage, "input");
-        Connect(damage, "output", status, "input");
-        Connect(status, "output", reactionVfx, "input");
-        Connect(reactionVfx, "output", reaction, "input");
-        Connect(reaction, "output", terrainVfx, "input");
-        Connect(terrainVfx, "output", terrain, "input");
-        Connect(terrain, "output", postCast, "input");
-        Connect(postCast, "output", end, "input");
-    }
-
-    private static void BuildStatusAmplify(SkillGraph graph, RecipeRow row, SkillNode entry, EndNode end, float startX)
-    {
-        var castVfx = CreateVfxNode(graph, row, startX, 220f, PlayVFXNode.VFXStage.Cast, false);
-        var condition = graph.AddNodeToGraph<ConditionNode>();
-        var modifier = graph.AddNodeToGraph<ModifyFloatNode>();
-        var burstVfx = CreateVfxNode(graph, row, startX + 480f, 320f, PlayVFXNode.VFXStage.Reaction, false);
-        var boostedDamage = CreateDamageNode(graph, row, startX + 720f, 320f, true);
-        var baseVfx = CreateVfxNode(graph, row, startX + 480f, 120f, PlayVFXNode.VFXStage.Impact, UsesBeamVfx(row));
-        var baseDamage = CreateDamageNode(graph, row, startX + 720f, 120f, false);
-        var status = CreateStatusNode(graph, row, startX + 960f, 220f);
-        var terrainVfx = CreateVfxNode(graph, row, startX + 1200f, 220f, PlayVFXNode.VFXStage.Terrain, false);
-        var terrain = CreateTerrainNode(graph, row, startX + 1440f, 220f);
-        var postCast = CreatePostCastNode(graph, row, startX + 1680f, 220f);
-
-        condition.position = new Vector2(startX + 220f, 220f);
-        modifier.position = new Vector2(startX + 240f, 320f);
-        condition.mode = ConditionMode.Random;
-        condition.threshold.Source = FloatBinding.SourceType.SkillConfig;
-        condition.threshold.SkillField = SkillFloatField.CritChance;
-        modifier.outputKey = BBKey.DamageOverride;
-        modifier.inputValue.Source = FloatBinding.SourceType.SkillConfig;
-        modifier.inputValue.SkillField = SkillFloatField.Damage;
-        modifier.multiplier.Source = FloatBinding.SourceType.Literal;
-        modifier.multiplier.LiteralValue = 1.5f;
-
-        Connect(entry, "output", castVfx, "input");
-        Connect(castVfx, "output", condition, "input");
-        Connect(condition, "truePort", modifier, "input");
-        Connect(modifier, "output", burstVfx, "input");
-        Connect(burstVfx, "output", boostedDamage, "input");
-        Connect(condition, "falsePort", baseVfx, "input");
-        Connect(baseVfx, "output", baseDamage, "input");
-        Connect(boostedDamage, "output", status, "input");
-        Connect(baseDamage, "output", status, "input");
-        Connect(status, "output", terrainVfx, "input");
-        Connect(terrainVfx, "output", terrain, "input");
-        Connect(terrain, "output", postCast, "input");
-        Connect(postCast, "output", end, "input");
-    }
-
-    private static void BuildReactionBurst(SkillGraph graph, RecipeRow row, SkillNode entry, EndNode end, float startX)
-    {
-        var castVfx = CreateVfxNode(graph, row, startX, 220f, PlayVFXNode.VFXStage.Cast, false);
-        var condition = graph.AddNodeToGraph<ConditionNode>();
-        var vfx = CreateVfxNode(graph, row, startX + 480f, 320f, UsesBeamVfx(row) ? PlayVFXNode.VFXStage.Beam : PlayVFXNode.VFXStage.Impact, UsesBeamVfx(row));
-        var reaction = graph.AddNodeToGraph<ReactionNode>();
-        var reactionVfx = CreateVfxNode(graph, row, startX + 720f, 320f, PlayVFXNode.VFXStage.Reaction, false);
-        var damage = CreateDamageNode(graph, row, startX + 960f, 320f, true);
-        var finisherVfx = CreateVfxNode(graph, row, startX + 1200f, 320f, PlayVFXNode.VFXStage.Finisher, false);
-        var status = CreateStatusNode(graph, row, startX + 1440f, 320f);
-        var terrainVfx = CreateVfxNode(graph, row, startX + 1680f, 320f, PlayVFXNode.VFXStage.Terrain, false);
-        var terrain = CreateTerrainNode(graph, row, startX + 1920f, 320f);
-        var postCast = CreatePostCastNode(graph, row, startX + 2160f, 320f);
-
-        condition.position = new Vector2(startX + 220f, 220f);
-        reaction.position = new Vector2(startX + 720f, 100f);
-
-        condition.mode = ConditionMode.Random;
-        condition.threshold.Source = FloatBinding.SourceType.SkillConfig;
-        condition.threshold.SkillField = SkillFloatField.CritChance;
-        reaction.reactionSummary.Source = StringBinding.SourceType.Literal;
-        reaction.reactionSummary.LiteralValue = row.SynergyLogic;
-        reaction.damageMultiplier.Source = FloatBinding.SourceType.Literal;
-        reaction.damageMultiplier.LiteralValue = row.SlotCount >= 4 ? 2.5f : 2f;
-
-        Connect(entry, "output", castVfx, "input");
-        Connect(castVfx, "output", condition, "input");
-        Connect(condition, "truePort", vfx, "input");
-        Connect(vfx, "output", reaction, "input");
-        Connect(reaction, "output", reactionVfx, "input");
-        Connect(reactionVfx, "output", damage, "input");
-        Connect(damage, "output", finisherVfx, "input");
-        Connect(finisherVfx, "output", status, "input");
-        Connect(status, "output", terrainVfx, "input");
-        Connect(terrainVfx, "output", terrain, "input");
-        Connect(terrain, "output", postCast, "input");
-        Connect(postCast, "output", end, "input");
-        Connect(condition, "falsePort", end, "input");
-    }
-
-    private static void BuildRowResonance(SkillGraph graph, RecipeRow row, SkillGraph commonRowPulse, SkillNode entry,
-        EndNode end, float startX)
-    {
-        var castVfx = CreateVfxNode(graph, row, startX, 220f, PlayVFXNode.VFXStage.Cast, false);
-        var delay = CreateDelayNode(graph, row, startX + 220f, 220f);
-        var resonance = graph.AddNodeToGraph<ResonanceNode>();
-        var pulse = graph.AddNodeToGraph<SubGraphNode>();
-        var damage = CreateDamageNode(graph, row, startX + 940f, 220f, false);
-        var status = CreateStatusNode(graph, row, startX + 1180f, 220f);
-        var terrainVfx = CreateVfxNode(graph, row, startX + 1420f, 220f, PlayVFXNode.VFXStage.Terrain, false);
-        var terrain = CreateTerrainNode(graph, row, startX + 1660f, 220f);
-        var postCast = CreatePostCastNode(graph, row, startX + 1900f, 220f);
-
-        resonance.position = new Vector2(startX + 460f, 220f);
-        pulse.position = new Vector2(startX + 700f, 220f);
-        resonance.resonanceTags.Source = StringBinding.SourceType.Literal;
-        resonance.resonanceTags.LiteralValue = row.ResonanceTags;
-        pulse.subGraph = commonRowPulse;
-
-        Connect(entry, "output", castVfx, "input");
-        Connect(castVfx, "output", delay, "input");
-        Connect(delay, "output", resonance, "input");
-        Connect(resonance, "output", pulse, "input");
-        Connect(pulse, "output", damage, "input");
-        Connect(damage, "output", status, "input");
-        Connect(status, "output", terrainVfx, "input");
-        Connect(terrainVfx, "output", terrain, "input");
-        Connect(terrain, "output", postCast, "input");
-        Connect(postCast, "output", end, "input");
-    }
-
-    private static void BuildTerrainUltimate(SkillGraph graph, RecipeRow row, SkillNode entry, EndNode end,
-        float startX)
-    {
-        var castVfx = CreateVfxNode(graph, row, startX, 220f, PlayVFXNode.VFXStage.Cast, false);
-        var delay = CreateDelayNode(graph, row, startX + 220f, 220f);
-        var vfx = CreateVfxNode(graph, row, startX + 460f, 220f, PlayVFXNode.VFXStage.Impact, false);
-        var damage = CreateDamageNode(graph, row, startX + 700f, 220f, false);
-        var status = CreateStatusNode(graph, row, startX + 940f, 220f);
-        var terrainVfx = CreateVfxNode(graph, row, startX + 1180f, 220f, PlayVFXNode.VFXStage.Terrain, false);
-        var terrain = CreateTerrainNode(graph, row, startX + 1420f, 220f);
-        var finisherStaged = CreateFinisherStagedNode(graph, row, startX + 1660f, 220f);
-        var postCast = CreatePostCastNode(graph, row, startX + 1900f, 220f);
-
-        Connect(entry, "output", castVfx, "input");
-        Connect(castVfx, "output", delay, "input");
-        Connect(delay, "output", vfx, "input");
-        Connect(vfx, "output", damage, "input");
-        Connect(damage, "output", status, "input");
-        Connect(status, "output", terrainVfx, "input");
-        Connect(terrainVfx, "output", terrain, "input");
-        Connect(terrain, "output", finisherStaged, "input");
-        Connect(finisherStaged, "output", postCast, "input");
-        Connect(postCast, "output", end, "input");
-    }
-
-    private static void BuildChainUltimate(SkillGraph graph, RecipeRow row, SkillNode entry, EndNode end,
-        float startX)
-    {
-        var castVfx = CreateVfxNode(graph, row, startX, 220f, PlayVFXNode.VFXStage.Cast, false);
-        var delay = CreateDelayNode(graph, row, startX + 220f, 220f);
-        var parallel = graph.AddNodeToGraph<ParallelNode>();
-        var branchA_Vfx = CreateVfxNode(graph, row, startX + 740f, 120f, PlayVFXNode.VFXStage.Beam, true);
-        var branchA_Damage = CreateDamageNode(graph, row, startX + 980f, 120f, false);
-        var branchB_Vfx = CreateVfxNode(graph, row, startX + 740f, 340f, PlayVFXNode.VFXStage.Impact, false);
-        var branchB_Damage = CreateDamageNode(graph, row, startX + 980f, 340f, false);
-        var status = CreateStatusNode(graph, row, startX + 1320f, 220f);
-        var terrainVfx = CreateVfxNode(graph, row, startX + 1560f, 220f, PlayVFXNode.VFXStage.Terrain, false);
-        var terrain = CreateTerrainNode(graph, row, startX + 1800f, 220f);
-        var finisherStaged = CreateFinisherStagedNode(graph, row, startX + 2040f, 220f);
-        var postCast = CreatePostCastNode(graph, row, startX + 2280f, 220f);
-
-        parallel.position = new Vector2(startX + 480f, 220f);
-        // 分支通过 Connect 调用自动创建 SkillConnection，不再需要显式 AddDynamicOutput
-
-        Connect(entry, "output", castVfx, "input");
-        Connect(castVfx, "output", delay, "input");
-        Connect(delay, "output", parallel, "input");
-        Connect(parallel, "branches 0", branchA_Vfx, "input");
-        Connect(branchA_Vfx, "output", branchA_Damage, "input");
-        Connect(parallel, "branches 1", branchB_Vfx, "input");
-        Connect(branchB_Vfx, "output", branchB_Damage, "input");
-        Connect(parallel, "output", status, "input");
-        Connect(status, "output", terrainVfx, "input");
-        Connect(terrainVfx, "output", terrain, "input");
-        Connect(terrain, "output", finisherStaged, "input");
-        Connect(finisherStaged, "output", postCast, "input");
-        Connect(postCast, "output", end, "input");
-    }
-
-    private static void BuildElementCollapse(SkillGraph graph, RecipeRow row, SkillNode entry, EndNode end,
-        float startX)
-    {
-        var castVfx = CreateVfxNode(graph, row, startX, 220f, PlayVFXNode.VFXStage.Cast, false);
-        var delay = CreateDelayNode(graph, row, startX + 220f, 220f);
-        var parallel = graph.AddNodeToGraph<ParallelNode>();
-        var branchA_Vfx = CreateVfxNode(graph, row, startX + 740f, 100f, PlayVFXNode.VFXStage.Impact, false);
-        var branchA_Damage = CreateDamageNode(graph, row, startX + 980f, 100f, false);
-        var branchB_Vfx = CreateVfxNode(graph, row, startX + 740f, 340f, PlayVFXNode.VFXStage.Beam, true);
-        var branchB_Damage = CreateDamageNode(graph, row, startX + 980f, 340f, false);
-        var status = CreateStatusNode(graph, row, startX + 1320f, 220f);
-        var terrainVfx = CreateVfxNode(graph, row, startX + 1560f, 220f, PlayVFXNode.VFXStage.Terrain, false);
-        var terrain = CreateTerrainNode(graph, row, startX + 1800f, 220f);
-        var finisherStaged = CreateFinisherStagedNode(graph, row, startX + 2040f, 220f);
-        var postCast = CreatePostCastNode(graph, row, startX + 2280f, 220f);
-
-        parallel.position = new Vector2(startX + 480f, 220f);
-        // 分支通过 Connect 调用自动创建 SkillConnection，不再需要显式 AddDynamicOutput
-
-        Connect(entry, "output", castVfx, "input");
-        Connect(castVfx, "output", delay, "input");
-        Connect(delay, "output", parallel, "input");
-        Connect(parallel, "branches 0", branchA_Vfx, "input");
-        Connect(branchA_Vfx, "output", branchA_Damage, "input");
-        Connect(parallel, "branches 1", branchB_Vfx, "input");
-        Connect(branchB_Vfx, "output", branchB_Damage, "input");
-        Connect(parallel, "output", status, "input");
-        Connect(status, "output", terrainVfx, "input");
-        Connect(terrainVfx, "output", terrain, "input");
-        Connect(terrain, "output", finisherStaged, "input");
-        Connect(finisherStaged, "output", postCast, "input");
-        Connect(postCast, "output", end, "input");
-    }
-
-    private static void BuildExecuteUltimate(SkillGraph graph, RecipeRow row, SkillNode entry, EndNode end,
-        float startX)
-    {
-        var castVfx = CreateVfxNode(graph, row, startX, 220f, PlayVFXNode.VFXStage.Cast, false);
-        var condition = graph.AddNodeToGraph<ConditionNode>();
-        var reaction = graph.AddNodeToGraph<ReactionNode>();
-        var reactionVfx = CreateVfxNode(graph, row, startX + 480f, 320f, PlayVFXNode.VFXStage.Reaction, false);
-        var finisherStaged = CreateFinisherStagedNode(graph, row, startX + 720f, 320f);
-        var damage = CreateDamageNode(graph, row, startX + 960f, 320f, true);
-        var status = CreateStatusNode(graph, row, startX + 1200f, 320f);
-        var terrainVfx = CreateVfxNode(graph, row, startX + 1440f, 320f, PlayVFXNode.VFXStage.Terrain, false);
-        var terrain = CreateTerrainNode(graph, row, startX + 1680f, 320f);
-        var postCast = CreatePostCastNode(graph, row, startX + 1920f, 320f);
-
-        condition.position = new Vector2(startX + 220f, 220f);
-        reaction.position = new Vector2(startX + 240f, 320f);
-        condition.mode = ConditionMode.Random;
-        condition.threshold.Source = FloatBinding.SourceType.SkillConfig;
-        condition.threshold.SkillField = SkillFloatField.CritChance;
-        reaction.reactionSummary.Source = StringBinding.SourceType.Literal;
-        reaction.reactionSummary.LiteralValue = row.RuleMutation;
-        reaction.damageMultiplier.Source = FloatBinding.SourceType.Literal;
-        reaction.damageMultiplier.LiteralValue = 2.5f;
-
-        Connect(entry, "output", castVfx, "input");
-        Connect(castVfx, "output", condition, "input");
-        Connect(condition, "truePort", reaction, "input");
-        Connect(reaction, "output", reactionVfx, "input");
-        Connect(reactionVfx, "output", finisherStaged, "input");
-        Connect(finisherStaged, "output", damage, "input");
-        Connect(damage, "output", status, "input");
-        Connect(status, "output", terrainVfx, "input");
-        Connect(terrainVfx, "output", terrain, "input");
-        Connect(terrain, "output", postCast, "input");
-        Connect(postCast, "output", end, "input");
-        Connect(condition, "falsePort", end, "input");
-    }
-
-    private static void BuildTrapExecute(SkillGraph graph, RecipeRow row, SkillNode entry, EndNode end, float startX)
-    {
-        var castVfx = CreateVfxNode(graph, row, startX, 220f, PlayVFXNode.VFXStage.Cast, false);
-        var delay = CreateDelayNode(graph, row, startX + 220f, 220f);
-        var vfx = CreateVfxNode(graph, row, startX + 460f, 220f, PlayVFXNode.VFXStage.Impact, false);
-        var condition = graph.AddNodeToGraph<ConditionNode>();
-        var damage = CreateDamageNode(graph, row, startX + 940f, 320f, false);
-        var status = CreateStatusNode(graph, row, startX + 1180f, 320f);
-        var terrainVfx = CreateVfxNode(graph, row, startX + 1420f, 320f, PlayVFXNode.VFXStage.Terrain, false);
-        var terrain = CreateTerrainNode(graph, row, startX + 1660f, 320f);
-        var postCast = CreatePostCastNode(graph, row, startX + 1900f, 320f);
-
-        condition.position = new Vector2(startX + 700f, 220f);
-        condition.mode = ConditionMode.Random;
-        condition.threshold.Source = FloatBinding.SourceType.SkillConfig;
-        condition.threshold.SkillField = SkillFloatField.CritChance;
-
-        Connect(entry, "output", castVfx, "input");
-        Connect(castVfx, "output", delay, "input");
-        Connect(delay, "output", vfx, "input");
-        Connect(vfx, "output", condition, "input");
-        Connect(condition, "truePort", damage, "input");
-        Connect(damage, "output", status, "input");
-        Connect(status, "output", terrainVfx, "input");
-        Connect(terrainVfx, "output", terrain, "input");
-        Connect(terrain, "output", postCast, "input");
-        Connect(postCast, "output", end, "input");
-        Connect(condition, "falsePort", end, "input");
-    }
-
     // ==================== Node Factory Helpers ====================
 
-    private static PreCastNode CreatePreCastNode(SkillGraph graph, RecipeRow row, float x, float y)
+    private static PreCastNode CreatePreCastNode(SkillGraphAsset graph, RecipeRow row, float x, float y)
     {
-        var node = graph.AddNodeToGraph<PreCastNode>();
-        node.position = new Vector2(x, y);
+        var node = graph.AddNode<PreCastNode>();
+        node.Position = new Vector2(x, y);
         node.castTime.Source = FloatBinding.SourceType.SkillConfig;
         node.castTime.SkillField = SkillFloatField.CastTime;
         return node;
     }
 
-    private static PostCastNode CreatePostCastNode(SkillGraph graph, RecipeRow row, float x, float y)
+    private static PostCastNode CreatePostCastNode(SkillGraphAsset graph, RecipeRow row, float x, float y)
     {
-        var node = graph.AddNodeToGraph<PostCastNode>();
-        node.position = new Vector2(x, y);
+        var node = graph.AddNode<PostCastNode>();
+        node.Position = new Vector2(x, y);
         node.postCastTime.Source = FloatBinding.SourceType.SkillConfig;
         node.postCastTime.SkillField = SkillFloatField.PostCastTime;
         return node;
     }
 
-    private static DelayNode CreateDelayNode(SkillGraph graph, RecipeRow row, float x, float y)
+    private static DelayNode CreateDelayNode(SkillGraphAsset graph, RecipeRow row, float x, float y)
     {
-        var delay = graph.AddNodeToGraph<DelayNode>();
-        delay.position = new Vector2(x, y);
+        var delay = graph.AddNode<DelayNode>();
+        delay.Position = new Vector2(x, y);
         delay.delaySeconds.Source = FloatBinding.SourceType.SkillConfig;
         delay.delaySeconds.SkillField = SkillFloatField.DelaySeconds;
         delay.delaySeconds.DefaultValue = 0f;
         return delay;
     }
 
-    private static FinisherStagedNode CreateFinisherStagedNode(SkillGraph graph, RecipeRow row, float x, float y)
+    private static FinisherStagedNode CreateFinisherStagedNode(SkillGraphAsset graph, RecipeRow row, float x, float y)
     {
-        var node = graph.AddNodeToGraph<FinisherStagedNode>();
-        node.position = new Vector2(x, y);
+        var node = graph.AddNode<FinisherStagedNode>();
+        node.Position = new Vector2(x, y);
         node.parentBinding = FinisherStagedNode.TransformBinding.Target;
         node.directionMode = FinisherStagedNode.StagedDirectionMode.CasterToTarget;
         node.absorbDuration.Source = FloatBinding.SourceType.Literal;
@@ -746,11 +349,11 @@ public static class ElementLineGraphGenerator
         return node;
     }
 
-    private static PlayVFXNode CreateVfxNode(SkillGraph graph, RecipeRow row, float x, float y,
+    private static PlayVFXNode CreateVfxNode(SkillGraphAsset graph, RecipeRow row, float x, float y,
         PlayVFXNode.VFXStage stage, bool preferBeam)
     {
-        var node = graph.AddNodeToGraph<PlayVFXNode>();
-        node.position = new Vector2(x, y);
+        var node = graph.AddNode<PlayVFXNode>();
+        node.Position = new Vector2(x, y);
         node.stage = stage;
         node.parentBinding = stage == PlayVFXNode.VFXStage.Terrain ? PlayVFXNode.TransformBinding.World : PlayVFXNode.TransformBinding.World;
         node.directionMode = stage == PlayVFXNode.VFXStage.Terrain ? PlayVFXNode.DirectionMode.CustomDirection : PlayVFXNode.DirectionMode.CasterToTarget;
@@ -764,42 +367,10 @@ public static class ElementLineGraphGenerator
         return node;
     }
 
-    private static DamageNode CreateDamageNode(SkillGraph graph, RecipeRow row, float x, float y, bool useOverride)
+    private static PaintTerrainNode CreateTerrainNode(SkillGraphAsset graph, RecipeRow row, float x, float y)
     {
-        var damage = graph.AddNodeToGraph<DamageNode>();
-        damage.position = new Vector2(x, y);
-        if (useOverride)
-        {
-            damage.damageAmount.Source = FloatBinding.SourceType.Blackboard;
-            damage.damageAmount.BlackboardKey = BBKey.DamageOverride;
-            damage.damageAmount.DefaultValue = 0f;
-            damage.multiplyByDamageRate = false;
-        }
-        else
-        {
-            damage.damageAmount.Source = FloatBinding.SourceType.SkillConfig;
-            damage.damageAmount.SkillField = SkillFloatField.Damage;
-            damage.damageRate.Source = FloatBinding.SourceType.SkillConfig;
-            damage.damageRate.SkillField = SkillFloatField.DamageRate;
-            damage.multiplyByDamageRate = true;
-        }
-
-        return damage;
-    }
-
-    private static ApplyStatusNode CreateStatusNode(SkillGraph graph, RecipeRow row, float x, float y)
-    {
-        var node = graph.AddNodeToGraph<ApplyStatusNode>();
-        node.position = new Vector2(x, y);
-        node.statusTags.Source = StringBinding.SourceType.Literal;
-        node.statusTags.LiteralValue = row.StatusTags;
-        return node;
-    }
-
-    private static PaintTerrainNode CreateTerrainNode(SkillGraph graph, RecipeRow row, float x, float y)
-    {
-        var node = graph.AddNodeToGraph<PaintTerrainNode>();
-        node.position = new Vector2(x, y);
+        var node = graph.AddNode<PaintTerrainNode>();
+        node.Position = new Vector2(x, y);
         node.terrainTags.Source = StringBinding.SourceType.Literal;
         node.terrainTags.LiteralValue = row.TerrainTags;
         return node;
@@ -820,42 +391,32 @@ public static class ElementLineGraphGenerator
         return $"配方 {row.Recipe}：{row.Name} | 协同={row.SynergyLogic} | 质变={row.RuleMutation}";
     }
 
-    private static void Connect(SkillNode fromNode, string fromPort, SkillNode toNode, string toPort)
+    private static void Connect(SkillNodeBase fromNode, string fromPort, SkillNodeBase toNode, string toPort)
     {
         if (fromNode == null || toNode == null) return;
-        var conn = SkillConnection.Create(fromNode, toNode, fromPort);
-        if (conn != null)
-        {
-            conn.portName = fromPort;
-        }
+        var graph = fromNode.OwningGraph;
+        if (graph == null) return;
+        graph.AddEdge(new SkillEdge(fromNode.NodeGuid, fromPort, toNode.NodeGuid, toPort));
     }
 
-    private static SkillGraph LoadOrCreateGraph(string path, string graphName)
+    private static SkillGraphAsset LoadOrCreateGraph(string path, string graphName)
     {
-        var graph = AssetDatabase.LoadAssetAtPath<SkillGraph>(path);
+        var graph = AssetDatabase.LoadAssetAtPath<SkillGraphAsset>(path);
         if (graph != null)
         {
             graph.name = graphName;
             return graph;
         }
 
-        graph = ScriptableObject.CreateInstance<SkillGraph>();
+        graph = ScriptableObject.CreateInstance<SkillGraphAsset>();
         graph.name = graphName;
         AssetDatabase.CreateAsset(graph, path);
         return graph;
     }
 
-    private static void ClearGraph(SkillGraph graph)
+    private static void ClearGraph(SkillGraphAsset graph)
     {
-        var nodes = graph.allNodes;
-        for (var i = nodes.Count - 1; i >= 0; i--)
-        {
-            var node = nodes[i];
-            if (node == null) continue;
-
-            graph.RemoveNode(node, true, false);
-        }
-
+        graph.Clear();
         EditorUtility.SetDirty(graph);
     }
 
@@ -893,7 +454,8 @@ public static class ElementLineGraphGenerator
                 ResonanceTags = GetValue(row, "resonance_tags"),
                 NodePresetId = GetValue(row, "node_preset_id"),
                 GraphTemplateId = GetValue(row, "graph_template_id"),
-                Notes = GetValue(row, "notes")
+                Notes = GetValue(row, "notes"),
+                EffectId = int.TryParse(GetValue(row, "effect_id"), out var eid) ? eid : 0
             });
         }
 
@@ -969,7 +531,9 @@ public static class ElementLineGraphGenerator
         public string RuleMutation;
         public int SlotCount;
         public string StatusTags;
-        public string SynergyLogic;
         public string TerrainTags;
+        public string SynergyLogic;
+        /// <summary>GAS架构：关联的 GameplayEffectData ID</summary>
+        public int EffectId;
     }
 }

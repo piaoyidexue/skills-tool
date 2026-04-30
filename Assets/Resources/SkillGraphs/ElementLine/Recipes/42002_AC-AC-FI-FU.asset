@@ -10,13 +10,11 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: d806ff6e468f4804e8bab31c8796e20e, type: 3}
-  m_Name: 42002_AC-AC-FI-FU
+  m_Name: "Skill_\u96F7\u65AD\u5934\u53F0"
   m_EditorClassIdentifier: 
-  _serializedGraph: '{"type":"SkillGraph","nodes":[{"nodeGuid":"6fc639e1044f42099af43cf946d6f731","_inputPortNames":["input"],"_outputPortNames":["output"],"_position":{"x":80.0,"y":220.0},"$type":"StartNode","$id":"0"},{"message":{"LiteralValue":"\u914d\u65b9
+  _serializedGraph: '{"type":"SkillGraph","nodes":[{"nodeGuid":"697de7ea554c41199108ef4903e76e79","_inputPortNames":["input"],"_outputPortNames":["output"],"_position":{"x":80.0,"y":220.0},"$type":"StartNode","$id":"0"},{"message":{"LiteralValue":"\u914d\u65b9
     AC-AC-FI-FU\uff1a\u96f7\u65ad\u5934\u53f0 | \u534f\u540c=\u51fb\u6740\u540e\u7ee7\u7eed\u8dc3\u8fc1
-    | \u8d28\u53d8=\u5904\u51b3\u8fde\u9501"},"nodeGuid":"0a5e2ec60ea54e8bafe16516013fc2cf","_inputPortNames":["input"],"_outputPortNames":["output"],"_position":{"x":160.0,"y":100.0},"$type":"LogNode","$id":"1"},{"castTime":{"SkillField":9},"preCastVfxKey":{"LiteralValue":""},"nodeGuid":"ca16222e94444813875be9cc8058303a","_inputPortNames":["input"],"_outputPortNames":["output"],"_position":{"x":360.0,"y":140.0},"$type":"PreCastNode","$id":"2"},{"vfxKey":{"Source":0},"styleKey":{"Source":0,"SkillConfigFieldName":"VFXProfileKey"},"stage":1,"scaleMultiplier":{"Source":2,"LiteralValue":0.85},"widthMultiplier":{"Source":2,"LiteralValue":1.0},"lengthOverride":{"SkillField":6},"durationOverride":{"SkillField":8},"intensityMultiplier":{"Source":2,"LiteralValue":1.0},"nodeGuid":"a0cde577a4984e6fb3dc5a4dfe5918c9","_inputPortNames":["input"],"_outputPortNames":["output"],"_position":{"x":500.0,"y":220.0},"$type":"PlayVFXNode","$id":"3"},{"delaySeconds":{"SkillField":4},"nodeGuid":"5876b7e23f4f4cccb52b875ea8d8a9b7","_inputPortNames":["input"],"_outputPortNames":["output"],"_position":{"x":720.0,"y":220.0},"$type":"DelayNode","$id":"4"},{"nodeGuid":"0a3a88a7e16c4993b03a1ee6ef7fb66a","_inputPortNames":["input"],"_outputPortNames":["output"],"_position":{"x":980.0,"y":220.0},"$type":"ParallelNode","$id":"5"},{"vfxKey":{"Source":0},"styleKey":{"Source":0,"SkillConfigFieldName":"VFXProfileKey"},"stage":3,"scaleMultiplier":{"Source":2,"LiteralValue":1.0},"widthMultiplier":{"Source":2,"LiteralValue":1.0},"lengthOverride":{"SkillField":3},"durationOverride":{"SkillField":8},"intensityMultiplier":{"Source":2,"LiteralValue":1.0},"nodeGuid":"9e6ea7c72dec420599ed0cc70f41d672","_inputPortNames":["input"],"_outputPortNames":["output"],"_position":{"x":1240.0,"y":120.0},"$type":"PlayVFXNode","$id":"6"},{"damageAmount":{},"damageRate":{"SkillField":1,"DefaultValue":1.0},"nodeGuid":"a81b5930e60a4331a151070e7bf5194a","_inputPortNames":["input"],"_outputPortNames":["output"],"_position":{"x":1480.0,"y":120.0},"$type":"DamageNode","$id":"7"},{"vfxKey":{"Source":0},"styleKey":{"Source":0,"SkillConfigFieldName":"VFXProfileKey"},"stage":2,"scaleMultiplier":{"Source":2,"LiteralValue":1.0},"widthMultiplier":{"Source":2,"LiteralValue":1.0},"lengthOverride":{"SkillField":6},"durationOverride":{"SkillField":8},"intensityMultiplier":{"Source":2,"LiteralValue":1.0},"nodeGuid":"84ee151644e4432ca332b146ad5dae87","_inputPortNames":["input"],"_outputPortNames":["output"],"_position":{"x":1240.0,"y":340.0},"$type":"PlayVFXNode","$id":"8"},{"damageAmount":{},"damageRate":{"SkillField":1,"DefaultValue":1.0},"nodeGuid":"f01c840e984445baa2621452813f7f9b","_inputPortNames":["input"],"_outputPortNames":["output"],"_position":{"x":1480.0,"y":340.0},"$type":"DamageNode","$id":"9"},{"statusTags":{"LiteralValue":"burn|conductive|mark"},"nodeGuid":"3d13ab283248424ca3759d02358730e4","_inputPortNames":["input"],"_outputPortNames":["output"],"_position":{"x":1820.0,"y":220.0},"$type":"ApplyStatusNode","$id":"10"},{"vfxKey":{"Source":0},"styleKey":{"Source":0,"SkillConfigFieldName":"VFXProfileKey"},"stage":5,"directionMode":2,"scaleMultiplier":{"Source":2,"LiteralValue":1.0},"widthMultiplier":{"Source":2,"LiteralValue":1.0},"lengthOverride":{"SkillField":6},"durationOverride":{"SkillField":8},"intensityMultiplier":{"Source":2,"LiteralValue":1.0},"customDirection":{"y":1.0},"nodeGuid":"8c67328b9e1b4347bc39b95652f614ca","_inputPortNames":["input"],"_outputPortNames":["output"],"_position":{"x":2060.0,"y":220.0},"$type":"PlayVFXNode","$id":"11"},{"terrainTags":{"LiteralValue":"metal|scorch"},"nodeGuid":"4e6493a7f24345d8a5c83915735c8bf5","_inputPortNames":["input"],"_outputPortNames":["output"],"_position":{"x":2300.0,"y":220.0},"$type":"PaintTerrainNode","$id":"12"},{"absorbVfxKey":{"LiteralValue":"EnergyAbsorb"},"burstVfxKey":{"Source":0,"SkillConfigFieldName":"FinisherVFXKey"},"absorbDuration":{"Source":2,"LiteralValue":0.55},"burstDuration":{"SkillField":8},"scaleMultiplier":{"Source":2,"LiteralValue":1.0},"nodeGuid":"206d0805faeb43dc99bab1ee11d7f6ab","_inputPortNames":["input"],"_outputPortNames":["output"],"_position":{"x":2540.0,"y":220.0},"$type":"FinisherStagedNode","$id":"13"},{"postCastTime":{"SkillField":11},"postCastVfxKey":{"LiteralValue":""},"nodeGuid":"e9ff402b13634f1a9aa1849308ead0c9","_inputPortNames":["input"],"_outputPortNames":["output"],"_position":{"x":2780.0,"y":220.0},"$type":"PostCastNode","$id":"14"},{"nodeGuid":"03f38bce5df6404db85b6182a9a748a0","_inputPortNames":["input"],"_outputPortNames":["output"],"_position":{"x":1700.0,"y":220.0},"$type":"EndNode","$id":"15"}],"connections":[{"_sourceNode":{"$ref":"0"},"_targetNode":{"$ref":"1"},"$type":"SkillConnection"},{"_sourceNode":{"$ref":"1"},"_targetNode":{"$ref":"2"},"$type":"SkillConnection"},{"_sourceNode":{"$ref":"2"},"_targetNode":{"$ref":"3"},"$type":"SkillConnection"},{"_sourceNode":{"$ref":"3"},"_targetNode":{"$ref":"4"},"$type":"SkillConnection"},{"_sourceNode":{"$ref":"4"},"_targetNode":{"$ref":"5"},"$type":"SkillConnection"},{"_portName":"branches
-    0","_sourceNode":{"$ref":"5"},"_targetNode":{"$ref":"6"},"$type":"SkillConnection"},{"_portName":"branches
-    1","_sourceNode":{"$ref":"5"},"_targetNode":{"$ref":"8"},"$type":"SkillConnection"},{"_sourceNode":{"$ref":"5"},"_targetNode":{"$ref":"10"},"$type":"SkillConnection"},{"_sourceNode":{"$ref":"6"},"_targetNode":{"$ref":"7"},"$type":"SkillConnection"},{"_sourceNode":{"$ref":"8"},"_targetNode":{"$ref":"9"},"$type":"SkillConnection"},{"_sourceNode":{"$ref":"10"},"_targetNode":{"$ref":"11"},"$type":"SkillConnection"},{"_sourceNode":{"$ref":"11"},"_targetNode":{"$ref":"12"},"$type":"SkillConnection"},{"_sourceNode":{"$ref":"12"},"_targetNode":{"$ref":"13"},"$type":"SkillConnection"},{"_sourceNode":{"$ref":"13"},"_targetNode":{"$ref":"14"},"$type":"SkillConnection"},{"_sourceNode":{"$ref":"14"},"_targetNode":{"$ref":"15"},"$type":"SkillConnection"}],"canvasGroups":[],"localBlackboard":{"_variables":{}}}'
+    | \u8d28\u53d8=\u5904\u51b3\u8fde\u9501"},"nodeGuid":"deb88e87490043f089cc141eb3ac4d3f","_inputPortNames":["input"],"_outputPortNames":["output"],"_position":{"x":280.0,"y":100.0},"$type":"LogNode","$id":"1"},{"vfxKey":{"Source":0},"styleKey":{"Source":0,"SkillConfigFieldName":"VFXProfileKey"},"stage":1,"scaleMultiplier":{"Source":2,"LiteralValue":0.85},"widthMultiplier":{"Source":2,"LiteralValue":1.0},"lengthOverride":{"SkillField":6},"durationOverride":{"SkillField":8},"intensityMultiplier":{"Source":2,"LiteralValue":1.0},"nodeGuid":"86ade8639e514f9691a65967ad49d148","_inputPortNames":["input"],"_outputPortNames":["output"],"_position":{"x":500.0,"y":220.0},"$type":"PlayVFXNode","$id":"2"},{"delaySeconds":{"SkillField":4},"nodeGuid":"573dfc2ae468486a9f8fcd988a166f52","_inputPortNames":["input"],"_outputPortNames":["output"],"_position":{"x":740.0,"y":220.0},"$type":"DelayNode","$id":"3"},{"EffectId":42002,"nodeGuid":"7731826ac85449c7916f82cf068c90f4","_inputPortNames":["input"],"_outputPortNames":["output"],"_position":{"x":960.0,"y":220.0},"$type":"ApplyEffectNode","$id":"4"},{"vfxKey":{"Source":0},"styleKey":{"Source":0,"SkillConfigFieldName":"VFXProfileKey"},"stage":2,"scaleMultiplier":{"Source":2,"LiteralValue":1.0},"widthMultiplier":{"Source":2,"LiteralValue":1.0},"lengthOverride":{"SkillField":6},"durationOverride":{"SkillField":8},"intensityMultiplier":{"Source":2,"LiteralValue":1.0},"nodeGuid":"a97c2d57dd7b4455a0816950fc675b4d","_inputPortNames":["input"],"_outputPortNames":["output"],"_position":{"x":1240.0,"y":220.0},"$type":"PlayVFXNode","$id":"5"},{"vfxKey":{"Source":0},"styleKey":{"Source":0,"SkillConfigFieldName":"VFXProfileKey"},"stage":5,"directionMode":2,"scaleMultiplier":{"Source":2,"LiteralValue":1.0},"widthMultiplier":{"Source":2,"LiteralValue":1.0},"lengthOverride":{"SkillField":6},"durationOverride":{"SkillField":8},"intensityMultiplier":{"Source":2,"LiteralValue":1.0},"customDirection":{"y":1.0},"nodeGuid":"745f0319ed714b06b5eeecd59916113f","_inputPortNames":["input"],"_outputPortNames":["output"],"_position":{"x":1480.0,"y":220.0},"$type":"PlayVFXNode","$id":"6"},{"terrainTags":{"LiteralValue":"metal|scorch"},"nodeGuid":"e866953a4cea4287afa5ce8e184bda89","_inputPortNames":["input"],"_outputPortNames":["output"],"_position":{"x":1720.0,"y":220.0},"$type":"PaintTerrainNode","$id":"7"},{"postCastTime":{"SkillField":11},"postCastVfxKey":{"LiteralValue":""},"nodeGuid":"2f07ff1b5d3e4816868134925a32af91","_inputPortNames":["input"],"_outputPortNames":["output"],"_position":{"x":1960.0,"y":220.0},"$type":"PostCastNode","$id":"8"},{"nodeGuid":"99394a5a6bb1412ea695624abc72f085","_inputPortNames":["input"],"_outputPortNames":["output"],"_position":{"x":2180.0,"y":220.0},"$type":"EndNode","$id":"9"}],"connections":[{"_sourceNode":{"$ref":"0"},"_targetNode":{"$ref":"1"},"$type":"SkillConnection"},{"_sourceNode":{"$ref":"1"},"_targetNode":{"$ref":"2"},"$type":"SkillConnection"},{"_sourceNode":{"$ref":"2"},"_targetNode":{"$ref":"3"},"$type":"SkillConnection"},{"_sourceNode":{"$ref":"3"},"_targetNode":{"$ref":"4"},"$type":"SkillConnection"},{"_sourceNode":{"$ref":"4"},"_targetNode":{"$ref":"5"},"$type":"SkillConnection"},{"_sourceNode":{"$ref":"5"},"_targetNode":{"$ref":"6"},"$type":"SkillConnection"},{"_sourceNode":{"$ref":"6"},"_targetNode":{"$ref":"7"},"$type":"SkillConnection"},{"_sourceNode":{"$ref":"7"},"_targetNode":{"$ref":"8"},"$type":"SkillConnection"},{"_sourceNode":{"$ref":"8"},"_targetNode":{"$ref":"9"},"$type":"SkillConnection"}],"canvasGroups":[],"localBlackboard":{"_variables":{}}}'
   _objectReferences: []
   _graphSource:
     _version: 3.05
@@ -32,7 +30,7 @@ MonoBehaviour:
 #    "type": "SkillGraph",
 #    "nodes": [
 #        {
-#            "nodeGuid": "6fc639e1044f42099af43cf946d6f731",
+#            "nodeGuid": "697de7ea554c41199108ef4903e76e79",
 #            "_inputPortNames": [
 #                "input"
 #            ],
@@ -50,7 +48,7 @@ MonoBehaviour:
 #            "message": {
 #                "LiteralValue": "\u914d\u65b9 AC-AC-FI-FU\uff1a\u96f7\u65ad\u5934\u53f0 | \u534f\u540c=\u51fb\u6740\u540e\u7ee7\u7eed\u8dc3\u8fc1 | \u8d28\u53d8=\u5904\u51b3\u8fde\u9501"
 #            },
-#            "nodeGuid": "0a5e2ec60ea54e8bafe16516013fc2cf",
+#            "nodeGuid": "deb88e87490043f089cc141eb3ac4d3f",
 #            "_inputPortNames": [
 #                "input"
 #            ],
@@ -58,32 +56,11 @@ MonoBehaviour:
 #                "output"
 #            ],
 #            "_position": {
-#                "x": 160.0,
+#                "x": 280.0,
 #                "y": 100.0
 #            },
 #            "$type": "LogNode",
 #            "$id": "1"
-#        },
-#        {
-#            "castTime": {
-#                "SkillField": 9
-#            },
-#            "preCastVfxKey": {
-#                "LiteralValue": ""
-#            },
-#            "nodeGuid": "ca16222e94444813875be9cc8058303a",
-#            "_inputPortNames": [
-#                "input"
-#            ],
-#            "_outputPortNames": [
-#                "output"
-#            ],
-#            "_position": {
-#                "x": 360.0,
-#                "y": 140.0
-#            },
-#            "$type": "PreCastNode",
-#            "$id": "2"
 #        },
 #        {
 #            "vfxKey": {
@@ -112,7 +89,7 @@ MonoBehaviour:
 #                "Source": 2,
 #                "LiteralValue": 1.0
 #            },
-#            "nodeGuid": "a0cde577a4984e6fb3dc5a4dfe5918c9",
+#            "nodeGuid": "86ade8639e514f9691a65967ad49d148",
 #            "_inputPortNames": [
 #                "input"
 #            ],
@@ -124,13 +101,13 @@ MonoBehaviour:
 #                "y": 220.0
 #            },
 #            "$type": "PlayVFXNode",
-#            "$id": "3"
+#            "$id": "2"
 #        },
 #        {
 #            "delaySeconds": {
 #                "SkillField": 4
 #            },
-#            "nodeGuid": "5876b7e23f4f4cccb52b875ea8d8a9b7",
+#            "nodeGuid": "573dfc2ae468486a9f8fcd988a166f52",
 #            "_inputPortNames": [
 #                "input"
 #            ],
@@ -138,14 +115,15 @@ MonoBehaviour:
 #                "output"
 #            ],
 #            "_position": {
-#                "x": 720.0,
+#                "x": 740.0,
 #                "y": 220.0
 #            },
 #            "$type": "DelayNode",
-#            "$id": "4"
+#            "$id": "3"
 #        },
 #        {
-#            "nodeGuid": "0a3a88a7e16c4993b03a1ee6ef7fb66a",
+#            "EffectId": 42002,
+#            "nodeGuid": "7731826ac85449c7916f82cf068c90f4",
 #            "_inputPortNames": [
 #                "input"
 #            ],
@@ -153,74 +131,11 @@ MonoBehaviour:
 #                "output"
 #            ],
 #            "_position": {
-#                "x": 980.0,
+#                "x": 960.0,
 #                "y": 220.0
 #            },
-#            "$type": "ParallelNode",
-#            "$id": "5"
-#        },
-#        {
-#            "vfxKey": {
-#                "Source": 0
-#            },
-#            "styleKey": {
-#                "Source": 0,
-#                "SkillConfigFieldName": "VFXProfileKey"
-#            },
-#            "stage": 3,
-#            "scaleMultiplier": {
-#                "Source": 2,
-#                "LiteralValue": 1.0
-#            },
-#            "widthMultiplier": {
-#                "Source": 2,
-#                "LiteralValue": 1.0
-#            },
-#            "lengthOverride": {
-#                "SkillField": 3
-#            },
-#            "durationOverride": {
-#                "SkillField": 8
-#            },
-#            "intensityMultiplier": {
-#                "Source": 2,
-#                "LiteralValue": 1.0
-#            },
-#            "nodeGuid": "9e6ea7c72dec420599ed0cc70f41d672",
-#            "_inputPortNames": [
-#                "input"
-#            ],
-#            "_outputPortNames": [
-#                "output"
-#            ],
-#            "_position": {
-#                "x": 1240.0,
-#                "y": 120.0
-#            },
-#            "$type": "PlayVFXNode",
-#            "$id": "6"
-#        },
-#        {
-#            "damageAmount": {
-#
-#            },
-#            "damageRate": {
-#                "SkillField": 1,
-#                "DefaultValue": 1.0
-#            },
-#            "nodeGuid": "a81b5930e60a4331a151070e7bf5194a",
-#            "_inputPortNames": [
-#                "input"
-#            ],
-#            "_outputPortNames": [
-#                "output"
-#            ],
-#            "_position": {
-#                "x": 1480.0,
-#                "y": 120.0
-#            },
-#            "$type": "DamageNode",
-#            "$id": "7"
+#            "$type": "ApplyEffectNode",
+#            "$id": "4"
 #        },
 #        {
 #            "vfxKey": {
@@ -249,7 +164,7 @@ MonoBehaviour:
 #                "Source": 2,
 #                "LiteralValue": 1.0
 #            },
-#            "nodeGuid": "84ee151644e4432ca332b146ad5dae87",
+#            "nodeGuid": "a97c2d57dd7b4455a0816950fc675b4d",
 #            "_inputPortNames": [
 #                "input"
 #            ],
@@ -258,50 +173,10 @@ MonoBehaviour:
 #            ],
 #            "_position": {
 #                "x": 1240.0,
-#                "y": 340.0
-#            },
-#            "$type": "PlayVFXNode",
-#            "$id": "8"
-#        },
-#        {
-#            "damageAmount": {
-#
-#            },
-#            "damageRate": {
-#                "SkillField": 1,
-#                "DefaultValue": 1.0
-#            },
-#            "nodeGuid": "f01c840e984445baa2621452813f7f9b",
-#            "_inputPortNames": [
-#                "input"
-#            ],
-#            "_outputPortNames": [
-#                "output"
-#            ],
-#            "_position": {
-#                "x": 1480.0,
-#                "y": 340.0
-#            },
-#            "$type": "DamageNode",
-#            "$id": "9"
-#        },
-#        {
-#            "statusTags": {
-#                "LiteralValue": "burn|conductive|mark"
-#            },
-#            "nodeGuid": "3d13ab283248424ca3759d02358730e4",
-#            "_inputPortNames": [
-#                "input"
-#            ],
-#            "_outputPortNames": [
-#                "output"
-#            ],
-#            "_position": {
-#                "x": 1820.0,
 #                "y": 220.0
 #            },
-#            "$type": "ApplyStatusNode",
-#            "$id": "10"
+#            "$type": "PlayVFXNode",
+#            "$id": "5"
 #        },
 #        {
 #            "vfxKey": {
@@ -334,7 +209,7 @@ MonoBehaviour:
 #            "customDirection": {
 #                "y": 1.0
 #            },
-#            "nodeGuid": "8c67328b9e1b4347bc39b95652f614ca",
+#            "nodeGuid": "745f0319ed714b06b5eeecd59916113f",
 #            "_inputPortNames": [
 #                "input"
 #            ],
@@ -342,17 +217,17 @@ MonoBehaviour:
 #                "output"
 #            ],
 #            "_position": {
-#                "x": 2060.0,
+#                "x": 1480.0,
 #                "y": 220.0
 #            },
 #            "$type": "PlayVFXNode",
-#            "$id": "11"
+#            "$id": "6"
 #        },
 #        {
 #            "terrainTags": {
 #                "LiteralValue": "metal|scorch"
 #            },
-#            "nodeGuid": "4e6493a7f24345d8a5c83915735c8bf5",
+#            "nodeGuid": "e866953a4cea4287afa5ce8e184bda89",
 #            "_inputPortNames": [
 #                "input"
 #            ],
@@ -360,44 +235,11 @@ MonoBehaviour:
 #                "output"
 #            ],
 #            "_position": {
-#                "x": 2300.0,
+#                "x": 1720.0,
 #                "y": 220.0
 #            },
 #            "$type": "PaintTerrainNode",
-#            "$id": "12"
-#        },
-#        {
-#            "absorbVfxKey": {
-#                "LiteralValue": "EnergyAbsorb"
-#            },
-#            "burstVfxKey": {
-#                "Source": 0,
-#                "SkillConfigFieldName": "FinisherVFXKey"
-#            },
-#            "absorbDuration": {
-#                "Source": 2,
-#                "LiteralValue": 0.55
-#            },
-#            "burstDuration": {
-#                "SkillField": 8
-#            },
-#            "scaleMultiplier": {
-#                "Source": 2,
-#                "LiteralValue": 1.0
-#            },
-#            "nodeGuid": "206d0805faeb43dc99bab1ee11d7f6ab",
-#            "_inputPortNames": [
-#                "input"
-#            ],
-#            "_outputPortNames": [
-#                "output"
-#            ],
-#            "_position": {
-#                "x": 2540.0,
-#                "y": 220.0
-#            },
-#            "$type": "FinisherStagedNode",
-#            "$id": "13"
+#            "$id": "7"
 #        },
 #        {
 #            "postCastTime": {
@@ -406,7 +248,7 @@ MonoBehaviour:
 #            "postCastVfxKey": {
 #                "LiteralValue": ""
 #            },
-#            "nodeGuid": "e9ff402b13634f1a9aa1849308ead0c9",
+#            "nodeGuid": "2f07ff1b5d3e4816868134925a32af91",
 #            "_inputPortNames": [
 #                "input"
 #            ],
@@ -414,14 +256,14 @@ MonoBehaviour:
 #                "output"
 #            ],
 #            "_position": {
-#                "x": 2780.0,
+#                "x": 1960.0,
 #                "y": 220.0
 #            },
 #            "$type": "PostCastNode",
-#            "$id": "14"
+#            "$id": "8"
 #        },
 #        {
-#            "nodeGuid": "03f38bce5df6404db85b6182a9a748a0",
+#            "nodeGuid": "99394a5a6bb1412ea695624abc72f085",
 #            "_inputPortNames": [
 #                "input"
 #            ],
@@ -429,11 +271,11 @@ MonoBehaviour:
 #                "output"
 #            ],
 #            "_position": {
-#                "x": 1700.0,
+#                "x": 2180.0,
 #                "y": 220.0
 #            },
 #            "$type": "EndNode",
-#            "$id": "15"
+#            "$id": "9"
 #        }
 #    ],
 #    "connections": [
@@ -483,31 +325,11 @@ MonoBehaviour:
 #            "$type": "SkillConnection"
 #        },
 #        {
-#            "_portName": "branches 0",
 #            "_sourceNode": {
 #                "$ref": "5"
 #            },
 #            "_targetNode": {
 #                "$ref": "6"
-#            },
-#            "$type": "SkillConnection"
-#        },
-#        {
-#            "_portName": "branches 1",
-#            "_sourceNode": {
-#                "$ref": "5"
-#            },
-#            "_targetNode": {
-#                "$ref": "8"
-#            },
-#            "$type": "SkillConnection"
-#        },
-#        {
-#            "_sourceNode": {
-#                "$ref": "5"
-#            },
-#            "_targetNode": {
-#                "$ref": "10"
 #            },
 #            "$type": "SkillConnection"
 #        },
@@ -522,55 +344,19 @@ MonoBehaviour:
 #        },
 #        {
 #            "_sourceNode": {
+#                "$ref": "7"
+#            },
+#            "_targetNode": {
+#                "$ref": "8"
+#            },
+#            "$type": "SkillConnection"
+#        },
+#        {
+#            "_sourceNode": {
 #                "$ref": "8"
 #            },
 #            "_targetNode": {
 #                "$ref": "9"
-#            },
-#            "$type": "SkillConnection"
-#        },
-#        {
-#            "_sourceNode": {
-#                "$ref": "10"
-#            },
-#            "_targetNode": {
-#                "$ref": "11"
-#            },
-#            "$type": "SkillConnection"
-#        },
-#        {
-#            "_sourceNode": {
-#                "$ref": "11"
-#            },
-#            "_targetNode": {
-#                "$ref": "12"
-#            },
-#            "$type": "SkillConnection"
-#        },
-#        {
-#            "_sourceNode": {
-#                "$ref": "12"
-#            },
-#            "_targetNode": {
-#                "$ref": "13"
-#            },
-#            "$type": "SkillConnection"
-#        },
-#        {
-#            "_sourceNode": {
-#                "$ref": "13"
-#            },
-#            "_targetNode": {
-#                "$ref": "14"
-#            },
-#            "$type": "SkillConnection"
-#        },
-#        {
-#            "_sourceNode": {
-#                "$ref": "14"
-#            },
-#            "_targetNode": {
-#                "$ref": "15"
 #            },
 #            "$type": "SkillConnection"
 #        }

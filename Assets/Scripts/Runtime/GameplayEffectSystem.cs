@@ -117,10 +117,27 @@ public class GEHost : MonoBehaviour
     private readonly List<GameplayEffectInstance> _toRemove = new(8);
     private readonly GameplayTagContainer _innateTags = default;
 
+    // ---- 缓存当前所有活跃 Tag（用于变更检测） ----
+    private readonly HashSet<string> _cachedTags = new(StringComparer.OrdinalIgnoreCase);
+
     public IReadOnlyList<GameplayEffectInstance> ActiveEffects => _activeEffects;
+
+    // ---- 事件 ----
     public event Action<GameplayEffectInstance> OnEffectApplied;
     public event Action<GameplayEffectInstance> OnEffectRemoved;
     public event Action<GEEventContext> OnGameplayEvent;
+
+    /// <summary>Tag 新增事件：当实体获得一个之前没有的 Tag 时触发。</summary>
+    public event Action<GEHost, string> OnTagAdded;
+
+    /// <summary>Tag 移除事件：当实体失去一个之前拥有的 Tag 时触发。</summary>
+    public event Action<GEHost, string> OnTagRemoved;
+
+    /// <summary>Effect 过期事件：当 Effect 因持续时间结束自动移除时触发。</summary>
+    public event Action<GameplayEffectInstance> OnEffectExpired;
+
+    /// <summary>Effect 叠层变更事件：当 Effect 层数增加时触发。</summary>
+    public event Action<GameplayEffectInstance> OnStackChanged;
 
     private void Update()
     {
@@ -135,6 +152,8 @@ public class GEHost : MonoBehaviour
         {
             _activeEffects.Remove(ge);
             OnEffectRemoved?.Invoke(ge);
+            OnEffectExpired?.Invoke(ge);
+            NotifyTagChanges();
         }
     }
 
@@ -145,11 +164,17 @@ public class GEHost : MonoBehaviour
             if (!HasTag(tag)) return false;
 
         var existing = FindEffect(config.GEId);
-        if (existing != null) return TryStack(existing, config, instigator);
+        if (existing != null)
+        {
+            var stacked = TryStack(existing, config, instigator);
+            if (stacked) OnStackChanged?.Invoke(existing);
+            return stacked;
+        }
 
         var instance = config.CreateInstance(instigator);
         _activeEffects.Add(instance);
         OnEffectApplied?.Invoke(instance);
+        NotifyTagChanges();
         return true;
     }
 
@@ -160,7 +185,9 @@ public class GEHost : MonoBehaviour
             if (_activeEffects[i].GEId == geId)
             {
                 var e = _activeEffects[i]; _activeEffects.RemoveAt(i);
-                OnEffectRemoved?.Invoke(e); return true;
+                OnEffectRemoved?.Invoke(e);
+                NotifyTagChanges();
+                return true;
             }
         }
         return false;
@@ -177,9 +204,81 @@ public class GEHost : MonoBehaviour
 
     public bool HasEffect(int geId) => FindEffect(geId) != null;
 
-    public void AddInnateTag(string tag) => _innateTags.AddTag(tag);
-    public void RemoveInnateTag(string tag) => _innateTags.RemoveTag(tag);
+    public void AddInnateTag(string tag)
+    {
+        _innateTags.AddTag(tag);
+        if (!_cachedTags.Contains(new GameplayTag(tag).Value))
+            OnTagAdded?.Invoke(this, tag);
+        RebuildCachedTags();
+    }
+
+    public void RemoveInnateTag(string tag)
+    {
+        _innateTags.RemoveTag(tag);
+        NotifyTagChanges();
+    }
+
     public bool HasInnateTag(string tag) => _innateTags.HasTag(tag);
+
+    /// <summary>获取当前所有活跃 Tag 的快照（包含先天 Tag 和 Effect 授予的 Tag）。</summary>
+    public void GetCurrentTags(HashSet<string> result)
+    {
+        result.Clear();
+        if (_innateTags.AllTags != null)
+            foreach (var tag in _innateTags.AllTags)
+                result.Add(tag);
+        foreach (var ge in _activeEffects)
+            foreach (var granted in ge.GrantedTags)
+                result.Add(new GameplayTag(granted).Value);
+    }
+
+    /// <summary>获取当前所有活跃 Tag 的快照列表。</summary>
+    public List<string> GetCurrentTagsList()
+    {
+        var result = new List<string>();
+        if (_innateTags.AllTags != null)
+            foreach (var tag in _innateTags.AllTags)
+                result.Add(tag);
+        foreach (var ge in _activeEffects)
+            foreach (var granted in ge.GrantedTags)
+                result.Add(new GameplayTag(granted).Value);
+        return result;
+    }
+
+    // ============================================================
+    //  Tag 变更通知
+    // ============================================================
+
+    /// <summary>
+    ///     对比当前 Tag 集合与缓存，触发 OnTagAdded/OnTagRemoved 事件。
+    ///     仅在 Effect 应用/移除/先天 Tag 变更时调用。
+    /// </summary>
+    private void NotifyTagChanges()
+    {
+        var newTags = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        GetCurrentTags(newTags);
+
+        // 检测新增 Tag
+        foreach (var tag in newTags)
+            if (!_cachedTags.Contains(tag))
+                OnTagAdded?.Invoke(this, tag);
+
+        // 检测移除 Tag
+        foreach (var tag in _cachedTags)
+            if (!newTags.Contains(tag))
+                OnTagRemoved?.Invoke(this, tag);
+
+        _cachedTags.Clear();
+        foreach (var tag in newTags)
+            _cachedTags.Add(tag);
+    }
+
+    /// <summary>完全重建缓存（跳过变更检测）。</summary>
+    private void RebuildCachedTags()
+    {
+        _cachedTags.Clear();
+        GetCurrentTags(_cachedTags);
+    }
 
     // ---- 事件拦截触发 ----
 
@@ -260,6 +359,15 @@ public class GEHost : MonoBehaviour
     {
         foreach (var ge in _activeEffects) OnEffectRemoved?.Invoke(ge);
         _activeEffects.Clear();
+        NotifyTagChanges();
+    }
+
+    private void Awake()
+    {
+        // 初始化缓存
+        RebuildCachedTags();
+        // 自动注册到全局 Tag 事件总线
+        TagEventBus.Register(this);
     }
 
     private GameplayEffectInstance FindEffect(int geId)
@@ -283,7 +391,12 @@ public class GEHost : MonoBehaviour
         }
     }
 
-    private void OnDestroy() => ClearAll();
+    private void OnDestroy()
+    {
+        ClearAll();
+        // 自动注销
+        TagEventBus.Unregister(this);
+    }
 }
 
 // ============================================================

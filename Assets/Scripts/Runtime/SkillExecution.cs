@@ -5,14 +5,25 @@ using UnityEngine;
 ///     单个技能执行实例 —— 替代协程驱动的状态机。
 ///     由 SkillTickManager 每帧调用 Tick()，内部管理节点切换和子图栈。
 ///     完全 0 GC：无 IEnumerator 装箱，无 yield 分配。
+///
+///     架构分离（组合模式）：
+///     - CurrentNode (SkillNodeBase)：图导航 + 调试显示（自建框架）
+///     - CurrentLogic (ISkillNodeLogic)：逻辑执行（0 框架依赖，通过组合获取）
+///     - 导航走 CurrentNode.ResolveNextNode()，执行走 CurrentLogic.Tick/OnEnter/OnExit
 /// </summary>
 public class SkillExecution
 {
     /// <summary>内部子图执行栈（用于 SubGraph 递归）</summary>
     private readonly System.Collections.Generic.Stack<SkillExecutionFrame> _frames = new(8);
 
-    /// <summary>当前正在运行的节点（可被 SkipTo 替换）</summary>
-    public SkillNode CurrentNode { get; private set; }
+    /// <summary>当前正在运行的图节点（用于图导航 + 调试显示）</summary>
+    public SkillNodeBase CurrentNode { get; private set; }
+
+    /// <summary>
+    ///     当前正在运行的逻辑接口（0 框架依赖，组合获取）。
+    ///     通过 CurrentNode.Logic 获取（组合模式），不再强转 ISkillNodeLogic。
+    /// </summary>
+    public ISkillNodeLogic CurrentLogic { get; private set; }
 
     /// <summary>当前技能上下文</summary>
     public SkillContext Context { get; private set; }
@@ -47,7 +58,7 @@ public class SkillExecution
     /// <summary>
     ///     初始化执行实例。每次从对象池取出时调用。
     /// </summary>
-    public void Initialize(SkillGraph graph, SkillContext context)
+    public void Initialize(SkillGraphAsset graph, SkillContext context)
     {
         Context = context;
         _debugEnabled = context?.DebugEnabled ?? false;
@@ -79,9 +90,10 @@ public class SkillExecution
             return;
         }
 
+        CurrentLogic = CurrentNode.Logic;
         IsRunning = true;
         IsInterrupted = false;
-        CurrentNode.OnEnter(context);
+        CurrentLogic.OnEnter(context);
     }
 
     /// <summary>
@@ -90,7 +102,7 @@ public class SkillExecution
     /// </summary>
     public void Tick(float deltaTime)
     {
-        if (!IsRunning || CurrentNode == null || IsInterrupted) return;
+        if (!IsRunning || CurrentNode == null || CurrentLogic == null || IsInterrupted) return;
 
         // 断点暂停
         if (_debugEnabled && _pauseRequested && !_stepRequested) return;
@@ -104,8 +116,8 @@ public class SkillExecution
             return;
         }
 
-        // 驱动当前节点
-        var result = CurrentNode.Tick(Context, deltaTime);
+        // 驱动当前节点逻辑（通过 ISkillNodeLogic 接口，0 框架依赖）
+        var result = CurrentLogic.Tick(Context, deltaTime);
 
         switch (result)
         {
@@ -128,16 +140,18 @@ public class SkillExecution
     /// </summary>
     private void OnNodeComplete()
     {
-        if (CurrentNode == null) return;
+        if (CurrentNode == null || CurrentLogic == null) return;
 
-        CurrentNode.OnExit(Context);
+        CurrentLogic.OnExit(Context);
+        // 图导航仍走 ResolveNextNode()（图结构职责）
         var nextNode = CurrentNode.ResolveNextNode(Context);
 
         if (nextNode != null)
         {
-            // 推进到下一节点
+            // 推进到下一节点（组合模式：Logic 通过节点获取）
             CurrentNode = nextNode;
-            CurrentNode.OnEnter(Context);
+            CurrentLogic = nextNode.Logic;
+            CurrentLogic.OnEnter(Context);
         }
         else
         {
@@ -151,9 +165,9 @@ public class SkillExecution
     /// </summary>
     private void OnNodeFailed()
     {
-        if (CurrentNode != null)
+        if (CurrentLogic != null)
         {
-            CurrentNode.OnExit(Context);
+            CurrentLogic.OnExit(Context);
         }
 
         MarkInterrupted();
@@ -176,7 +190,8 @@ public class SkillExecution
             CurrentNode = callerFrame.CurrentNode?.ResolveNextNode(Context) ?? null;
             if (CurrentNode != null)
             {
-                CurrentNode.OnEnter(Context);
+                CurrentLogic = CurrentNode.Logic;
+                CurrentLogic.OnEnter(Context);
             }
             else
             {
@@ -188,6 +203,7 @@ public class SkillExecution
         {
             // 顶层图执行完毕
             CurrentNode = null;
+            CurrentLogic = null;
             IsRunning = false;
         }
     }
@@ -208,27 +224,29 @@ public class SkillExecution
         }
 
         // 清理当前节点
-        if (CurrentNode != null)
+        if (CurrentLogic != null)
         {
-            CurrentNode.OnExit(Context);
+            CurrentLogic.OnExit(Context);
             CurrentNode = null;
+            CurrentLogic = null;
         }
     }
 
     /// <summary>
     ///     强制跳转到指定节点（用于条件分支等场景）。
     /// </summary>
-    public void SkipTo(SkillNode targetNode)
+    public void SkipTo(SkillNodeBase targetNode)
     {
-        if (CurrentNode != null)
+        if (CurrentLogic != null)
         {
-            CurrentNode.OnExit(Context);
+            CurrentLogic.OnExit(Context);
         }
 
         CurrentNode = targetNode;
-        if (CurrentNode != null)
+        CurrentLogic = targetNode?.Logic;
+        if (CurrentLogic != null)
         {
-            CurrentNode.OnEnter(Context);
+            CurrentLogic.OnEnter(Context);
         }
     }
 
@@ -257,6 +275,7 @@ public class SkillExecution
     {
         _frames.Clear();
         CurrentNode = null;
+        CurrentLogic = null;
         Context = null;
         IsInterrupted = false;
         IsRunning = false;

@@ -1,6 +1,6 @@
 using UnityEngine;
 
-public class DelayNode : SkillNode
+public class DelayNode : SkillNodeBase
 {
     public FloatBinding delaySeconds = new()
     {

@@ -1,6 +1,6 @@
 using UnityEngine;
 
-public class LogNode : SkillNode
+public class LogNode : SkillNodeBase
 {
     public StringBinding message = new() { LiteralValue = "Skill node reached." };
 

@@ -2,9 +2,11 @@
 
 ## 一、架构概览
 
-本项目是一个**商业级战斗系统框架**，支撑策划填表（CSV）、设计师连线（CanvasCore）、程序守护（Runtime / GE / EQS / AI）的规模化协作。
+本项目是一个**商业级战斗系统框架**，支撑策划填表（CSV）、设计师连线（自建技能图框架）、程序守护（Runtime / GE / EQS / AI）的规模化协作。
 
-### 五层架构
+技能系统使用自建图框架（SkillGraphAsset + SkillNodeBase + SkillEdge），完全独立于 NodeCanvas。AI 系统继续使用 NodeCanvas BehaviourTree，两者无耦合。
+
+### 六层架构
 
 ```
 ┌──────────────────────────────────────────────────┐
@@ -12,19 +14,23 @@
 │  Skill.csv / SkillRecipe.csv / Buff.csv / AITree.csv
 │  → 单一数据源，所有数值参数的唯一出处               │
 ├──────────────────────────────────────────────────┤
-│  第二层 — CanvasCore 逻辑层（可视化连线）           │
-│  SkillGraph（技能图）+ AIGraph（行为树）             │
-│  → 连线定义执行流程，Binding 引用 CSV 字段          │
+│  第二层 — 自建技能图层（无第三方依赖）              │
+│  SkillGraphAsset + SkillNodeBase + SkillEdge      │
+│  → 技能图容器、节点基类、有向边，完全自建           │
 ├──────────────────────────────────────────────────┤
-│  第三层 — GameplayEffect 层（状态驱动）             │
+│  第三层 — NodeCanvas AI 层（行为树）               │
+│  AIGraph（BehaviourTree）+ AIController            │
+│  → AI 行为树使用 NodeCanvas，独立于技能系统        │
+├──────────────────────────────────────────────────┤
+│  第四层 — GameplayEffect 层（状态驱动）             │
 │  GEConfig → GEInstance → GEHost + GameplayTag     │
 │  → Modifier 队列 + Tag 验证 + 事件拦截             │
 ├──────────────────────────────────────────────────┤
-│  第四层 — Tick 运行时引擎                          │
+│  第五层 — Tick 运行时引擎                          │
 │  SkillCaster / SkillTickManager / SkillRunner     │
 │  → 状态机驱动释放管线，Blackboard 解耦节点间通信     │
 ├──────────────────────────────────────────────────┤
-│  第五层 — 表现 & AI 感知层                         │
+│  第六层 — 表现 & AI 感知层                         │
 │  VFXManager / Shader / SpatialHashGrid / Burst Job│
 │  → 对象池管理特效，空间哈希 O(1) 感知               │
 └──────────────────────────────────────────────────┘
@@ -344,7 +350,8 @@ Assets/
 │   ├── Nodes/         ← 24 种节点
 │   ├── Runtime/       ← SkillCaster、SkillRunner、GE 系统、EQS、动画同步
 │   ├── VFX/           ← VFX 模块
-│   ├── AI/            ← AI 行为树 + 感知
+│   ├── AI/            ← AI 行为树 + 感知（NodeCanvas）
+│   ├── Graph/         ← SkillGraphAsset + SkillNodeBase + SkillEdge（自建图框架）
 │   └── Editor/        ← 生成器、校验器、调试工具
 ├── Resources/Config/  ← Skill.csv、Buff.csv、AITree.csv 等
 └── doc/               ← 本文档及其他说明文档

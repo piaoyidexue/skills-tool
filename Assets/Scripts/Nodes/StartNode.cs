@@ -1,4 +1,4 @@
-public class StartNode : SkillNode
+public class StartNode : SkillNodeBase
 {
     public override NodeTickResult Tick(SkillContext ctx, float deltaTime)
     {

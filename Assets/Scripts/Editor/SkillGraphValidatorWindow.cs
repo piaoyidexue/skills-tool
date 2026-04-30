@@ -5,7 +5,7 @@ public class SkillGraphValidatorWindow : EditorWindow
 {
     private void OnGUI()
     {
-        var graph = Selection.activeObject as SkillGraph;
+        var graph = Selection.activeObject as SkillGraphAsset;
         if (graph == null)
         {
             EditorGUILayout.HelpBox("Select a SkillGraph asset to validate it.", MessageType.Info);
@@ -21,7 +21,7 @@ public class SkillGraphValidatorWindow : EditorWindow
         GetWindow<SkillGraphValidatorWindow>("Skill Graph Validator");
     }
 
-    private static void Validate(SkillGraph graph)
+    private static void Validate(SkillGraphAsset graph)
     {
         if (!graph.HasSingleStartNode())
         {
@@ -30,7 +30,7 @@ public class SkillGraphValidatorWindow : EditorWindow
         }
 
         var hasEndNode = false;
-        foreach (var rawNode in graph.allNodes)
+        foreach (var rawNode in graph.Nodes)
         {
             if (rawNode is EndNode) hasEndNode = true;
 
@@ -40,12 +40,12 @@ public class SkillGraphValidatorWindow : EditorWindow
                 return;
             }
 
-            if (rawNode is SkillNode skillNode && !(rawNode is EndNode))
+            if (rawNode is SkillNodeBase skillNode && !(rawNode is EndNode))
             {
-                var hasPrimaryOutput = skillNode.SkillOutConnections.Count > 0;
+                var hasPrimaryOutput = skillNode.GetOutputEdges().Count > 0;
                 if (!hasPrimaryOutput && !(rawNode is ConditionNode) && !(rawNode is ParallelNode))
                     Debug.LogWarning(
-                        $"[SkillGraphValidator] Node {skillNode.name} in graph {graph.name} has no outgoing connection.");
+                        $"[SkillGraphValidator] Node {skillNode.NodeName} in graph {graph.name} has no outgoing edge.");
             }
         }
 

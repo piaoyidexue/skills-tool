@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using UnityEngine;
 
 public class Blackboard
 {
@@ -7,8 +8,35 @@ public class Blackboard
 
     public event Action<string, object> OnValueChanged;
 
+    // ============================================================
+    //  GAS 红线：禁止写入的废弃键集合。
+    //  这些键对应的业务逻辑已迁移到 EffectSystem / GEHost / ReactionEngine。
+    //  写入时将输出警告日志并静默忽略。
+    // ============================================================
+    private static readonly HashSet<string> DeprecatedKeys = new(StringComparer.OrdinalIgnoreCase)
+    {
+        BBKey.DamageOverride,
+        BBKey.IsCrit,
+        BBKey.LastDamage,
+        BBKey.StatusTags,
+        BBKey.ReactionSummary,
+        BBKey.HasResonance,
+        BBKey.DelayOverride,
+        BBKey.DamagePercent,
+        BBKey.CritChance
+    };
+
+    /// <summary>是否启用红线校验（编辑器下默认开启）</summary>
+    public bool EnforceBoundaryChecks { get; set; } = true;
+
     public void SetValue<T>(string key, T value)
     {
+        if (EnforceBoundaryChecks && DeprecatedKeys.Contains(key))
+        {
+            Debug.LogWarning($"[Blackboard] GAS红线：禁止写入废弃键 '{key}'，该逻辑已迁移到 EffectSystem。");
+            return;
+        }
+
         _data[key] = value;
         OnValueChanged?.Invoke(key, value);
     }

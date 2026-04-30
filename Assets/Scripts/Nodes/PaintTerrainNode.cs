@@ -1,10 +1,8 @@
 using UnityEngine;
 
-public class PaintTerrainNode : SkillNode
+public class PaintTerrainNode : SkillNodeBase
 {
-    public string blackboardKey = BBKey.TerrainTags;
     public StringBinding terrainTags = new() { LiteralValue = "scorch" };
-    public bool append = true;
     public float defaultRadius = 1.5f;
 
     public override NodeTickResult Tick(SkillContext ctx, float deltaTime)
@@ -12,18 +10,7 @@ public class PaintTerrainNode : SkillNode
         var tags = terrainTags.Resolve(ctx);
         if (string.IsNullOrWhiteSpace(tags)) return NodeTickResult.Success;
 
-        if (append)
-        {
-            var existing = ctx.Blackboard.GetString(blackboardKey, string.Empty);
-            if (string.IsNullOrWhiteSpace(existing))
-                ctx.Blackboard.SetValue(blackboardKey, tags);
-            else if (!existing.Contains(tags)) ctx.Blackboard.SetValue(blackboardKey, existing + "|" + tags);
-        }
-        else
-        {
-            ctx.Blackboard.SetValue(blackboardKey, tags);
-        }
-
+        // GAS架构：地形标签不再写入黑板，由 TerrainEffectSystem 直接处理
         var terrainSystem = TerrainEffectSystem.EnsureInstance();
         var position = ctx.Target != null ? ctx.Target.position : (ctx.Caster != null ? ctx.Caster.position : Vector3.zero);
         foreach (var rawTag in tags.Split('|'))

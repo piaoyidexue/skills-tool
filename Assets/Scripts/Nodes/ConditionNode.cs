@@ -20,7 +20,7 @@ public enum FloatCompareMode
 ///     条件分支节点 —— 根据条件判定结果选择不同的执行路径。
 ///     使用命名端口 "truePort" 和 "falsePort" 分别对应 true/false 分支。
 /// </summary>
-public class ConditionNode : SkillNode
+public class ConditionNode : SkillNodeBase
 {
     public ConditionMode mode = ConditionMode.BlackboardBool;
     public FloatCompareMode compareMode = FloatCompareMode.Greater;
@@ -36,11 +36,9 @@ public class ConditionNode : SkillNode
 
     private bool _result;
 
-    // ---- 多端口配置 ----
-    public override int maxOutConnections => -1;
-
-    public ConditionNode()
+    protected override void OnEnable()
     {
+        base.OnEnable();
         SetPortNames(new[] { "input" }, new[] { "truePort", "falsePort" });
     }
 
@@ -74,7 +72,7 @@ public class ConditionNode : SkillNode
         return NodeTickResult.Success;
     }
 
-    public override SkillNode ResolveNextNode(SkillContext ctx)
+    public override SkillNodeBase ResolveNextNode(SkillContext ctx)
     {
         return GetConnectedNode(_result ? "truePort" : "falsePort");
     }

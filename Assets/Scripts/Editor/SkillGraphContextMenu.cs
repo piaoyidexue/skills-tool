@@ -1,12 +1,9 @@
 using UnityEditor;
 using UnityEngine;
-using NodeCanvas.Editor;
-using NodeCanvas.Framework;
 
 /// <summary>
-///     技能图上下文菜单 —— 基于 CanvasCore 框架。
-///     CanvasCore 的 GraphEditor 已内置节点菜单系统，
-///     通过 SkillNode.OnContextMenu() 和 [ContextMenu] 属性扩展。
+///     技能图上下文菜单 —— 自建框架版。
+///     基于 Unity Selection API，不依赖 NodeCanvas。
 /// </summary>
 public class SkillGraphContextMenu
 {
@@ -14,20 +11,17 @@ public class SkillGraphContextMenu
     [MenuItem("Tools/Skills/Toggle Breakpoint", true)]
     private static bool ValidateToggleBreakpoint()
     {
-        return GraphEditorUtility.activeNode is SkillNode;
+        return Selection.activeObject is SkillNodeBase;
     }
 
     [MenuItem("Tools/Skills/Toggle Breakpoint")]
     private static void ToggleBreakpointForSelection()
     {
-        var node = GraphEditorUtility.activeNode as SkillNode;
+        var node = Selection.activeObject as SkillNodeBase;
         if (node == null) return;
 
-        node.HasBreakpoint = !node.HasBreakpoint;
-
-        if (GraphEditor.currentGraph != null)
-            EditorUtility.SetDirty(GraphEditor.currentGraph);
-
+        node.IsBreakpoint = !node.IsBreakpoint;
+        EditorUtility.SetDirty(node);
         AssetDatabase.SaveAssets();
     }
 }

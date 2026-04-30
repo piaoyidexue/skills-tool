@@ -17,7 +17,7 @@ public class SkillOwner : MonoBehaviour
 
     [Header("Graph")]
     [Tooltip("如果 SkillConfig.GraphPath 无效，退回此图")]
-    public SkillGraph fallbackGraph;
+    public SkillGraphAsset fallbackGraph;
 
     [Tooltip("优先使用配置中的图表路径")]
     public bool useConfigGraph = true;

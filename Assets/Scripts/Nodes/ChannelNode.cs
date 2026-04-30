@@ -5,7 +5,7 @@ using UnityEngine;
 ///     每 tickInterval 触发一次 tick，总时长 channelDuration。
 ///     期间可被打断。进度记录在 Blackboard.ChannelProgress。
 /// </summary>
-public class ChannelNode : SkillNode
+public class ChannelNode : SkillNodeBase
 {
     public FloatBinding channelDuration = new()
     {
@@ -82,11 +82,10 @@ public class ChannelNode : SkillNode
             _nextTickTime += tickInterval;
             _tickIndex++;
             ctx.Blackboard.SetValue(BBKey.ChannelTick(_tickIndex), true);
-
-            var tickDamage = (ctx.Config?.Damage ?? 0f) * tickDamageRate.Resolve(ctx);
-            ctx.Blackboard.SetValue(BBKey.DamageOverride, tickDamage);
             ctx.Blackboard.SetValue(BBKey.ChannelCurrentTick, _tickIndex);
 
+            // GAS架构：tick 伤害通过 DamagePipeline 投递，不再写入黑板
+            var tickDamage = (ctx.Config?.Damage ?? 0f) * tickDamageRate.Resolve(ctx);
             ApplyTickDamage(ctx, tickDamage);
         }
 
@@ -111,7 +110,7 @@ public class ChannelNode : SkillNode
         ctx.Blackboard.SetValue(BBKey.IsChanneling, false);
     }
 
-    public override SkillNode ResolveNextNode(SkillContext ctx)
+    public override SkillNodeBase ResolveNextNode(SkillContext ctx)
     {
         if (ctx.IsInterrupted && !continueOnInterrupt)
             return null;
@@ -166,13 +165,7 @@ public class ChannelNode : SkillNode
     {
         if (ctx.Target == null || tickDamage <= 0f) return;
 
-        var damageable = ctx.Target.GetComponent<IDamageable>();
-        if (damageable == null)
-            damageable = ctx.Target.GetComponentInParent<IDamageable>();
-
-        if (damageable != null)
-        {
-            damageable.TakeDamage(tickDamage, ctx.Caster);
-        }
+        // GAS架构：通过 DamagePipeline 投递，不再直接调用 IDamageable
+        DamagePipeline.CalculateAndApply(tickDamage, ctx.Target, ctx.Caster, null);
     }
 }

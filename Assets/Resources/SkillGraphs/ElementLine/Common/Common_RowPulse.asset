@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d806ff6e468f4804e8bab31c8796e20e, type: 3}
   m_Name: Common_RowPulse
   m_EditorClassIdentifier: 
-  _serializedGraph: '{"type":"SkillGraph","nodes":[{"nodeGuid":"66510086060a4b0f8c98afd96bdaf5eb","_inputPortNames":["input"],"_outputPortNames":["output"],"_position":{"x":80.0,"y":120.0},"$type":"StartNode","$id":"0"},{"resonanceTags":{"LiteralValue":"row_resonance"},"nodeGuid":"19eed1a3b1c448089fbff9c8773daf16","_inputPortNames":["input"],"_outputPortNames":["output"],"_position":{"x":280.0,"y":120.0},"$type":"ResonanceNode","$id":"1"},{"vfxKey":{"Source":0},"styleKey":{"Source":0,"SkillConfigFieldName":"VFXProfileKey"},"stage":3,"scaleMultiplier":{"Source":2,"LiteralValue":1.0},"widthMultiplier":{"Source":2,"LiteralValue":1.0},"lengthOverride":{"Source":2},"durationOverride":{"SkillField":8},"intensityMultiplier":{"Source":2,"LiteralValue":1.0},"nodeGuid":"6e620e4cfe354eb09b58d22093cebc03","_inputPortNames":["input"],"_outputPortNames":["output"],"_position":{"x":520.0,"y":120.0},"$type":"PlayVFXNode","$id":"2"},{"nodeGuid":"3df886af7c8947128c4545ca23ea2952","_inputPortNames":["input"],"_outputPortNames":["output"],"_position":{"x":760.0,"y":120.0},"$type":"EndNode","$id":"3"}],"connections":[{"_sourceNode":{"$ref":"0"},"_targetNode":{"$ref":"1"},"$type":"SkillConnection"},{"_sourceNode":{"$ref":"1"},"_targetNode":{"$ref":"2"},"$type":"SkillConnection"},{"_sourceNode":{"$ref":"2"},"_targetNode":{"$ref":"3"},"$type":"SkillConnection"}],"canvasGroups":[],"localBlackboard":{"_variables":{}}}'
+  _serializedGraph: '{"type":"SkillGraph","nodes":[{"nodeGuid":"80c9cd9872df49848f13c41ae15259b5","_inputPortNames":["input"],"_outputPortNames":["output"],"_position":{"x":80.0,"y":120.0},"$type":"StartNode","$id":"0"},{"resonanceTags":{"LiteralValue":"row_resonance"},"nodeGuid":"1a09212694aa43099188483efa03c6a8","_inputPortNames":["input"],"_outputPortNames":["output"],"_position":{"x":280.0,"y":120.0},"$type":"ResonanceNode","$id":"1"},{"vfxKey":{"Source":0},"styleKey":{"Source":0,"SkillConfigFieldName":"VFXProfileKey"},"stage":3,"scaleMultiplier":{"Source":2,"LiteralValue":1.0},"widthMultiplier":{"Source":2,"LiteralValue":1.0},"lengthOverride":{"Source":2},"durationOverride":{"SkillField":8},"intensityMultiplier":{"Source":2,"LiteralValue":1.0},"nodeGuid":"2e1150f474bd438996517987bac54156","_inputPortNames":["input"],"_outputPortNames":["output"],"_position":{"x":520.0,"y":120.0},"$type":"PlayVFXNode","$id":"2"},{"nodeGuid":"910ff8b7a44d477ab377bcb2d1ec3ee6","_inputPortNames":["input"],"_outputPortNames":["output"],"_position":{"x":760.0,"y":120.0},"$type":"EndNode","$id":"3"}],"connections":[{"_sourceNode":{"$ref":"0"},"_targetNode":{"$ref":"1"},"$type":"SkillConnection"},{"_sourceNode":{"$ref":"1"},"_targetNode":{"$ref":"2"},"$type":"SkillConnection"},{"_sourceNode":{"$ref":"2"},"_targetNode":{"$ref":"3"},"$type":"SkillConnection"}],"canvasGroups":[],"localBlackboard":{"_variables":{}}}'
   _objectReferences: []
   _graphSource:
     _version: 3.05
@@ -28,7 +28,7 @@ MonoBehaviour:
 #    "type": "SkillGraph",
 #    "nodes": [
 #        {
-#            "nodeGuid": "66510086060a4b0f8c98afd96bdaf5eb",
+#            "nodeGuid": "80c9cd9872df49848f13c41ae15259b5",
 #            "_inputPortNames": [
 #                "input"
 #            ],
@@ -46,7 +46,7 @@ MonoBehaviour:
 #            "resonanceTags": {
 #                "LiteralValue": "row_resonance"
 #            },
-#            "nodeGuid": "19eed1a3b1c448089fbff9c8773daf16",
+#            "nodeGuid": "1a09212694aa43099188483efa03c6a8",
 #            "_inputPortNames": [
 #                "input"
 #            ],
@@ -87,7 +87,7 @@ MonoBehaviour:
 #                "Source": 2,
 #                "LiteralValue": 1.0
 #            },
-#            "nodeGuid": "6e620e4cfe354eb09b58d22093cebc03",
+#            "nodeGuid": "2e1150f474bd438996517987bac54156",
 #            "_inputPortNames": [
 #                "input"
 #            ],
@@ -102,7 +102,7 @@ MonoBehaviour:
 #            "$id": "2"
 #        },
 #        {
-#            "nodeGuid": "3df886af7c8947128c4545ca23ea2952",
+#            "nodeGuid": "910ff8b7a44d477ab377bcb2d1ec3ee6",
 #            "_inputPortNames": [
 #                "input"
 #            ],

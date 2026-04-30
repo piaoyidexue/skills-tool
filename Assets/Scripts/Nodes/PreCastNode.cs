@@ -5,7 +5,7 @@ using UnityEngine;
 ///     【重要】前腰的等待计时由 SkillCaster.CastPipeline 统一管理，
 ///     本节点仅负责 VFX 播放与中断标志传播，不独立等待。
 /// </summary>
-public class PreCastNode : SkillNode
+public class PreCastNode : SkillNodeBase
 {
     public FloatBinding castTime = new()
     {
@@ -52,7 +52,7 @@ public class PreCastNode : SkillNode
         return NodeTickResult.Success;
     }
 
-    public override SkillNode ResolveNextNode(SkillContext ctx)
+    public override SkillNodeBase ResolveNextNode(SkillContext ctx)
     {
         if (ctx.IsInterrupted && !continueOnInterrupt)
             return null;

@@ -5,7 +5,7 @@ using UnityEngine;
 ///     目标查询节点 —— 通过配置好的策略动态选出目标列表。
 ///     结果写入黑板的 BBKey.TargetList，后续 ParallelNode 遍历多发施法。
 /// </summary>
-public class TargetQueryNode : SkillNode
+public class TargetQueryNode : SkillNodeBase
 {
     /// <summary>查询配置</summary>
     public TargetQueryConfig QueryConfig = new()

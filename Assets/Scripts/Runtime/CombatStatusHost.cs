@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 
+[System.Obsolete("GAS架构迁移：请使用 GEHost + EffectSystem 替代。状态管理已迁移到 GEHost。", true)]
 public class CombatStatusHost : MonoBehaviour, IStatusReceiver
 {
     [SerializeField] private float burnTickInterval = 1f;

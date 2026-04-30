@@ -1,29 +1,37 @@
 using UnityEngine;
 
-[RequireComponent(typeof(CombatStatusHost))]
+/// <summary>
+///     靶子实体 —— 受击目标，使用 GEHost 接管状态和伤害倍率计算。
+///     GAS架构：CombatStatusHost 已废弃，所有状态由 GEHost 管理。
+/// </summary>
+[RequireComponent(typeof(GEHost))]
 public class TargetDummy : MonoBehaviour, IDamageable
 {
     [SerializeField] private float health = 1000f;
 
-    private CombatStatusHost _statusHost;
+    private GEHost _geHost;
 
     private void Awake()
     {
-        _statusHost = GetComponent<CombatStatusHost>();
+        _geHost = GetComponent<GEHost>();
     }
 
     public void TakeDamage(float amount, Transform instigator)
     {
         var finalAmount = amount;
-        if (_statusHost != null)
+        if (_geHost != null)
         {
-            finalAmount *= _statusHost.GetDamageTakenMultiplier();
+            // GAS架构：通过 GEHost.EvaluateAttribute 获取受伤倍率
+            var multiplier = _geHost.EvaluateAttribute(GEAttribute.DamageTakenMultiplier, 1f);
+            finalAmount *= multiplier;
         }
 
         health -= finalAmount;
         var sourceName = instigator != null ? instigator.name : "Unknown";
         Debug.Log($"<color=red><b>[受击]</b></color> {gameObject.name} 受到 {finalAmount:F1} 点伤害! 来源: {sourceName} 剩余生命: {health:F1}");
-        if (_statusHost != null && _statusHost.IsCrowdControlled())
+
+        // 检查硬控状态（通过 Tag 查询）
+        if (_geHost != null && (_geHost.HasTag("stun") || _geHost.HasTag("freeze") || _geHost.HasTag("root")))
         {
             Debug.Log($"<color=cyan>[控制]</color> {gameObject.name} 当前处于控制状态。");
         }

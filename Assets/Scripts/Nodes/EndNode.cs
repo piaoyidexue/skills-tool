@@ -1,11 +1,11 @@
-public class EndNode : SkillNode
+public class EndNode : SkillNodeBase
 {
     public override NodeTickResult Tick(SkillContext ctx, float deltaTime)
     {
         return NodeTickResult.Success;
     }
 
-    public override SkillNode ResolveNextNode(SkillContext ctx)
+    public override SkillNodeBase ResolveNextNode(SkillContext ctx)
     {
         return null;
     }

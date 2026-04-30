@@ -1,6 +1,6 @@
 using UnityEngine;
 
-public class RollChanceNode : SkillNode
+public class RollChanceNode : SkillNodeBase
 {
     public string outputKey = BBKey.IsCrit;
 

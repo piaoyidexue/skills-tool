@@ -1,4 +1,5 @@
-public class ModifyFloatNode : SkillNode
+[System.Obsolete("GAS架构迁移：请使用 ApplyEffectNode + IEffectModifier 替代。数值修改已迁移到 Modifier Pipeline。", false)]
+public class ModifyFloatNode : SkillNodeBase
 {
     public string outputKey = BBKey.DamageOverride;
 

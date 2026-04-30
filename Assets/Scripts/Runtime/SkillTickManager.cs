@@ -96,7 +96,7 @@ public class SkillTickManager : MonoBehaviour
     /// <summary>
     ///     注册一个新的技能执行实例到全局 Tick 循环。
     /// </summary>
-    public SkillExecution Register(SkillGraph graph, SkillContext context)
+    public SkillExecution Register(SkillGraphAsset graph, SkillContext context)
     {
         var execution = GetOrCreateExecution();
         execution.Initialize(graph, context);
@@ -185,7 +185,7 @@ public class SkillTickManager : MonoBehaviour
         foreach (var exec in _activeExecutions)
         {
             var name = exec.Context?.Config?.SkillName ?? "Unknown";
-            var node = exec.CurrentNode != null ? exec.CurrentNode.name : "End";
+            var node = exec.CurrentNode != null ? exec.CurrentNode.NodeName : "End";
             GUILayout.Label($"  {name} @ {node}");
         }
 
