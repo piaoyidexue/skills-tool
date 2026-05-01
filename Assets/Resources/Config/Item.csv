@@ -1,0 +1,12 @@
+item_id,item_name,description,type,max_stack,ge_id,skill_graph_id,equip_slot,quality,sell_price,icon_key,can_discard,tags
+3001,治疗药水,恢复100点生命值,0,99,0,0,0,0,10,potion_health,true,heal
+3002,力量药水,攻击力+20%持续30秒,0,99,5001,0,0,1,25,potion_strength,true,boost
+3003,火焰符文,释放火球术,0,20,0,1001,0,0,50,rune_fire,true,fire
+4001,铁剑,攻击力+10,1,1,6001,0,3,0,100,weapon_iron,true,
+4002,烈焰之刃,攻击力+25 火属性加成,1,1,6002,0,3,2,500,weapon_flame,true,fire
+4003,冰霜法冠,魔法防御+15 冰属性抗性,1,1,6003,0,1,2,400,helmet_frost,true,ice
+4004,龙鳞战甲,防御力+30 生命值+200,1,1,6004,0,2,3,800,armor_dragon,true,
+4005,迅捷之戒,移动速度+15% 攻击速度+10%,1,1,6005,0,4,1,300,ring_swift,true,boost
+5001,铁矿石,基础锻造材料,2,999,0,0,0,0,5,ore_iron,true,
+5002,魔法粉尘,附魔材料,2,999,0,0,0,0,15,dust_magic,true,
+6001,古老钥匙,开启远古宝箱,3,1,0,0,0,0,0,key_ancient,false,quest

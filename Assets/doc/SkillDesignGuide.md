@@ -600,3 +600,259 @@ runner.Tick(Time.deltaTime);
 | `SkillSystem/Nodes/Flow/DelayNode.cs` | 修改 | 新增 `GetTimelineDuration()` |
 | `SkillSystem/Nodes/Casting/PreCastNode.cs` | 修改 | 新增 `GetTimelineDuration()` |
 | `SkillSystem/Nodes/Casting/PostCastNode.cs` | 修改 | 新增 `GetTimelineDuration()` |
+| `SkillSystem/Nodes/VFX/PlaySFXNode.cs` | 新增 | 音效播放节点，`CanCompile = true`，`Compile()` 输出 `SkillEffectType.PlaySFX` |
+| `Presentation/Audio/AudioDispatcher.cs` | 新增 | 技能时间轴音频分发器，与 PresentationDispatcher 并列 |
+| `Presentation/Audio/AudioManager.cs` | 新增 | 全局音频管理器，对象池 + BGM 淡入淡出 + 同频剔除 |
+| `Presentation/Audio/AudioConfig.cs` | 新增 | 音频配置数据类 + AudioCategory 枚举 |
+| `Resources/Config/Audio.csv` | 新增 | 22 条音频配置（3 BGM + 11 SFX + 7 UI） |
+| `Core/Data/ConfigLoader.cs` | 修改 | 新增 `LoadAudioFromCsv()` + `GetAudioConfig()` + `GetAllAudioConfigs()` |
+
+---
+
+## 十二、数据驱动 UI 框架
+
+### 12.1 设计目标
+
+传统 UI 开发常在 Update 里轮询数据或深度耦合业务逻辑。新的 UI 框架全面转向"数据驱动（Data-Binding）"与"栈式管理"：
+
+- **UI 组件绝对不碰业务逻辑**，只负责监听数据变化并刷新表现
+- **数据变更自动传播**，通过 `BindableProperty<T>` 的委托链机制
+- **面板管理统一**，通过 UIManager 的栈式路由控制器
+
+### 12.2 BindableProperty<T>
+
+泛型响应式属性包装类，核心机制：
+
+```csharp
+// 声明绑定属性
+public readonly BindableFloat Health = new(100f);
+
+// UI 侧注册回调
+Health.OnChanged += (newValue, oldValue) => UpdateHealthBar(newValue);
+
+// 业务侧赋值（自动触发回调）
+Health.Value = 80f; // → UpdateHealthBar(80f) 被自动调用
+```
+
+关键 API：
+
+| API | 说明 |
+|-----|------|
+| `Value` | 赋值时自动比对新旧值，不同则触发 OnChanged |
+| `OnChanged` | `event Action<T, T>` 委托链，提供新旧值 |
+| `Notify()` | 强制触发回调（不改变值），用于 UI 初始化 |
+| `SetValueWithoutNotify()` | 静默赋值（不触发回调），用于反序列化恢复 |
+| `ClearListeners()` | 清除所有回调，在 OnDestroy 中调用 |
+
+快捷别名：`BindableFloat` / `BindableInt` / `BindableBool`，扩展方法 `AddDelta()` / `SetClamped()`。
+
+### 12.3 AttributeSet 数据绑定重构
+
+`AttributeSet` 的 `_currentHealth` 已替换为 `BindableFloat`：
+
+```csharp
+public readonly BindableFloat BindableHealth = new();
+public readonly BindableFloat BindableMaxHealth = new();
+
+public float CurrentHealth
+{
+    get => BindableHealth.GetValue();
+    set => BindableHealth.SetClamped(value, 0f, MaxHealth);
+}
+```
+
+写入 `CurrentHealth` 时自动触发 `BindableHealth.OnChanged`，UI 组件无需轮询。
+
+### 12.4 UIManager 与栈式面板管理
+
+**5 层级枚举**：
+
+| 层级 | sortingOrder | 说明 |
+|------|-------------|------|
+| `HUD` | 0 | 底层 HUD（血条、小地图等常驻元素） |
+| `Panel` | 100 | 常驻面板（背包、角色面板等） |
+| `Popup` | 200 | 弹窗（确认框、提示框等模态对话框） |
+| `Alert` | 300 | 顶层警告（网络断开、强制更新等） |
+| `LoadingCurtain` | 400 | 加载幕布（场景切换遮罩） |
+
+**UIWindowBase 生命周期**：
+
+```text
+Init()（仅首次）
+  ↓
+OnOpen(openArgs) → OnRefresh()
+  ↓              ↑（数据变化时重复调用）
+OnClose()
+  ↓
+Destroy 或 CacheOnClose 隐藏
+```
+
+**栈式路由**：打开面板入栈、关闭出栈，自动恢复上一层面板交互。模态面板显示半透明遮罩阻止低层级交互。
+
+**QAFloatingText 归口**：浮动文字统一通过 `UIManager.ShowFloatingText()` 在 HUD 层创建。
+
+### 12.5 新增/修改文件清单
+
+| 文件 | 类型 | 说明 |
+|------|------|------|
+| `Core/Binding/BindableProperty.cs` | 新增 | 泛型响应式属性包装类 |
+| `Core/Binding/BindablePropertyExtensions.cs` | 新增 | 快捷别名 + AddDelta/SetClamped 扩展 |
+| `Presentation/UI/UIManager.cs` | 新增 | 栈式面板管理器 + 5 层级 + 模态遮罩 |
+| `Presentation/UI/HealthBarUI.cs` | 新增 | 数据驱动血条示例组件 |
+| `GAS/Core/GameplayEffectSystem.cs` | 修改 | AttributeSet 重构为 BindableFloat 驱动 |
+
+---
+
+## 十三、全局音频管理器
+
+### 13.1 设计目标
+
+参考现有的 VFXManager，音频系统遵循"CSV 配置驱动 + 对象池复用 + 资源异步加载"原则。引入并发数限制（Voice Stealing/Culling）防止混战中同类音效过多导致的"爆音"或性能劣化。
+
+### 13.2 Audio.csv 配置
+
+| 列名 | 类型 | 说明 |
+|------|------|------|
+| `audio_id` | int | 音频唯一 ID |
+| `resource_path` | string | Resources 下相对路径 |
+| `category` | enum | BGM / SFX / UI / Voice |
+| `volume_weight` | float | 音量权重（0~1，与分类主音量相乘） |
+| `is_3d` | bool | 是否 3D 空间音效 |
+| `max_distance` | float | 最大衰减距离 |
+| `loop` | bool | 是否循环 |
+| `max_concurrent` | int | 同 ID 并发上限（0=使用全局默认） |
+| `priority` | int | 优先级（0=最高） |
+| `fade_in` | float | BGM 淡入时间（秒） |
+| `fade_out` | float | BGM 淡出时间（秒） |
+
+### 13.3 AudioManager 核心 API
+
+| API | 说明 |
+|-----|------|
+| `PlayBGM(audioId)` | 播放 BGM（支持淡入淡出切换） |
+| `StopBGM(fadeOut)` | 停止 BGM（带淡出） |
+| `PlaySFX(audioId, position)` | 播放 3D 空间音效 |
+| `PlaySFX(audioId)` | 播放 2D 音效 |
+| `PlayUI(audioId)` | 播放 UI 音效（不受并发限制） |
+| `SetCategoryVolume(category, vol)` | 设置分类主音量 |
+| `StopAllSFX()` | 停止所有 SFX |
+
+### 13.4 同频剔除（Voice Stealing）
+
+每帧统计同 ID SFX 的播放数量，超限时的处理策略：
+
+1. 尝试 `TryStealOldest(audioId)` —— 停止活跃列表中同 ID 最早的条目，回收其 AudioSource
+2. 若无活跃条目可顶替，则拒绝新请求
+
+配置示例：`Audio.csv` 中爆炸声 `max_concurrent=3`，同帧最多 3 个爆炸声，第 4 个将顶替最早的。
+
+### 13.5 技能图集成
+
+```text
+PlaySFXNode（技能图节点）
+  ↓ Tick() 或 Compile()
+SkillEffectData { EffectType = PlaySFX, SFXKey = "2001" }
+  ↓ PresentationDispatcher
+AudioDispatcher.Apply(effect, ctx)
+  ↓ ResolvePosition + QueryConfig
+AudioManager.PlaySFX(audioId, position)
+```
+
+**PlaySFXNode**：`CanCompile = true`，`Compile()` 输出 `SkillEffectType.PlaySFX` 的 `SkillEffectData`。
+**AudioDispatcher**：与 `PresentationDispatcher` 并列的静态分发器，在 `TimelineSkillRunner` 的 `PlaySFX` 分支中被调用。
+
+### 13.6 新增/修改文件清单
+
+| 文件 | 类型 | 说明 |
+|------|------|------|
+| `Presentation/Audio/AudioConfig.cs` | 新增 | 音频配置数据类 + AudioCategory 枚举 |
+| `Presentation/Audio/AudioManager.cs` | 新增 | 全局音频管理器（对象池 + BGM + 同频剔除） |
+| `Presentation/Audio/AudioDispatcher.cs` | 新增 | 技能时间轴音频分发器 |
+| `SkillSystem/Nodes/VFX/PlaySFXNode.cs` | 新增 | 音效播放节点 |
+| `Resources/Config/Audio.csv` | 新增 | 22 条音频配置 |
+| `Core/Data/ConfigLoader.cs` | 修改 | 新增 LoadAudioFromCsv + GetAudioConfig |
+| `SkillSystem/Runtime/TimelineSkillRunner.cs` | 修改 | PresentationDispatcher 新增 PlaySFX 分支 |
+
+---
+
+## 十四、状态快照与存档系统
+
+### 14.1 设计目标
+
+由于现有架构已高度数据化且剥离了表现层，存档系统的核心就是"把运行时的核心组件数据抽成快照，落盘存储"。采用"接口搜集 + 全局字典序列化"策略，确保新模块以极低成本接入。
+
+### 14.2 ISaveable 契约接口
+
+```csharp
+public interface ISaveable
+{
+    string SaveKey { get; }                              // 唯一标识
+    Dictionary<string, object> CaptureSnapshot();       // 生成快照
+    void RestoreSnapshot(Dictionary<string, object> snapshot); // 恢复状态
+}
+```
+
+**Key 命名规范**：`"{模块类型}.{实例标识}"`，如 `"Inventory.Player"`、`"AttributeSet.Boss_01"`。
+
+### 14.3 SaveManager 完整流程
+
+**保存流程**：
+
+```text
+FindAllSaveables()           // 搜集场景中所有 ISaveable
+  ↓
+CaptureSnapshot()           // 每个模块生成 Dictionary<string, object>
+  ↓
+JsonUtility.ToJson()        // 序列化为 JSON
+  ↓
+AES-128 Encrypt()           // 可选加密（防篡改）
+  ↓
+SafeWrite()                 // 临时文件 → 验证 → 替换原文件
+```
+
+**加载流程**：
+
+```text
+ReadAllText()                // 读取存档文件
+  ↓
+AES-128 Decrypt()           // 解密
+  ↓
+JsonUtility.FromJson()      // 反序列化为 SaveData
+  ↓
+foreach module              // 按 Key 分发给对应 ISaveable
+  ↓
+RestoreSnapshot()           // 使用 SetValueWithoutNotify 恢复
+  ↓
+Notify()                    // 统一通知 UI 刷新
+```
+
+### 14.4 安全写入与备份机制
+
+| 机制 | 说明 |
+|------|------|
+| **临时文件** | 先写入 `.tmp` 文件，验证完整性后再替换原 `.sav` 文件 |
+| **备份文件** | 保存前将当前存档复制为 `.bak` 备份 |
+| **断电恢复** | 加载失败时自动尝试从 `.bak` 备份恢复 |
+| **AES 加密** | CBC 模式 + PKCS7 填充，防止玩家轻易修改本地数据 |
+
+### 14.5 业务适配器
+
+| 适配器 | 序列化内容 | 恢复方式 |
+|--------|-----------|----------|
+| `SaveableInventory` | `slot_i: "itemId,count"` 格式 | `SetSlotDirect()` 静默写入，不触发事件 |
+| `SaveableAttributeSet` | `current_health` / `max_health` 等 | `SetValueWithoutNotify()` 静默恢复，恢复后统一 `Notify()` |
+| `SaveableQuestSystem` | `completed_quest_ids: "id1,id2,..."` | `MarkQuestCompleted()` 静默写入，不触发事件 |
+
+**新模块接入**：实现 `ISaveable` + 挂载适配器组件到对应 GameObject，SaveManager 自动搜集，零改动。
+
+### 14.6 新增/修改文件清单
+
+| 文件 | 类型 | 说明 |
+|------|------|------|
+| `Core/Save/ISaveable.cs` | 新增 | 存档契约接口 |
+| `Core/Save/SaveManager.cs` | 新增 | 统一存档管理器（JSON/AES/安全写入/备份） |
+| `Inventory/SaveableInventory.cs` | 新增 | 背包容档适配器 |
+| `GAS/Core/SaveableAttributeSet.cs` | 新增 | 属性存档适配器 |
+| `Quest/SaveableQuestSystem.cs` | 新增 | 任务存档适配器 |
+| `Inventory/InventoryComponent.cs` | 修改 | 新增 `SetSlotDirect()` 方法 |
+| `Quest/QuestRunner.cs` | 修改 | 新增 `MarkQuestCompleted()` 静态方法 |

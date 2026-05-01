@@ -428,6 +428,10 @@ public static class PresentationDispatcher
                 }
                 break;
 
+            case SkillEffectType.PlaySFX:
+                AudioDispatcher.Apply(effect, ctx);
+                break;
+
             case SkillEffectType.SpawnProjectile:
                 // 投射物发射逻辑（复用现有 Projectile 系统）
                 // 实际实现需根据 ProjectileKey 从对象池获取

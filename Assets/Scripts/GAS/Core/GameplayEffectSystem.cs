@@ -413,8 +413,15 @@ public class AttributeSet : MonoBehaviour
     [SerializeField] private float _critChance = 0.05f;
     [SerializeField] private float _critDamage = 1.5f;
 
-    private float _currentHealth;
     private GEHost _geHost;
+
+    // ──────────── 数据绑定属性（UI 响应式驱动） ────────────
+
+    /// <summary>当前生命值 —— 赋值时自动通知 UI 刷新</summary>
+    public readonly BindableFloat BindableHealth = new();
+
+    /// <summary>最大生命值 —— 赋值时自动通知 UI 刷新</summary>
+    public readonly BindableFloat BindableMaxHealth = new();
 
     public float BaseAttack => _attack;
     public float BaseDefense => _defense;
@@ -424,30 +431,54 @@ public class AttributeSet : MonoBehaviour
     public float BaseCritChance => _critChance;
     public float BaseCritDamage => _critDamage;
 
+    /// <summary>
+    ///     当前生命值。写入时同步更新 BindableHealth，
+    ///     自动触发已注册的 UI 回调。
+    /// </summary>
     public float CurrentHealth
     {
-        get => _currentHealth;
-        set => _currentHealth = Mathf.Clamp(value, 0f, MaxHealth);
+        get => BindableHealth.GetValue();
+        set => BindableHealth.SetClamped(value, 0f, MaxHealth);
     }
 
-    public bool IsAlive => _currentHealth > 0f;
-    public float MaxHealth => _maxHealth;
-    public float HealthPercent => _maxHealth > 0f ? _currentHealth / _maxHealth : 0f;
+    public bool IsAlive => BindableHealth.GetValue() > 0f;
+    public float MaxHealth => BindableMaxHealth.GetValue();
+    public float HealthPercent
+    {
+        get
+        {
+            var max = BindableMaxHealth.GetValue();
+            return max > 0f ? BindableHealth.GetValue() / max : 0f;
+        }
+    }
 
     public float FinalAttack => _geHost != null ? _geHost.EvaluateAttribute(GEAttribute.Custom, _attack) : _attack;
     public float FinalMoveSpeed => _geHost != null ? _geHost.EvaluateAttribute(GEAttribute.MoveSpeed, _moveSpeed) : _moveSpeed;
     public float FinalAttackSpeed => _geHost != null ? _geHost.EvaluateAttribute(GEAttribute.AttackSpeed, _attackSpeed) : _attackSpeed;
 
-    private void Awake() { _currentHealth = _maxHealth; _geHost = GetComponent<GEHost>(); }
+    private void Awake()
+    {
+        _geHost = GetComponent<GEHost>();
+
+        // 初始化绑定属性（静默赋值，不触发回调）
+        BindableMaxHealth.SetValueWithoutNotify(_maxHealth);
+        BindableHealth.SetValueWithoutNotify(_maxHealth);
+    }
 
     public void TakeDamage(float amount, Transform instigator)
     {
         if (!IsAlive) return;
         CurrentHealth -= Mathf.Max(1f, amount - _defense);
-        if (_currentHealth <= 0f) OnDeath?.Invoke(instigator);
+        if (BindableHealth.GetValue() <= 0f) OnDeath?.Invoke(instigator);
     }
 
     public void Heal(float amount) { if (IsAlive) CurrentHealth += amount; }
 
     public event Action<Transform> OnDeath;
+
+    private void OnDestroy()
+    {
+        BindableHealth.ClearListeners();
+        BindableMaxHealth.ClearListeners();
+    }
 }

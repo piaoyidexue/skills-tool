@@ -11,7 +11,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 41140d968abe7014cb86d89222bbccb8, type: 3}
   m_Name: AIGraph
-  m_EditorClassIdentifier: 
+  m_EditorClassIdentifier: Assembly-CSharp::SkillAI.AIGraph
   _serializedGraph: '{"type":"SkillAI.AIGraph","nodes":[],"connections":[],"canvasGroups":[],"localBlackboard":{"_variables":{}},"derivedData":{"repeat":true,"$type":"NodeCanvas.BehaviourTrees.BehaviourTree+DerivedSerializationData"}}'
   _objectReferences: []
   _graphSource:
@@ -21,7 +21,7 @@ MonoBehaviour:
     _translation: {x: 0, y: 0}
     _zoomFactor: 1
   _haltSerialization: 0
-  aiTreeId: a39e5ac03c7f477d94e3ba7b42117bf1
+  aiTreeId: 69f34c18b9114c58bbef5e8cfde3ebff
   treeName: 
   treeDescription: 
   aiType: 0

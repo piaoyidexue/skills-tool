@@ -125,6 +125,15 @@ public class QATargetDummy : MonoBehaviour, IDamageable
             _isDead = true;
             ApplyDeadColor();
             OnDied?.Invoke();
+
+            // 全局事件总线：抛出实体死亡事件
+            GlobalEventBus.Publish(new EntityDeathEvent
+            {
+                Entity = transform,
+                Killer = instigator,
+                OverkillDamage = -_currentHealth
+            });
+
             Debug.Log($"<color=gray><b>[QA 死亡]</b></color> {gameObject.name} 已阵亡。");
         }
     }

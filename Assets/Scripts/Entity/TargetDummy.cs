@@ -35,5 +35,17 @@ public class TargetDummy : MonoBehaviour, IDamageable
         {
             Debug.Log($"<color=cyan>[控制]</color> {gameObject.name} 当前处于控制状态。");
         }
+
+        // 死亡判定
+        if (health <= 0f)
+        {
+            // 全局事件总线：抛出实体死亡事件
+            GlobalEventBus.Publish(new EntityDeathEvent
+            {
+                Entity = transform,
+                Killer = instigator,
+                OverkillDamage = -health
+            });
+        }
     }
 }

@@ -1,6 +1,6 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
---- !u!114 &-6443354897725275185
+--- !u!114 &-7637186603124604057
 MonoBehaviour:
   m_ObjectHideFlags: 1
   m_CorrespondingSourceObject: {fileID: 0}
@@ -9,104 +9,24 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 2195c972e71a3fd4a8277bff583f3084, type: 3}
-  m_Name: EndNode
-  m_EditorClassIdentifier: Assembly-CSharp::EndNode
-  _nodeGuid: f4d202523334d464fa6f3f9c9caa7f4a
-  _position: {x: 2180, y: 220}
+  m_Script: {fileID: 11500000, guid: a00c8911fbee10d4b9601bf5cfca4209, type: 3}
+  m_Name: PaintTerrainNode
+  m_EditorClassIdentifier: Assembly-CSharp::PaintTerrainNode
+  _nodeGuid: c861013848d2ec54caf5e1ebb3ec67bc
+  _position: {x: 1720, y: 220}
   _inputPortNames:
   - input
   _outputPortNames:
   - output
   _isBreakpoint: 0
---- !u!114 &-168078749535760918
-MonoBehaviour:
-  m_ObjectHideFlags: 1
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 1c9155eae9372794a9fb2cefb939b3e5, type: 3}
-  m_Name: LogNode
-  m_EditorClassIdentifier: Assembly-CSharp::LogNode
-  _nodeGuid: 12098b19b4ab37f4fa77ef9615f6b550
-  _position: {x: 280, y: 100}
-  _inputPortNames:
-  - input
-  _outputPortNames:
-  - output
-  _isBreakpoint: 0
-  message:
+  terrainTags:
     Source: 2
     SkillConfigFieldName: ImpactVFXKey
     BlackboardKey: CurrentGraph
-    LiteralValue: "\u914D\u65B9 GL-GL-FI-AC\uFF1A\u6676\u5EF7\u88C1\u51B3 | \u534F\u540C=\u8FDE\u9501\u66B4\u51FB\u5224\u5B9A
-      | \u8D28\u53D8=\u6574\u8DEF\u5BA1\u5224"
+    LiteralValue: ice
     DefaultValue: 
---- !u!114 &11400000
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 27773d9782edc754f9ac8e26070c55fd, type: 3}
-  m_Name: 22002_GL-GL-FI-AC
-  m_EditorClassIdentifier: Assembly-CSharp::SkillGraphAsset
-  graphId: dc168915525c43239fd43b37346ebc54
-  _nodes:
-  - {fileID: 7445879066787691908}
-  - {fileID: -168078749535760918}
-  - {fileID: 3439601530960065081}
-  - {fileID: 6040648628308795594}
-  - {fileID: 7267784873353095659}
-  - {fileID: 968764236231618733}
-  - {fileID: 875492774738008935}
-  - {fileID: 8518932140677702639}
-  - {fileID: 3245044944278832608}
-  - {fileID: -6443354897725275185}
-  _edges:
-  - SourceNodeGuid: 6b67d1db0951a6d40891bb0d4de89eae
-    SourcePort: output
-    TargetNodeGuid: 12098b19b4ab37f4fa77ef9615f6b550
-    TargetPort: input
-  - SourceNodeGuid: 12098b19b4ab37f4fa77ef9615f6b550
-    SourcePort: output
-    TargetNodeGuid: 8e92bf82aa2fbea40a84419ddd5cd2aa
-    TargetPort: input
-  - SourceNodeGuid: 8e92bf82aa2fbea40a84419ddd5cd2aa
-    SourcePort: output
-    TargetNodeGuid: 2adf503813847cc489efb3fec9b74ff9
-    TargetPort: input
-  - SourceNodeGuid: 2adf503813847cc489efb3fec9b74ff9
-    SourcePort: output
-    TargetNodeGuid: 5bcfb9150faa33e428cf11ccc2f3703e
-    TargetPort: input
-  - SourceNodeGuid: 5bcfb9150faa33e428cf11ccc2f3703e
-    SourcePort: output
-    TargetNodeGuid: 051dbfcf01faea34f826cb5db909fb67
-    TargetPort: input
-  - SourceNodeGuid: 051dbfcf01faea34f826cb5db909fb67
-    SourcePort: output
-    TargetNodeGuid: b59c4cc8dc03b944fba82212e1a2d448
-    TargetPort: input
-  - SourceNodeGuid: b59c4cc8dc03b944fba82212e1a2d448
-    SourcePort: output
-    TargetNodeGuid: a0f3f0374b28dc54eac4a6faa80a2e19
-    TargetPort: input
-  - SourceNodeGuid: a0f3f0374b28dc54eac4a6faa80a2e19
-    SourcePort: output
-    TargetNodeGuid: 5eb73081e65be15449ba7f55bdb93d7d
-    TargetPort: input
-  - SourceNodeGuid: 5eb73081e65be15449ba7f55bdb93d7d
-    SourcePort: output
-    TargetNodeGuid: f4d202523334d464fa6f3f9c9caa7f4a
-    TargetPort: input
---- !u!114 &875492774738008935
+  defaultRadius: 1.5
+--- !u!114 &-6629676551280481261
 MonoBehaviour:
   m_ObjectHideFlags: 1
   m_CorrespondingSourceObject: {fileID: 0}
@@ -118,72 +38,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4fcb8e53a919ff645886c86931eb8f2d, type: 3}
   m_Name: PlayVFXNode
   m_EditorClassIdentifier: Assembly-CSharp::PlayVFXNode
-  _nodeGuid: b59c4cc8dc03b944fba82212e1a2d448
-  _position: {x: 1480, y: 220}
-  _inputPortNames:
-  - input
-  _outputPortNames:
-  - output
-  _isBreakpoint: 0
-  vfxKey:
-    Source: 0
-    SkillConfigFieldName: ImpactVFXKey
-    BlackboardKey: CurrentGraph
-    LiteralValue: 
-    DefaultValue: 
-  styleKey:
-    Source: 0
-    SkillConfigFieldName: VFXProfileKey
-    BlackboardKey: CurrentGraph
-    LiteralValue: 
-    DefaultValue: 
-  stage: 5
-  directionMode: 2
-  parentBinding: 0
-  scaleMultiplier:
-    Source: 2
-    SkillField: 0
-    BlackboardKey: DamageOverride
-    LiteralValue: 1
-    DefaultValue: 0
-  widthMultiplier:
-    Source: 2
-    SkillField: 0
-    BlackboardKey: DamageOverride
-    LiteralValue: 1
-    DefaultValue: 0
-  lengthOverride:
-    Source: 0
-    SkillField: 6
-    BlackboardKey: DamageOverride
-    LiteralValue: 0
-    DefaultValue: 0
-  durationOverride:
-    Source: 0
-    SkillField: 8
-    BlackboardKey: DamageOverride
-    LiteralValue: 0
-    DefaultValue: 0
-  intensityMultiplier:
-    Source: 2
-    SkillField: 0
-    BlackboardKey: DamageOverride
-    LiteralValue: 1
-    DefaultValue: 0
-  customDirection: {x: 0, y: 1, z: 0}
---- !u!114 &968764236231618733
-MonoBehaviour:
-  m_ObjectHideFlags: 1
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 4fcb8e53a919ff645886c86931eb8f2d, type: 3}
-  m_Name: PlayVFXNode
-  m_EditorClassIdentifier: Assembly-CSharp::PlayVFXNode
-  _nodeGuid: 051dbfcf01faea34f826cb5db909fb67
+  _nodeGuid: d2f3e940a8fd8b64599d7131152b3e9e
   _position: {x: 1240, y: 220}
   _inputPortNames:
   - input
@@ -236,7 +91,140 @@ MonoBehaviour:
     LiteralValue: 1
     DefaultValue: 0
   customDirection: {x: 0, y: 0, z: 1}
---- !u!114 &3245044944278832608
+--- !u!114 &-4028799617149254057
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 55d32cdda21801c4ab21c7ac5e1c1a42, type: 3}
+  m_Name: ApplyEffectNode
+  m_EditorClassIdentifier: Assembly-CSharp::ApplyEffectNode
+  _nodeGuid: 983038b7e8936814f937980e1943810d
+  _position: {x: 960, y: 220}
+  _inputPortNames:
+  - input
+  _outputPortNames:
+  - output
+  _isBreakpoint: 0
+  EffectData:
+    EffectId: 0
+    EffectName: 
+    DurationPolicy: 0
+    Duration: 0
+    Period: 0
+    BaseDamage: 0
+    BaseHealing: 0
+    ScalingFactor: 1
+    CritChanceBonus: 0
+    CritMultiplier: 2
+    GrantedTags: []
+    RequiredTargetTags: []
+    RequiredSourceTags: []
+    ImmuneTags: []
+    StackPolicy: 0
+    MaxStacks: 1
+    ImpactVFXKey: 
+    LoopVFXKey: 
+    RemoveVFXKey: 
+    SFXKey: 
+    IsAreaOfEffect: 0
+    AreaRadius: 0
+    AreaOffset: {x: 0, y: 0, z: 0}
+    AreaMaxTargets: 0
+    IgnoreInvulnerability: 0
+    BypassShields: 0
+    IsInterruptible: 0
+  EffectId: 22002
+  AbilityLevel: 1
+  UseBlackboardTarget: 1
+  LastCalculatedDamage: 0
+  LastWasCriticalHit: 0
+  LastResult: 
+--- !u!114 &-3151490646086748029
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 551f49b56a2d6324392c66b975cb256e, type: 3}
+  m_Name: StartNode
+  m_EditorClassIdentifier: Assembly-CSharp::StartNode
+  _nodeGuid: 451a175255db27e47a35ad5f0c745898
+  _position: {x: 80, y: 220}
+  _inputPortNames:
+  - input
+  _outputPortNames:
+  - output
+  _isBreakpoint: 0
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 27773d9782edc754f9ac8e26070c55fd, type: 3}
+  m_Name: "Skill_\u6676\u5EF7\u88C1\u51B3"
+  m_EditorClassIdentifier: Assembly-CSharp::SkillGraphAsset
+  graphId: dc168915525c43239fd43b37346ebc54
+  _nodes:
+  - {fileID: -3151490646086748029}
+  - {fileID: 2986317407626415725}
+  - {fileID: 1627946335622284299}
+  - {fileID: 5179788649768495728}
+  - {fileID: -4028799617149254057}
+  - {fileID: -6629676551280481261}
+  - {fileID: 3274613841520875753}
+  - {fileID: -7637186603124604057}
+  - {fileID: 1275988733003511957}
+  - {fileID: 2342423760838326225}
+  _edges:
+  - SourceNodeGuid: 451a175255db27e47a35ad5f0c745898
+    SourcePort: output
+    TargetNodeGuid: b519c0c8d7a8f6a4aa00b36c6d5d3a36
+    TargetPort: input
+  - SourceNodeGuid: b519c0c8d7a8f6a4aa00b36c6d5d3a36
+    SourcePort: output
+    TargetNodeGuid: 61ba3d579c6ac3f4e8e39e2e80c304c8
+    TargetPort: input
+  - SourceNodeGuid: 61ba3d579c6ac3f4e8e39e2e80c304c8
+    SourcePort: output
+    TargetNodeGuid: 844ba14a42764b345a649da3aedebec3
+    TargetPort: input
+  - SourceNodeGuid: 844ba14a42764b345a649da3aedebec3
+    SourcePort: output
+    TargetNodeGuid: 983038b7e8936814f937980e1943810d
+    TargetPort: input
+  - SourceNodeGuid: 983038b7e8936814f937980e1943810d
+    SourcePort: output
+    TargetNodeGuid: d2f3e940a8fd8b64599d7131152b3e9e
+    TargetPort: input
+  - SourceNodeGuid: d2f3e940a8fd8b64599d7131152b3e9e
+    SourcePort: output
+    TargetNodeGuid: d1bea0e8cc26ae44bbce2926cb8de704
+    TargetPort: input
+  - SourceNodeGuid: d1bea0e8cc26ae44bbce2926cb8de704
+    SourcePort: output
+    TargetNodeGuid: c861013848d2ec54caf5e1ebb3ec67bc
+    TargetPort: input
+  - SourceNodeGuid: c861013848d2ec54caf5e1ebb3ec67bc
+    SourcePort: output
+    TargetNodeGuid: 8d8495c97caeb0e43bb08eb08e51841f
+    TargetPort: input
+  - SourceNodeGuid: 8d8495c97caeb0e43bb08eb08e51841f
+    SourcePort: output
+    TargetNodeGuid: 22409ec22acf0c0469d924f40043062b
+    TargetPort: input
+--- !u!114 &1275988733003511957
 MonoBehaviour:
   m_ObjectHideFlags: 1
   m_CorrespondingSourceObject: {fileID: 0}
@@ -248,7 +236,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d9b4da30808212b49961b6f21ebcddd8, type: 3}
   m_Name: PostCastNode
   m_EditorClassIdentifier: Assembly-CSharp::PostCastNode
-  _nodeGuid: 5eb73081e65be15449ba7f55bdb93d7d
+  _nodeGuid: 8d8495c97caeb0e43bb08eb08e51841f
   _position: {x: 1960, y: 220}
   _inputPortNames:
   - input
@@ -268,7 +256,7 @@ MonoBehaviour:
     LiteralValue: 
     DefaultValue: 
   allowMoveDuringPostCast: 0
---- !u!114 &3439601530960065081
+--- !u!114 &1627946335622284299
 MonoBehaviour:
   m_ObjectHideFlags: 1
   m_CorrespondingSourceObject: {fileID: 0}
@@ -280,7 +268,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4fcb8e53a919ff645886c86931eb8f2d, type: 3}
   m_Name: PlayVFXNode
   m_EditorClassIdentifier: Assembly-CSharp::PlayVFXNode
-  _nodeGuid: 8e92bf82aa2fbea40a84419ddd5cd2aa
+  _nodeGuid: 61ba3d579c6ac3f4e8e39e2e80c304c8
   _position: {x: 500, y: 220}
   _inputPortNames:
   - input
@@ -333,7 +321,117 @@ MonoBehaviour:
     LiteralValue: 1
     DefaultValue: 0
   customDirection: {x: 0, y: 0, z: 1}
---- !u!114 &6040648628308795594
+--- !u!114 &2342423760838326225
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2195c972e71a3fd4a8277bff583f3084, type: 3}
+  m_Name: EndNode
+  m_EditorClassIdentifier: Assembly-CSharp::EndNode
+  _nodeGuid: 22409ec22acf0c0469d924f40043062b
+  _position: {x: 2180, y: 220}
+  _inputPortNames:
+  - input
+  _outputPortNames:
+  - output
+  _isBreakpoint: 0
+--- !u!114 &2986317407626415725
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1c9155eae9372794a9fb2cefb939b3e5, type: 3}
+  m_Name: LogNode
+  m_EditorClassIdentifier: Assembly-CSharp::LogNode
+  _nodeGuid: b519c0c8d7a8f6a4aa00b36c6d5d3a36
+  _position: {x: 280, y: 100}
+  _inputPortNames:
+  - input
+  _outputPortNames:
+  - output
+  _isBreakpoint: 0
+  message:
+    Source: 2
+    SkillConfigFieldName: ImpactVFXKey
+    BlackboardKey: CurrentGraph
+    LiteralValue: "\u914D\u65B9 GL-GL-FI-AC\uFF1A\u6676\u5EF7\u88C1\u51B3 | \u534F\u540C=\u8FDE\u9501\u66B4\u51FB\u5224\u5B9A
+      | \u8D28\u53D8=\u6574\u8DEF\u5BA1\u5224"
+    DefaultValue: 
+--- !u!114 &3274613841520875753
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4fcb8e53a919ff645886c86931eb8f2d, type: 3}
+  m_Name: PlayVFXNode
+  m_EditorClassIdentifier: Assembly-CSharp::PlayVFXNode
+  _nodeGuid: d1bea0e8cc26ae44bbce2926cb8de704
+  _position: {x: 1480, y: 220}
+  _inputPortNames:
+  - input
+  _outputPortNames:
+  - output
+  _isBreakpoint: 0
+  vfxKey:
+    Source: 0
+    SkillConfigFieldName: ImpactVFXKey
+    BlackboardKey: CurrentGraph
+    LiteralValue: 
+    DefaultValue: 
+  styleKey:
+    Source: 0
+    SkillConfigFieldName: VFXProfileKey
+    BlackboardKey: CurrentGraph
+    LiteralValue: 
+    DefaultValue: 
+  stage: 5
+  directionMode: 2
+  parentBinding: 0
+  scaleMultiplier:
+    Source: 2
+    SkillField: 0
+    BlackboardKey: DamageOverride
+    LiteralValue: 1
+    DefaultValue: 0
+  widthMultiplier:
+    Source: 2
+    SkillField: 0
+    BlackboardKey: DamageOverride
+    LiteralValue: 1
+    DefaultValue: 0
+  lengthOverride:
+    Source: 0
+    SkillField: 6
+    BlackboardKey: DamageOverride
+    LiteralValue: 0
+    DefaultValue: 0
+  durationOverride:
+    Source: 0
+    SkillField: 8
+    BlackboardKey: DamageOverride
+    LiteralValue: 0
+    DefaultValue: 0
+  intensityMultiplier:
+    Source: 2
+    SkillField: 0
+    BlackboardKey: DamageOverride
+    LiteralValue: 1
+    DefaultValue: 0
+  customDirection: {x: 0, y: 1, z: 0}
+--- !u!114 &5179788649768495728
 MonoBehaviour:
   m_ObjectHideFlags: 1
   m_CorrespondingSourceObject: {fileID: 0}
@@ -345,7 +443,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a9534f8e1d32deb459d8ad52c3c794a4, type: 3}
   m_Name: DelayNode
   m_EditorClassIdentifier: Assembly-CSharp::DelayNode
-  _nodeGuid: 2adf503813847cc489efb3fec9b74ff9
+  _nodeGuid: 844ba14a42764b345a649da3aedebec3
   _position: {x: 740, y: 220}
   _inputPortNames:
   - input
@@ -358,101 +456,3 @@ MonoBehaviour:
     BlackboardKey: DamageOverride
     LiteralValue: 0
     DefaultValue: 0
---- !u!114 &7267784873353095659
-MonoBehaviour:
-  m_ObjectHideFlags: 1
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 55d32cdda21801c4ab21c7ac5e1c1a42, type: 3}
-  m_Name: ApplyEffectNode
-  m_EditorClassIdentifier: Assembly-CSharp::ApplyEffectNode
-  _nodeGuid: 5bcfb9150faa33e428cf11ccc2f3703e
-  _position: {x: 960, y: 220}
-  _inputPortNames:
-  - input
-  _outputPortNames:
-  - output
-  _isBreakpoint: 0
-  EffectData:
-    EffectId: 0
-    EffectName: 
-    DurationPolicy: 0
-    Duration: 0
-    Period: 0
-    BaseDamage: 0
-    BaseHealing: 0
-    ScalingFactor: 1
-    CritChanceBonus: 0
-    CritMultiplier: 2
-    GrantedTags: []
-    RequiredTargetTags: []
-    RequiredSourceTags: []
-    ImmuneTags: []
-    StackPolicy: 0
-    MaxStacks: 1
-    ImpactVFXKey: 
-    LoopVFXKey: 
-    RemoveVFXKey: 
-    SFXKey: 
-    IsAreaOfEffect: 0
-    AreaRadius: 0
-    AreaOffset: {x: 0, y: 0, z: 0}
-    AreaMaxTargets: 0
-    IgnoreInvulnerability: 0
-    BypassShields: 0
-    IsInterruptible: 0
-  EffectId: 22002
-  AbilityLevel: 1
-  UseBlackboardTarget: 1
-  LastCalculatedDamage: 0
-  LastWasCriticalHit: 0
-  LastResult: 
---- !u!114 &7445879066787691908
-MonoBehaviour:
-  m_ObjectHideFlags: 1
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 551f49b56a2d6324392c66b975cb256e, type: 3}
-  m_Name: StartNode
-  m_EditorClassIdentifier: Assembly-CSharp::StartNode
-  _nodeGuid: 6b67d1db0951a6d40891bb0d4de89eae
-  _position: {x: 80, y: 220}
-  _inputPortNames:
-  - input
-  _outputPortNames:
-  - output
-  _isBreakpoint: 0
---- !u!114 &8518932140677702639
-MonoBehaviour:
-  m_ObjectHideFlags: 1
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: a00c8911fbee10d4b9601bf5cfca4209, type: 3}
-  m_Name: PaintTerrainNode
-  m_EditorClassIdentifier: Assembly-CSharp::PaintTerrainNode
-  _nodeGuid: a0f3f0374b28dc54eac4a6faa80a2e19
-  _position: {x: 1720, y: 220}
-  _inputPortNames:
-  - input
-  _outputPortNames:
-  - output
-  _isBreakpoint: 0
-  terrainTags:
-    Source: 2
-    SkillConfigFieldName: ImpactVFXKey
-    BlackboardKey: CurrentGraph
-    LiteralValue: ice
-    DefaultValue: 
-  defaultRadius: 1.5

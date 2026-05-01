@@ -340,6 +340,17 @@ public class ReactionEngine : IEffectModifier
         };
         OnReactionTriggered?.Invoke(this, args);
 
+        // 全局事件总线：抛出元素反应触发事件
+        GlobalEventBus.Publish(new ReactionTriggeredEvent
+        {
+            ReactionType = rule.ReactionType,
+            ReactionName = rule.DisplayName,
+            Target = spec.Context.Target,
+            Instigator = spec.Context.Instigator,
+            BonusDamage = rule.BonusDamage,
+            TotalDamage = spec.CalculatedDamage
+        });
+
         // 日志
         Debug.Log($"[ReactionEngine] {rule.DisplayName} triggered on {spec.Context.Target.name}");
     }

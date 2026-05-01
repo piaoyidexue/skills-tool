@@ -13,8 +13,14 @@ public static class ConfigLoader
     private static readonly Dictionary<string, TerrainConfig> TerrainConfigs = new(StringComparer.OrdinalIgnoreCase);
     private static readonly Dictionary<string, VFXArtProfileConfig> VfxArtProfiles = new(StringComparer.OrdinalIgnoreCase);
 
+    /// <summary>物品配置字典，item_id → ItemConfig</summary>
+    private static readonly Dictionary<int, ItemConfig> ItemConfigs = new();
+
     /// <summary>GAS 架构：GameplayEffectData 配置字典，effect_id → GameplayEffectData</summary>
     private static readonly Dictionary<int, GameplayEffectData> GameplayEffectConfigs = new();
+
+    /// <summary>音频配置字典，audio_id → AudioConfig</summary>
+    private static readonly Dictionary<int, AudioConfig> AudioConfigs = new();
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
     public static void Initialize()
@@ -32,8 +38,10 @@ public static class ConfigLoader
         LoadReactionsFromCsv();
         LoadTerrainsFromCsv();
         LoadVfxArtProfilesFromCsv();
+        LoadItemsFromCsv();
+        LoadAudioFromCsv();
         Debug.Log(
-            $"[ConfigLoader] Reload complete. Skills={SkillConfigs.Count}, Buffs={BuffConfigs.Count}, Effects={EffectConfigs.Count}, GameplayEffects={GameplayEffectConfigs.Count}, Reactions={ReactionConfigs.Count}, Terrains={TerrainConfigs.Count}, VFXProfiles={VfxArtProfiles.Count}");
+            $"[ConfigLoader] Reload complete. Skills={SkillConfigs.Count}, Buffs={BuffConfigs.Count}, Effects={EffectConfigs.Count}, GameplayEffects={GameplayEffectConfigs.Count}, Reactions={ReactionConfigs.Count}, Terrains={TerrainConfigs.Count}, VFXProfiles={VfxArtProfiles.Count}, Items={ItemConfigs.Count}, Audio={AudioConfigs.Count}");
     }
 
     public static SkillConfig GetSkillConfig(int id)
@@ -120,6 +128,36 @@ public static class ConfigLoader
     /// <summary>公开的反应配置字典（用于编辑器工具和测试沙盒）。</summary>
     public static IReadOnlyDictionary<string, ReactionConfig> GetAllReactionConfigs() => ReactionConfigs;
 
+    /// <summary>
+    ///     根据 item_id 获取物品配置。
+    /// </summary>
+    public static ItemConfig GetItemConfig(int itemId)
+    {
+        ItemConfigs.TryGetValue(itemId, out var cfg);
+        return cfg;
+    }
+
+    /// <summary>获取所有物品配置</summary>
+    public static IReadOnlyList<ItemConfig> GetAllItemConfigs()
+    {
+        return ItemConfigs.Values.OrderBy(cfg => cfg.ItemID).ToList();
+    }
+
+    /// <summary>
+    ///     根据 audio_id 获取音频配置。
+    /// </summary>
+    public static AudioConfig GetAudioConfig(int audioId)
+    {
+        AudioConfigs.TryGetValue(audioId, out var cfg);
+        return cfg;
+    }
+
+    /// <summary>获取所有音频配置</summary>
+    public static IReadOnlyList<AudioConfig> GetAllAudioConfigs()
+    {
+        return AudioConfigs.Values.OrderBy(cfg => cfg.AudioId).ToList();
+    }
+
     private static void LoadSkillsFromCsv()
     {
         SkillConfigs.Clear();
@@ -136,27 +174,27 @@ public static class ConfigLoader
         {
             var cfg = new SkillConfig
             {
-                SkillID = ParseInt(row, "skill_id"),
-                SkillName = GetString(row, "name"),
-                GraphPath = GetString(row, "graph_path"),
-                ImpactVFXKey = GetString(row, "impact_vfx"),
-                BeamVFXKey = GetString(row, "beam_vfx"),
-                Damage = ParseFloat(row, "damage"),
-                DamageRate = ParseFloat(row, "damage_rate"),
-                Cooldown = ParseFloat(row, "cooldown"),
-                CastRange = ParseFloat(row, "cast_range"),
-                DelaySeconds = ParseFloat(row, "delay_seconds"),
-                CritChance = ParseFloat(row, "crit_chance"),
-                Radius = ParseFloat(row, "radius"),
-                ChainCount = ParseFloat(row, "chain_count"),
-                VFXDuration = ParseFloat(row, "vfx_duration"),
-                CastTime = ParseFloat(row, "cast_time"),
-                ChannelDuration = ParseFloat(row, "channel_duration"),
-                PostCastTime = ParseFloat(row, "post_cast_time"),
-                IsInterruptible = GetString(row, "interruptible").ToLowerInvariant() == "true",
-                ProjectileSpeed = ParseFloat(row, "projectile_speed"),
-                ProjectilePrefab = GetString(row, "projectile_prefab"),
-                ResourceCost = ParseFloat(row, "resource_cost")
+                SkillID = ParseInt(row, "skill_id"),           // 技能唯一ID
+                SkillName = GetString(row, "name"),             // 技能名称
+                GraphPath = GetString(row, "graph_path"),       // 行为图路径
+                ImpactVFXKey = GetString(row, "impact_vfx"),   // 命中特效Key
+                BeamVFXKey = GetString(row, "beam_vfx"),        // 射线特效Key
+                Damage = ParseFloat(row, "damage"),             // 基础伤害值
+                DamageRate = ParseFloat(row, "damage_rate"),    // 伤害倍率
+                Cooldown = ParseFloat(row, "cooldown"),         // 冷却时间（秒）
+                CastRange = ParseFloat(row, "cast_range"),      // 施法距离
+                DelaySeconds = ParseFloat(row, "delay_seconds"),// 延迟触发时间（秒）
+                CritChance = ParseFloat(row, "crit_chance"),    // 暴击概率（0~1）
+                Radius = ParseFloat(row, "radius"),             // 范围半径
+                ChainCount = ParseFloat(row, "chain_count"),    // 链式跳跃次数
+                VFXDuration = ParseFloat(row, "vfx_duration"),  // 特效持续时间（秒）
+                CastTime = ParseFloat(row, "cast_time"),        // 前摇时间（秒）
+                ChannelDuration = ParseFloat(row, "channel_duration"), // 引导持续时间（秒）
+                PostCastTime = ParseFloat(row, "post_cast_time"),      // 后摇时间（秒）
+                IsInterruptible = GetString(row, "interruptible").ToLowerInvariant() == "true", // 是否可被打断
+                ProjectileSpeed = ParseFloat(row, "projectile_speed"), // 投射物飞行速度
+                ProjectilePrefab = GetString(row, "projectile_prefab"),// 投射物预制体名称
+                ResourceCost = ParseFloat(row, "resource_cost")        // 技能资源消耗
             };
 
             SkillConfigs[cfg.SkillID] = cfg;
@@ -178,11 +216,11 @@ public static class ConfigLoader
         {
             var cfg = new BuffConfig
             {
-                BuffID = ParseInt(row, "buff_id"),
-                BuffType = GetString(row, "type"),
-                Value = ParseFloat(row, "value"),
-                Duration = ParseFloat(row, "duration"),
-                IconKey = GetString(row, "icon_key")
+                BuffID = ParseInt(row, "buff_id"),         // Buff唯一ID
+                BuffType = GetString(row, "type"),          // Buff类型
+                Value = ParseFloat(row, "value"),           // 数值
+                Duration = ParseFloat(row, "duration"),     // 持续时间（秒）
+                IconKey = GetString(row, "icon_key")        // 图标Key
             };
 
             BuffConfigs[cfg.BuffID] = cfg;
@@ -206,14 +244,14 @@ public static class ConfigLoader
                 return;
             }
 
-            cfg.VFXProfileKey = GetString(row, "profile_key");
-            cfg.CastVFXKey = GetString(row, "cast_vfx");
-            cfg.ReactionVFXKey = GetString(row, "reaction_vfx");
-            cfg.TerrainVFXKey = GetString(row, "terrain_vfx");
-            cfg.FinisherVFXKey = GetString(row, "finisher_vfx");
-            cfg.VisualTheme = GetString(row, "visual_theme");
-            cfg.VisualHook = GetString(row, "visual_hook");
-            cfg.VisualNotes = GetString(row, "visual_notes");
+            cfg.VFXProfileKey = GetString(row, "profile_key");    // VFX 艺术风格配置Key
+            cfg.CastVFXKey = GetString(row, "cast_vfx");          // 施法特效Key
+            cfg.ReactionVFXKey = GetString(row, "reaction_vfx");  // 元素反应特效Key
+            cfg.TerrainVFXKey = GetString(row, "terrain_vfx");    // 地形特效Key
+            cfg.FinisherVFXKey = GetString(row, "finisher_vfx");  // 终结技特效Key
+            cfg.VisualTheme = GetString(row, "visual_theme");     // 视觉主题标签
+            cfg.VisualHook = GetString(row, "visual_hook");       // 视觉挂点标识
+            cfg.VisualNotes = GetString(row, "visual_notes");     // 视觉备注说明
         });
     }
 
@@ -232,12 +270,12 @@ public static class ConfigLoader
         {
             var cfg = new EffectConfig
             {
-                EffectID = ParseInt(row, "effect_id"),
-                EffectKey = GetString(row, "effect_key"),
-                PrefabName = GetString(row, "prefab_name"),
-                Scale = ParseFloat(row, "scale", 1f),
-                Duration = ParseFloat(row, "duration", 1f),
-                WarmupCount = ParseInt(row, "warmup_count")
+                EffectID = ParseInt(row, "effect_id"),           // 特效唯一ID
+                EffectKey = GetString(row, "effect_key"),        // 特效Key
+                PrefabName = GetString(row, "prefab_name"),      // 预制体名称
+                Scale = ParseFloat(row, "scale", 1f),            // 缩放比例
+                Duration = ParseFloat(row, "duration", 1f),      // 持续时间（秒）
+                WarmupCount = ParseInt(row, "warmup_count")      // 预热次数
             };
 
             EffectConfigs[cfg.EffectID] = cfg;
@@ -259,24 +297,24 @@ public static class ConfigLoader
         {
             var data = new GameplayEffectData
             {
-                EffectId = ParseInt(row, "effect_id"),
-                EffectName = GetString(row, "effect_name"),
-                DurationPolicy = (GEDurationPolicy)ParseInt(row, "duration_policy"),
-                Duration = ParseFloat(row, "duration"),
-                Period = ParseFloat(row, "period"),
-                BaseDamage = ParseFloat(row, "base_damage"),
-                CritChanceBonus = ParseFloat(row, "crit_chance_bonus"),
-                CritMultiplier = ParseFloat(row, "crit_multiplier", 2f),
-                StackPolicy = (GEStackPolicy)ParseInt(row, "stack_policy"),
-                MaxStacks = ParseInt(row, "max_stacks", 1),
-                IsAreaOfEffect = GetString(row, "is_area_of_effect").ToLowerInvariant() == "true",
-                AreaRadius = ParseFloat(row, "area_radius"),
-                AreaMaxTargets = ParseInt(row, "area_max_targets"),
-                BypassShields = GetString(row, "bypass_shields").ToLowerInvariant() == "true",
-                IgnoreInvulnerability = GetString(row, "ignore_invulnerability").ToLowerInvariant() == "true",
-                GrantedTags = ParseTagList(row, "granted_tags"),
-                RequiredTargetTags = ParseTagList(row, "required_target_tags"),
-                ImmuneTags = ParseTagList(row, "immune_tags")
+                EffectId = ParseInt(row, "effect_id"),                               // 效果唯一ID
+                EffectName = GetString(row, "effect_name"),                           // 效果名称
+                DurationPolicy = (GEDurationPolicy)ParseInt(row, "duration_policy"),  // 持续时间策略
+                Duration = ParseFloat(row, "duration"),                               // 持续时间
+                Period = ParseFloat(row, "period"),                                   // 周期触发时间
+                BaseDamage = ParseFloat(row, "base_damage"),                          // 基础伤害
+                CritChanceBonus = ParseFloat(row, "crit_chance_bonus"),               // 暴击率加成
+                CritMultiplier = ParseFloat(row, "crit_multiplier", 2f),              // 暴击伤害倍率
+                StackPolicy = (GEStackPolicy)ParseInt(row, "stack_policy"),           // 叠加策略
+                MaxStacks = ParseInt(row, "max_stacks", 1),                           // 最大叠加层数
+                IsAreaOfEffect = GetString(row, "is_area_of_effect").ToLowerInvariant() == "true", // 是否范围效果
+                AreaRadius = ParseFloat(row, "area_radius"),                          // 范围半径
+                AreaMaxTargets = ParseInt(row, "area_max_targets"),                   // 范围最大目标数
+                BypassShields = GetString(row, "bypass_shields").ToLowerInvariant() == "true", // 是否无视护盾
+                IgnoreInvulnerability = GetString(row, "ignore_invulnerability").ToLowerInvariant() == "true", // 是否无视无敌
+                GrantedTags = ParseTagList(row, "granted_tags"),                      // 赋予的标签列表
+                RequiredTargetTags = ParseTagList(row, "required_target_tags"),       // 目标所需标签列表
+                ImmuneTags = ParseTagList(row, "immune_tags")                         // 免疫标签列表
             };
 
             if (data.EffectId > 0)
@@ -318,15 +356,15 @@ public static class ConfigLoader
         {
             var cfg = new ReactionConfig
             {
-                ReactionID = GetString(row, "reaction_id"),
-                ReactionName = GetString(row, "reaction_name"),
-                RequiredStatuses = GetString(row, "required_statuses"),
-                TriggerSource = GetString(row, "trigger_source"),
-                EffectSummary = GetString(row, "effect_summary"),
-                DamageMultiplier = ParseFloat(row, "damage_multiplier", 1f),
-                CcSeconds = ParseFloat(row, "cc_seconds"),
-                TerrainResult = GetString(row, "terrain_result"),
-                Notes = GetString(row, "notes")
+                ReactionID = GetString(row, "reaction_id"),                 // 反应唯一ID
+                ReactionName = GetString(row, "reaction_name"),             // 反应名称
+                RequiredStatuses = GetString(row, "required_statuses"),     // 所需状态
+                TriggerSource = GetString(row, "trigger_source"),           // 触发源
+                EffectSummary = GetString(row, "effect_summary"),           // 效果摘要
+                DamageMultiplier = ParseFloat(row, "damage_multiplier", 1f),// 伤害倍率
+                CcSeconds = ParseFloat(row, "cc_seconds"),                  // 控制时间（秒）
+                TerrainResult = GetString(row, "terrain_result"),           // 地形结果
+                Notes = GetString(row, "notes")                             // 备注说明
             };
 
             if (!string.IsNullOrWhiteSpace(cfg.ReactionID))
@@ -356,13 +394,13 @@ public static class ConfigLoader
         {
             var cfg = new TerrainConfig
             {
-                TerrainID = GetString(row, "terrain_id"),
-                TerrainName = GetString(row, "terrain_name"),
-                AppliedBy = GetString(row, "applied_by"),
-                BonusEffect = GetString(row, "bonus_effect"),
-                EnemyEffect = GetString(row, "enemy_effect"),
-                DurationSeconds = ParseFloat(row, "duration_seconds", 4f),
-                StackRule = GetString(row, "stack_rule")
+                TerrainID = GetString(row, "terrain_id"),                   // 地形唯一ID
+                TerrainName = GetString(row, "terrain_name"),               // 地形名称
+                AppliedBy = GetString(row, "applied_by"),                   // 施加者
+                BonusEffect = GetString(row, "bonus_effect"),               // 增益效果
+                EnemyEffect = GetString(row, "enemy_effect"),               // 减益效果
+                DurationSeconds = ParseFloat(row, "duration_seconds", 4f),  // 持续时间（秒）
+                StackRule = GetString(row, "stack_rule")                    // 叠加规则
             };
 
             if (!string.IsNullOrWhiteSpace(cfg.TerrainID))
@@ -373,6 +411,43 @@ public static class ConfigLoader
             if (!string.IsNullOrWhiteSpace(cfg.TerrainName))
             {
                 TerrainConfigs[cfg.TerrainName] = cfg;
+            }
+        });
+    }
+
+    private static void LoadItemsFromCsv()
+    {
+        ItemConfigs.Clear();
+
+        var csv = LoadConfigText("Item");
+        if (csv == null)
+        {
+            Debug.LogWarning("[ConfigLoader] Missing Item.csv.");
+            return;
+        }
+
+        ForEachRow(csv.text, row =>
+        {
+            var cfg = new ItemConfig
+            {
+                ItemID = ParseInt(row, "item_id"),                           // 物品唯一ID
+                ItemName = GetString(row, "item_name"),                     // 物品名称
+                Description = GetString(row, "description"),               // 物品描述
+                Type = (ItemType)ParseInt(row, "type"),                     // 物品类型
+                MaxStack = ParseInt(row, "max_stack", 1),                   // 最大堆叠数
+                GameplayEffectID = ParseInt(row, "ge_id"),                  // 关联的GE ID
+                SkillGraphID = ParseInt(row, "skill_graph_id"),             // 关联的技能图ID
+                EquipSlot = (EquipmentSlot)ParseInt(row, "equip_slot"),     // 装备槽位
+                Quality = ParseInt(row, "quality"),                         // 品质
+                SellPrice = ParseInt(row, "sell_price"),                    // 出售价格
+                IconKey = GetString(row, "icon_key"),                       // 图标Key
+                CanDiscard = GetString(row, "can_discard").ToLowerInvariant() == "true" // 是否可丢弃
+            };
+            cfg.Tags = ParseTagList(row, "tags");                           // 额外标签
+
+            if (cfg.ItemID > 0)
+            {
+                ItemConfigs[cfg.ItemID] = cfg;
             }
         });
     }
@@ -392,17 +467,17 @@ public static class ConfigLoader
         {
             var cfg = new VFXArtProfileConfig
             {
-                ProfileKey = GetString(row, "profile_key"),
-                DisplayName = GetString(row, "display_name"),
-                CoreElement = GetString(row, "core_element"),
-                PrimaryColorHex = GetString(row, "primary_color"),
-                AccentColorHex = GetString(row, "accent_color"),
-                ScaleMultiplier = ParseFloat(row, "scale_multiplier", 1f),
-                WidthMultiplier = ParseFloat(row, "width_multiplier", 1f),
-                Length = ParseFloat(row, "length", 5f),
-                DurationMultiplier = ParseFloat(row, "duration_multiplier", 1f),
-                Intensity = ParseFloat(row, "intensity", 1f),
-                Notes = GetString(row, "notes")
+                ProfileKey = GetString(row, "profile_key"),                 // 配置Key
+                DisplayName = GetString(row, "display_name"),               // 显示名称
+                CoreElement = GetString(row, "core_element"),               // 核心元素
+                PrimaryColorHex = GetString(row, "primary_color"),          // 主色调十六进制值
+                AccentColorHex = GetString(row, "accent_color"),            // 辅助色十六进制值
+                ScaleMultiplier = ParseFloat(row, "scale_multiplier", 1f),  // 缩放乘数
+                WidthMultiplier = ParseFloat(row, "width_multiplier", 1f),  // 宽度乘数
+                Length = ParseFloat(row, "length", 5f),                     // 长度
+                DurationMultiplier = ParseFloat(row, "duration_multiplier", 1f), // 持续时间乘数
+                Intensity = ParseFloat(row, "intensity", 1f),               // 强度
+                Notes = GetString(row, "notes")                             // 备注说明
             };
 
             if (string.IsNullOrWhiteSpace(cfg.ProfileKey))
@@ -467,7 +542,7 @@ public static class ConfigLoader
     }
 
     private static string GetString(IReadOnlyDictionary<string, string> row, string key, string defaultValue = "")
-    {
+    { 
         return row.TryGetValue(key, out var value) ? value : defaultValue;
     }
 
@@ -487,5 +562,55 @@ public static class ConfigLoader
         return float.TryParse(raw, NumberStyles.Float, CultureInfo.InvariantCulture, out var value)
             ? value
             : defaultValue;
+    }
+
+    // ============================================================
+    //  Audio.csv 解析
+    // ============================================================
+
+    private static void LoadAudioFromCsv()
+    {
+        AudioConfigs.Clear();
+
+        var csv = LoadConfigText("Audio");
+        if (csv == null)
+        {
+            Debug.LogWarning("[ConfigLoader] Missing Audio.csv.");
+            return;
+        }
+
+        ForEachRow(csv.text, row =>
+        {
+            var cfg = new AudioConfig
+            {
+                AudioId = ParseInt(row, "audio_id"),
+                ResourcePath = GetString(row, "resource_path"),
+                Category = ParseAudioCategory(GetString(row, "category")),
+                VolumeWeight = ParseFloat(row, "volume_weight", 1f),
+                Is3D = GetString(row, "is_3d").ToLowerInvariant() == "true",
+                MaxDistance = ParseFloat(row, "max_distance", 50f),
+                Loop = GetString(row, "loop").ToLowerInvariant() == "true",
+                MaxConcurrent = ParseInt(row, "max_concurrent", 0),
+                Priority = ParseInt(row, "priority", 0),
+                FadeInDuration = ParseFloat(row, "fade_in", 0f),
+                FadeOutDuration = ParseFloat(row, "fade_out", 0f),
+                Description = GetString(row, "description")
+            };
+
+            AudioConfigs[cfg.AudioId] = cfg;
+        });
+    }
+
+    private static AudioCategory ParseAudioCategory(string raw)
+    {
+        if (string.IsNullOrEmpty(raw)) return AudioCategory.SFX;
+        return raw.ToUpperInvariant() switch
+        {
+            "BGM" => AudioCategory.BGM,
+            "SFX" => AudioCategory.SFX,
+            "UI" => AudioCategory.UI,
+            "VOICE" => AudioCategory.Voice,
+            _ => AudioCategory.SFX
+        };
     }
 }
