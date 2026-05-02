@@ -1,5 +1,6 @@
 using UnityEngine;
 
+[CreateAssetMenu(fileName = "PlayVFXNode", menuName = "Skill System/Nodes/VFX/PlayVFX")]
 public class PlayVFXNode : SkillNodeBase
 {
     public enum VFXStage

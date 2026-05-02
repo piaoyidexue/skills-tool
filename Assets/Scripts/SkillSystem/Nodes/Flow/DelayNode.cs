@@ -1,5 +1,6 @@
 using UnityEngine;
 
+[CreateAssetMenu(fileName = "DelayNode", menuName = "Skill System/Nodes/Flow/Delay")]
 public class DelayNode : SkillNodeBase
 {
     public FloatBinding delaySeconds = new()

@@ -1,5 +1,6 @@
 using UnityEngine;
 
+[CreateAssetMenu(fileName = "PaintTerrainNode", menuName = "Skill System/Nodes/VFX/PaintTerrain")]
 public class PaintTerrainNode : SkillNodeBase
 {
     public StringBinding terrainTags = new() { LiteralValue = "scorch" };

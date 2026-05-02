@@ -5,6 +5,7 @@ using UnityEngine;
 ///     每 tickInterval 触发一次 tick，总时长 channelDuration。
 ///     期间可被打断。进度记录在 Blackboard.ChannelProgress。
 /// </summary>
+[CreateAssetMenu(fileName = "ChannelNode", menuName = "Skill System/Nodes/Casting/Channel")]
 public class ChannelNode : SkillNodeBase
 {
     public FloatBinding channelDuration = new()

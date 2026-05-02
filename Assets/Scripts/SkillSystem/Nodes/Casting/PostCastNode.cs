@@ -5,6 +5,7 @@ using UnityEngine;
 ///     【重要】后摇的等待计时由 SkillCaster.CastPipeline 统一管理，
 ///     本节点仅负责 VFX 播放与状态标记，不独立等待。
 /// </summary>
+[CreateAssetMenu(fileName = "PostCastNode", menuName = "Skill System/Nodes/Casting/PostCast")]
 public class PostCastNode : SkillNodeBase
 {
     public FloatBinding postCastTime = new()

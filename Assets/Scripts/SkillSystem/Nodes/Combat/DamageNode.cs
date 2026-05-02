@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 
+[CreateAssetMenu(fileName = "DamageNode", menuName = "Skill System/Nodes/Combat/Damage")]
 [System.Obsolete("GAS架构迁移：请使用 ApplyEffectNode 替代。伤害计算已迁移到 EffectSystem。", false)]
 public class DamageNode : SkillNodeBase
 {

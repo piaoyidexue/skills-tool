@@ -5,6 +5,10 @@ using UnityEngine;
 //  唯一与战斗相关的标准节点。
 //  无任何逻辑参数，仅接受 GameplayEffectData 配置。
 //  继承 SkillNode 以兼容 SkillGraph 节点图系统。
+//
+//  维度5核心原则：技能图只管"行为触发"，不管是"规则结算"。
+//  本节点只是简单地丢出一个携带 tags 的原始伤害事件，
+//  具体的翻倍/暴击/反应逻辑交给 DamagePipeline + ReactionEngine。
 // ============================================================
 
 /// <summary>
@@ -12,6 +16,7 @@ using UnityEngine;
 ///     将 GameplayEffectData 投递到 EffectSystem 进行处理。
 ///     继承 SkillNode，通过 SkillContext 获取施法者与目标。
 /// </summary>
+[CreateAssetMenu(fileName = "ApplyEffectNode", menuName = "Skill System/Nodes/GAS/ApplyEffect")]
 public class ApplyEffectNode : SkillNodeBase
 {
     /// <summary>效果数据（直接在 Inspector 中配置）</summary>
@@ -25,6 +30,16 @@ public class ApplyEffectNode : SkillNodeBase
 
     /// <summary>是否使用黑板中的 CurrentTarget 作为目标</summary>
     [Tooltip("使用黑板目标")] public bool UseBlackboardTarget = true;
+
+
+
+    /// <summary>
+    ///     额外标签（分号分隔），投递到 DamagePipeline 供 GE 事件拦截。
+    ///     维度5核心：技能图通过标签声明"我是什么属性"，
+    ///     管线自动处理元素反应、暴击、被动等规则。
+    ///     示例："element.fire" → 管线自动检测目标 status.chill → 触发融化 x2.0
+    /// </summary>
+    [Tooltip("额外标签（分号分隔，如 element.fire;element.ice）")] public string extraTags = string.Empty;
 
     // ---- 运行时输出（调试用，可选） ----
 
@@ -69,6 +84,29 @@ public class ApplyEffectNode : SkillNodeBase
         {
             foreach (var tag in effectData.GrantedTags)
                 context.AddSourceTag(tag);
+        }
+
+        // 维度5：额外标签透传（技能图行为触发 + 标签传递）
+        if (!string.IsNullOrEmpty(extraTags))
+        {
+            var extraTagArray = extraTags.Split(';');
+            foreach (var tag in extraTagArray)
+            {
+                var trimmed = tag.Trim();
+                if (!string.IsNullOrEmpty(trimmed))
+                    context.AddSourceTag(trimmed);
+            }
+        }
+
+        // 添加额外标签（维度5：标签驱动规则）
+        if (!string.IsNullOrWhiteSpace(extraTags))
+        {
+            foreach (var tag in extraTags.Split(';'))
+            {
+                var trimmed = tag.Trim();
+                if (!string.IsNullOrEmpty(trimmed))
+                    context.AddSourceTag(trimmed);
+            }
         }
 
         // 投递到 EffectSystem

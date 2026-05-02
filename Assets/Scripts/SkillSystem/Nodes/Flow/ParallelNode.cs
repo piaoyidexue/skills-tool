@@ -1,10 +1,12 @@
 using System.Linq;
 using System;
+using UnityEngine;
 
 /// <summary>
 ///     并行节点 —— 同时执行所有分支，全部完成后从 "output" 端口继续。
 ///     使用命名端口系统：以 "branches" 开头的端口为并行分支，"output" 为主输出。
 /// </summary>
+[CreateAssetMenu(fileName = "ParallelNode", menuName = "Skill System/Nodes/Flow/Parallel")]
 public class ParallelNode : SkillNodeBase
 {
     /// <summary>分支数量提示字段（仅供编辑器参考，运行时通过边数确定）</summary>

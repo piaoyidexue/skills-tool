@@ -13,7 +13,7 @@ using UnityEngine;
 ///     可编译：Compile() 输出 SkillEffectType.PlaySFX 的 SkillEffectData。
 /// </summary>
 
-[CreateAssetMenu(menuName = "VFX/Play SFX")]
+[CreateAssetMenu(fileName = "PlaySFXNode", menuName = "Skill System/Nodes/VFX/PlaySFX")]
 public class PlaySFXNode : SkillNodeBase
 {
     // ──────────── Inspector 字段 ────────────

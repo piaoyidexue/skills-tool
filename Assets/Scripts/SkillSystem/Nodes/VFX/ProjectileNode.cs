@@ -5,6 +5,7 @@ using UnityEngine;
 ///     支持直线 / 追踪 / 抛物线三种弹道。
 ///     目标查询使用空间哈希网格（替代 Physics.OverlapSphere）。
 /// </summary>
+[CreateAssetMenu(fileName = "ProjectileNode", menuName = "Skill System/Nodes/VFX/Projectile")]
 public class ProjectileNode : SkillNodeBase
 {
     public enum LaunchMode { TowardTarget, CasterForward, CustomDirection }

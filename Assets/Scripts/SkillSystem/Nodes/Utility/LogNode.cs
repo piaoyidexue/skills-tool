@@ -1,5 +1,6 @@
 using UnityEngine;
 
+[CreateAssetMenu(fileName = "LogNode", menuName = "Skill System/Nodes/Utility/Log")]
 public class LogNode : SkillNodeBase
 {
     public StringBinding message = new() { LiteralValue = "Skill node reached." };

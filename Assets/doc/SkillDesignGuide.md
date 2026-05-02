@@ -856,3 +856,303 @@ Notify()                    // 统一通知 UI 刷新
 | `Quest/SaveableQuestSystem.cs` | 新增 | 任务存档适配器 |
 | `Inventory/InventoryComponent.cs` | 修改 | 新增 `SetSlotDirect()` 方法 |
 | `Quest/QuestRunner.cs` | 修改 | 新增 `MarkQuestCompleted()` 静态方法 |
+
+---
+
+## 十五、5维度复用架构
+
+### 15.1 架构哲学
+
+**核心冲突**："节点实例孤立无法复用" 与 "全盘配置化导致CSV逻辑极度臃肿" 是商业级游戏开发的经典架构冲突。
+
+**解决方案**："图（Graph）定义逻辑形状，表（CSV）定义数值大小，黑板（Blackboard）提供运行时上下文。"
+
+```text
+┌──────────────────────────────────────────────────────┐
+│  维度1: 逻辑块级复用 — SubGraph 子图机制            │
+│  相同连线形状 → 提取为 Common_* 公共资产             │
+├──────────────────────────────────────────────────────┤
+│  维度2: 节点参数级复用 — 动态数据绑定 (Binding)     │
+│  具体数值 → 剥离给 CSV + Binding 桥接               │
+├──────────────────────────────────────────────────────┤
+│  维度3: 图拓扑级复用 — 配方与图模板 (Preset)        │
+│  高频拓扑结构 → 沉淀为预设，一键生成                │
+├──────────────────────────────────────────────────────┤
+│  维度4: 上下文级复用 — 黑板解耦输入输出             │
+│  节点间上下文 → 通过 Blackboard + BBKeyRef 解耦     │
+├──────────────────────────────────────────────────────┤
+│  维度5: 规则级复用 — 标签驱动管线                   │
+│  复杂战斗规则 → 剥离给 DamagePipeline + TagDamageRule│
+└──────────────────────────────────────────────────────┘
+```
+
+### 15.2 维度1：SubGraph 子图机制
+
+**问题**：每个技能都有"击中 → 暴击判定 → 播放特效 → 扣血 → 附加状态"的相同流程，在每个技能图里都连一遍，既冗余又难维护。
+
+**解决方案**：提取公共逻辑块为独立 `SkillGraphAsset`（如 `Common_ImpactDamage.asset`），通过 `SubGraphNode` 引用。
+
+**SubGraphNode 黑板桥接**：
+
+| 字段 | 说明 |
+|------|------|
+| `subGraph` | 引用的子图资产 |
+| `inputMappings` | 入参映射：父图Key → 子图Key（参数透传） |
+| `outputMappings` | 返回值映射：子图Key → 父图Key（结果提取） |
+
+**BBMapping 映射条目**：
+
+```csharp
+public class BBMapping
+{
+    public string SourceKey;  // 源黑板键
+    public string TargetKey;  // 目标黑板键
+}
+```
+
+**执行流程**：
+
+```text
+SubGraphNode.OnEnter()
+  ├─ 保存父图黑板引用
+  ├─ 创建子图独立黑板
+  ├─ ApplyInputMappings: 父图黑板值 → 子图黑板
+  └─ ctx.Blackboard = 子图黑板
+
+子图执行（帧栈自动管理）
+
+SubGraphNode.OnExit()
+  ├─ ApplyOutputMappings: 子图黑板值 → 父图黑板
+  └─ ctx.Blackboard = 父图黑板（恢复）
+```
+
+### 15.3 维度2：动态数据绑定
+
+**问题**：节点写死了数值（如伤害50/100），导致逻辑一样也无法复用，而把逻辑写进CSV会出现难以解析的复杂字符串。
+
+**解决方案**：节点内部不持有字面值，通过 Binding 声明数据来源。
+
+**绑定类型体系**：
+
+| 绑定类型 | 来源 | 典型用途 |
+|---------|------|---------|
+| `FloatBinding` | SkillConfig / Blackboard / Literal | 伤害、倍率、距离、时间 |
+| `IntBinding` | SkillConfig / Blackboard / Literal | 目标数、层数、Tick数 |
+| `StringBinding` | SkillConfig / Blackboard / Literal | 标签、资源路径、动画名 |
+| `BoolBinding` | Blackboard / Literal / InvertedBlackboard | 条件开关、状态标记 |
+
+**FloatBinding 使用示例**：
+
+```csharp
+// 从 CSV 读取伤害值
+new FloatBinding { Source = SkillConfig, SkillField = SkillFloatField.Damage }
+
+// 从黑板读取覆写值
+new FloatBinding { Source = Blackboard, BlackboardKey = BBKey.ChannelDuration }
+
+// 字面值（仅限设计常量倍率）
+new FloatBinding { Source = Literal, LiteralValue = 2.5f }
+```
+
+**BoolBinding 特殊来源**：
+
+- `Blackboard`：读取黑板布尔值
+- `Literal`：固定布尔常量
+- `InvertedBlackboard`：黑板取反（如 `!IsInterrupted`）
+
+**收益**：节点变成"纯逻辑容器"，100个伤害技能可使用同一个 DamageNode 实例，运行时自动从 CSV 读取对应列。
+
+### 15.4 维度3：图模板/配方系统
+
+**问题**：哪怕有子图和数据绑定，新建一个技能还是要手动拉出基础框架，效率低下。
+
+**解决方案**：高频图拓扑沉淀为预设模板，策划填配方表，编辑器一键生成。
+
+**GraphPresetType 枚举**：
+
+| 预设 | 拓扑结构 | 典型技能 |
+|------|---------|---------|
+| `ImpactLane` | Start → PreCast → AnimWait → ApplyEffect → PlayVFX → PostCast → End | 火球、冰弹 |
+| `BeamLane` | Start → PreCast → BeamVFX → Channel → ApplyEffect → PostCast → End | 射线、光束 |
+| `ProjectileLane` | Start → PreCast → Projectile → ApplyEffect → ImpactVFX → PostCast → End | 投射物 |
+| `AoELane` | Start → PreCast → EQS → AoEVFX → ApplyEffect → PostCast → End | 范围法术 |
+| `ChannelLane` | Start → PreCast → Channel → ApplyEffect → PostCast → End | 吟唱技能 |
+| `FinisherLane` | Start → PreCast → FinisherStaged → ApplyEffect → PostCast → End | 终结技 |
+| `Custom` | 空图（手动编辑） | 特殊技能 |
+
+**SkillRecipe 配方**：
+
+| 字段 | 说明 |
+|------|------|
+| `SkillId` | 技能ID（对应 Skill.csv） |
+| `SkillName` | 技能名称 |
+| `PresetType` | 使用的预设类型 |
+| `PresetOverrideJson` | 预设参数覆盖（JSON） |
+| `ElementTags` | 元素标签覆盖 |
+| `OutputPath` | 生成图资产存放路径 |
+
+**工作流**：
+
+```text
+策划填写 SkillRecipe.csv
+  → 选择预设类型 + 填入元素标签
+  → Assets/Skill System/Generate Graph from Preset...
+  → 编辑器一键生成 SkillGraphAsset
+  → 仅对特殊技能手动微调
+```
+
+**GraphPreset 可选模块**：
+
+| 开关 | 附加节点 |
+|------|---------|
+| `HasConditionBranch` | ConditionNode（暴击/概率分支） |
+| `HasTargetQuery` | TargetQueryNode（EQS 查询） |
+| `HasElementTags` | 通过 ApplyEffectNode.GrantedTags 注入 |
+| `HasTerrainPaint` | PaintTerrainNode |
+| `HasResonance` | ResonanceNode |
+| `UseSubGraphForDamage` | SubGraphNode（引用 Common_ImpactDamage） |
+
+### 15.5 维度4：黑板上下文解耦
+
+**问题**：A技能火球打单体、B技能火墙打群体，伤害逻辑一样但目标获取方式不同，导致伤害节点无法复用。
+
+**解决方案**：节点间禁止直接传参，通过黑板解耦输入输出。
+
+**BBKeyRef 声明式引用**：
+
+```csharp
+public class BBKeyRef
+{
+    public BBKeyRefMode Mode;        // Predefined / Custom
+    public string PredefinedKey;     // 从 BBKey 常量选择
+    public string CustomKey;         // 手动输入
+    public string Resolve();         // 解析为最终键名
+}
+```
+
+**TargetQueryNode 使用示例**：
+
+```csharp
+// 声明式引用（Inspector中下拉选择常用键）
+public BBKeyRef countKeyRef = new(BBKeyRefMode.Predefined, BBKey.TargetCount);
+public BBKeyRef listKeyRef = new(BBKeyRefMode.Predefined, BBKey.TargetList);
+
+// Tick中解析
+var countKey = countKeyRef.Resolve();
+var listKey = listKeyRef.Resolve();
+ctx.Blackboard.SetValue(countKey, results.Count);
+```
+
+**节点间数据流键**（BBKey 新增）：
+
+| 键名 | 类型 | 用途 |
+|------|------|------|
+| `CustomBool1` / `CustomBool2` | bool | 节点间布尔值传递 |
+| `CustomFloat1` / `CustomFloat2` | float | 节点间浮点值传递 |
+| `CustomString1` / `CustomString2` | string | 节点间字符串传递 |
+
+**Blackboard 增强 API**：
+
+| API | 说明 |
+|-----|------|
+| `EnableWriteTracing` | 写入追踪开关（调试模式） |
+| `HasKey(key)` | 检查键是否存在 |
+| `RemoveKey(key)` | 移除键（清理临时数据） |
+| `Clear()` | 清空黑板（子图切换隔离上下文） |
+| `GetWriteTrace()` | 获取写入追踪记录 |
+
+**解耦示例**：
+
+```text
+EQSNode 写入 BBKey.TargetList → 黑板中转 → DamageNode 读取 BBKey.TargetList
+    ↑ 完全不知道谁写入                    ↑ 完全不知道目标怎么来的
+```
+
+### 15.6 维度5：规则级复用 — 标签驱动管线
+
+**问题**：火球打冰冻敌人伤害翻倍（元素反应），如果不抽离，逻辑就得写死在技能图或专属节点里，复用性极差。
+
+**解决方案**：技能图只管"行为触发 + 标签传递"，不管"规则结算"。
+
+**标签传递链**：
+
+```text
+ApplyEffectNode.extraTags = "element.fire"
+  → EffectContext.AddSourceTag("element.fire")
+    → DamagePipeline.CalculateAndApply(rawDamage, target, instigator, tags)
+      → ApplyTagRules: 遍历 TagDamageRule 列表
+        → 匹配源标签 + 目标标签 → 自动应用规则
+```
+
+**TagDamageRule 数据结构**：
+
+| 字段 | 说明 | 示例 |
+|------|------|------|
+| `RuleName` | 规则名称（调试用） | "MeltReaction" |
+| `RequiredSourceTag` | 伤害源必须携带的标签 | "element.fire" |
+| `RequiredTargetTag` | 目标必须携带的标签 | "status.chill" |
+| `DamageMultiplier` | 伤害乘率 | 2.0f |
+| `BonusDamage` | 额外固定伤害 | 0f |
+
+**规则注册示例**：
+
+```csharp
+// 融化反应：火 + 冰 = 2.0x
+DamagePipeline.RegisterTagRule(new TagDamageRule
+{
+    RuleName = "MeltReaction",
+    RequiredSourceTag = "element.fire",
+    RequiredTargetTag = "status.chill",
+    DamageMultiplier = 2.0f
+});
+
+// 感电反应：雷 + 湿 = 1.5x + 50固定伤害
+DamagePipeline.RegisterTagRule(new TagDamageRule
+{
+    RuleName = "Electrocute",
+    RequiredSourceTag = "element.lightning",
+    RequiredTargetTag = "status.wet",
+    DamageMultiplier = 1.5f,
+    BonusDamage = 50f
+});
+```
+
+**DamagePipeline API**：
+
+| API | 说明 |
+|-----|------|
+| `RegisterTagRule(rule)` | 注册标签伤害规则 |
+| `ClearTagRules()` | 清空所有规则（场景切换时调用） |
+
+**收益**：技能图变得极其干净，不需要为各种 Buff、被动、元素反应创建特殊节点，所有条件结算都降维到全局管线。
+
+### 15.7 维度架构总结
+
+| 维度 | 剥离对象 → 目标 | 核心机制 |
+|------|----------------|---------|
+| **1 - 逻辑块** | 相同连线形状 → **SubGraph** | SubGraphNode + BBMapping 桥接 |
+| **2 - 参数** | 具体数值 → **CSV + Binding** | FloatBinding / IntBinding / BoolBinding / StringBinding |
+| **3 - 拓扑** | 高频图结构 → **Preset 模板** | GraphPreset + SkillRecipe + ElementLineGraphGenerator |
+| **4 - 上下文** | 节点间输入输出 → **Blackboard** | BBKeyRef 声明式引用 + Custom 数据流键 |
+| **5 - 规则** | 复杂战斗规则 → **DamagePipeline** | TagDamageRule + extraTags 标签透传 |
+
+**最终效果**：CSV 里全是干净的数值（没有任何代码或逻辑指令），节点也是纯粹的原子操作组件，两者通过绑定机制完美结合。
+
+### 15.8 新增/修改文件清单（5维度架构）
+
+| 文件 | 类型 | 维度 | 说明 |
+|------|------|------|------|
+| `SkillSystem/Nodes/Flow/SubGraphNode.cs` | 修改 | 1 | 黑板桥接：BBMapping + inputMappings + outputMappings + OnEnter/OnExit |
+| `Core/Binding/IntBinding.cs` | 新增 | 2 | 整数数据绑定 |
+| `Core/Binding/BoolBinding.cs` | 新增 | 2 | 布尔数据绑定（含 InvertedBlackboard） |
+| `SkillSystem/Nodes/Flow/ConditionNode.cs` | 修改 | 2 | 新增 ConditionMode.BoolBinding + BoolBinding 字段 |
+| `SkillSystem/Nodes/Utility/SetValueNode.cs` | 修改 | 2 | bool 字段改为 BoolBinding |
+| `SkillSystem/Runtime/GraphPreset.cs` | 新增 | 3 | GraphPresetType 枚举 + GraphPreset 类 + SkillRecipe 类 |
+| `SkillSystem/Editor/ElementLineGraphGenerator.cs` | 新增 | 3 | 6种预设图生成器 + GraphGeneratorWindow 编辑器窗口 |
+| `SkillSystem/Runtime/BBKeyRef.cs` | 新增 | 4 | 黑板键声明式引用（Predefined/Custom） |
+| `SkillSystem/Runtime/BBKey.cs` | 修改 | 4 | 新增 CustomBool1/2, CustomFloat1/2, CustomString1/2 键 |
+| `SkillSystem/Runtime/Blackboard.cs` | 修改 | 4 | 写入追踪 + HasKey/RemoveKey/Clear/GetWriteTrace |
+| `SkillSystem/Nodes/Utility/TargetQueryNode.cs` | 修改 | 4 | string 键改为 BBKeyRef 声明式引用 |
+| `GAS/Pipeline/DamagePipeline.cs` | 修改 | 5 | TagDamageRule 注册/应用 + ApplyTagRules 标签规则管线 |
+| `GAS/Pipeline/TagDamageRule` | 新增 | 5 | 标签伤害规则类（内嵌于 DamagePipeline.cs） |
+| `SkillSystem/Nodes/GAS/ApplyEffectNode.cs` | 修改 | 5 | 新增 extraTags 字段 + 标签透传逻辑 |

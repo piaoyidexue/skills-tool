@@ -1,5 +1,6 @@
 using UnityEngine;
 
+[CreateAssetMenu(fileName = "ApplyStatusNode", menuName = "Skill System/Nodes/Combat/ApplyStatus")]
 [System.Obsolete("GAS架构迁移：请使用 ApplyEffectNode 替代。状态施加已迁移到 EffectSystem + ReactionEngine。", false)]
 public class ApplyStatusNode : SkillNodeBase
 {

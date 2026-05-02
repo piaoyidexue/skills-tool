@@ -21,7 +21,7 @@ MonoBehaviour:
     _translation: {x: 0, y: 0}
     _zoomFactor: 1
   _haltSerialization: 0
-  aiTreeId: 76aa98ece44e434abb62431591a08700
+  aiTreeId: 2e4b6141f9104f82bed440954aa686a3
   treeName: "Boss AI\u6A21\u677F"
   treeDescription: "\u81EA\u52A8\u751F\u6210\u81EA AITree.csv (id=boss)"
   aiType: 5

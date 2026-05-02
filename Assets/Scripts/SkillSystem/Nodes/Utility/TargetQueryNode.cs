@@ -3,8 +3,10 @@ using UnityEngine;
 
 /// <summary>
 ///     目标查询节点 —— 通过配置好的策略动态选出目标列表。
-///     结果写入黑板的 BBKey.TargetList，后续 ParallelNode 遍历多发施法。
+///     结果写入黑板的 TargetList / TargetCount，后续 ParallelNode 遍历多发施法。
+///     使用 BBKeyRef 声明式引用黑板键，实现节点间解耦（维度4）。
 /// </summary>
+[CreateAssetMenu(fileName = "TargetQueryNode", menuName = "Skill System/Nodes/Utility/TargetQuery")]
 public class TargetQueryNode : SkillNodeBase
 {
     /// <summary>查询配置</summary>
@@ -15,11 +17,11 @@ public class TargetQueryNode : SkillNodeBase
         MaxResults = 1
     };
 
-    /// <summary>结果数量写入黑板键</summary>
-    public string countKey = BBKey.TargetCount;
+    /// <summary>结果数量写入黑板键（声明式引用，支持预定义/自定义键）</summary>
+    public BBKeyRef countKeyRef = new(BBKeyRefMode.Predefined, BBKey.TargetCount);
 
-    /// <summary>结果列表写入黑板键</summary>
-    public string listKey = BBKey.TargetList;
+    /// <summary>结果列表写入黑板键（声明式引用，支持预定义/自定义键）</summary>
+    public BBKeyRef listKeyRef = new(BBKeyRefMode.Predefined, BBKey.TargetList);
 
     /// <summary>是否将第一个结果设为 ctx.Target（兼容旧节点）</summary>
     public bool updateContextTarget = true;
@@ -31,6 +33,9 @@ public class TargetQueryNode : SkillNodeBase
     {
         var center = ctx.Caster != null ? ctx.Caster.position : Vector3.zero;
         _results = QueryConfig.Execute(center, ctx.Caster, ctx);
+
+        var countKey = countKeyRef.Resolve();
+        var listKey = listKeyRef.Resolve();
 
         ctx.Blackboard.SetValue(countKey, _results.Count);
 

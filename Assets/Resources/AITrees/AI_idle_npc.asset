@@ -21,7 +21,7 @@ MonoBehaviour:
     _translation: {x: 0, y: 0}
     _zoomFactor: 1
   _haltSerialization: 0
-  aiTreeId: b4993942bfb44de9b657bdd9ee223077
+  aiTreeId: 9c84a501f8814272a1f5c5564ec06446
   treeName: "\u7A7A\u95F2AI\u6A21\u677F"
   treeDescription: "\u81EA\u52A8\u751F\u6210\u81EA AITree.csv (id=idle_npc)"
   aiType: 4

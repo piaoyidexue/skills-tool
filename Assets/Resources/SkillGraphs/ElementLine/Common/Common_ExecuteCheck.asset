@@ -1,6 +1,6 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
---- !u!114 &-3407701818609172919
+--- !u!114 &-9134611859286959475
 MonoBehaviour:
   m_ObjectHideFlags: 1
   m_CorrespondingSourceObject: {fileID: 0}
@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fef7ac9782582cd498e1c419ef8c0e49, type: 3}
   m_Name: ConditionNode
   m_EditorClassIdentifier: Assembly-CSharp::ConditionNode
-  _nodeGuid: 1390f677fbf99cd40bdc0490cd855bcb
+  _nodeGuid: 246f12877f9696e42998189287690a8d
   _position: {x: 320, y: 120}
   _inputPortNames:
   - input
@@ -30,42 +30,26 @@ MonoBehaviour:
     BlackboardKey: DamageOverride
     LiteralValue: 0
     DefaultValue: 0
---- !u!114 &11400000
+--- !u!114 &-5325812342064949678
 MonoBehaviour:
-  m_ObjectHideFlags: 0
+  m_ObjectHideFlags: 1
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 27773d9782edc754f9ac8e26070c55fd, type: 3}
-  m_Name: Common_ExecuteCheck
-  m_EditorClassIdentifier: Assembly-CSharp::SkillGraphAsset
-  graphId: bd490a804dff48d79006b36ff4bd8988
-  _nodes:
-  - {fileID: 7825847066295465512}
-  - {fileID: -3407701818609172919}
-  - {fileID: 1408700743665860159}
-  - {fileID: 2617134359433248358}
-  _edges:
-  - SourceNodeGuid: ed6bc8fe2af5eb04cbc6fe84bfd82dcd
-    SourcePort: output
-    TargetNodeGuid: 1390f677fbf99cd40bdc0490cd855bcb
-    TargetPort: input
-  - SourceNodeGuid: 1390f677fbf99cd40bdc0490cd855bcb
-    SourcePort: truePort
-    TargetNodeGuid: a27549ee465689a419717f967ae5378d
-    TargetPort: input
-  - SourceNodeGuid: a27549ee465689a419717f967ae5378d
-    SourcePort: output
-    TargetNodeGuid: 48774e23c5b1a284ebb4f06bd9f3cc39
-    TargetPort: input
-  - SourceNodeGuid: 1390f677fbf99cd40bdc0490cd855bcb
-    SourcePort: falsePort
-    TargetNodeGuid: 48774e23c5b1a284ebb4f06bd9f3cc39
-    TargetPort: input
---- !u!114 &1408700743665860159
+  m_Script: {fileID: 11500000, guid: 551f49b56a2d6324392c66b975cb256e, type: 3}
+  m_Name: StartNode
+  m_EditorClassIdentifier: Assembly-CSharp::StartNode
+  _nodeGuid: 048bc9a56a771d34da2e66c7e0152bd4
+  _position: {x: 80, y: 120}
+  _inputPortNames:
+  - input
+  _outputPortNames:
+  - output
+  _isBreakpoint: 0
+--- !u!114 &-1137661262909010210
 MonoBehaviour:
   m_ObjectHideFlags: 1
   m_CorrespondingSourceObject: {fileID: 0}
@@ -77,7 +61,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 55d32cdda21801c4ab21c7ac5e1c1a42, type: 3}
   m_Name: ApplyEffectNode
   m_EditorClassIdentifier: Assembly-CSharp::ApplyEffectNode
-  _nodeGuid: a27549ee465689a419717f967ae5378d
+  _nodeGuid: 8caa40085a3569f408875ee20096e856
   _position: {x: 580, y: 60}
   _inputPortNames:
   - input
@@ -118,7 +102,42 @@ MonoBehaviour:
   LastCalculatedDamage: 0
   LastWasCriticalHit: 0
   LastResult: 
---- !u!114 &2617134359433248358
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 27773d9782edc754f9ac8e26070c55fd, type: 3}
+  m_Name: Common_ExecuteCheck
+  m_EditorClassIdentifier: Assembly-CSharp::SkillGraphAsset
+  graphId: 2bdcb38f302949eaaf2383c056e911aa
+  _nodes:
+  - {fileID: -5325812342064949678}
+  - {fileID: -9134611859286959475}
+  - {fileID: -1137661262909010210}
+  - {fileID: 2598216265065545842}
+  _edges:
+  - SourceNodeGuid: 048bc9a56a771d34da2e66c7e0152bd4
+    SourcePort: output
+    TargetNodeGuid: 246f12877f9696e42998189287690a8d
+    TargetPort: input
+  - SourceNodeGuid: 246f12877f9696e42998189287690a8d
+    SourcePort: truePort
+    TargetNodeGuid: 8caa40085a3569f408875ee20096e856
+    TargetPort: input
+  - SourceNodeGuid: 8caa40085a3569f408875ee20096e856
+    SourcePort: output
+    TargetNodeGuid: c508848313ee74d4484331e6d8c0ee98
+    TargetPort: input
+  - SourceNodeGuid: 246f12877f9696e42998189287690a8d
+    SourcePort: falsePort
+    TargetNodeGuid: c508848313ee74d4484331e6d8c0ee98
+    TargetPort: input
+--- !u!114 &2598216265065545842
 MonoBehaviour:
   m_ObjectHideFlags: 1
   m_CorrespondingSourceObject: {fileID: 0}
@@ -130,27 +149,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2195c972e71a3fd4a8277bff583f3084, type: 3}
   m_Name: EndNode
   m_EditorClassIdentifier: Assembly-CSharp::EndNode
-  _nodeGuid: 48774e23c5b1a284ebb4f06bd9f3cc39
+  _nodeGuid: c508848313ee74d4484331e6d8c0ee98
   _position: {x: 820, y: 120}
-  _inputPortNames:
-  - input
-  _outputPortNames:
-  - output
-  _isBreakpoint: 0
---- !u!114 &7825847066295465512
-MonoBehaviour:
-  m_ObjectHideFlags: 1
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 551f49b56a2d6324392c66b975cb256e, type: 3}
-  m_Name: StartNode
-  m_EditorClassIdentifier: Assembly-CSharp::StartNode
-  _nodeGuid: ed6bc8fe2af5eb04cbc6fe84bfd82dcd
-  _position: {x: 80, y: 120}
   _inputPortNames:
   - input
   _outputPortNames:

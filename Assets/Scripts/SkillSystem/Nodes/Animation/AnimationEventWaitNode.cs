@@ -6,6 +6,7 @@ using UnityEngine;
 ///     - 播放攻击动画 → OnHit 事件触发 → 本节点通过 → 执行后续 DamageNode
 ///     - 攻速变化时自动适配（动画速度变化，事件时机自动对齐）。
 /// </summary>
+[CreateAssetMenu(fileName = "AnimEventWaitNode", menuName = "Skill System/Nodes/Animation/AnimEventWait")]
 public class AnimationEventWaitNode : SkillNodeBase
 {
     /// <summary>等待的动画事件名（如 "OnHit", "OnCastEnd"）</summary>

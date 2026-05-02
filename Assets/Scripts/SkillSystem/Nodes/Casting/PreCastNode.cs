@@ -5,6 +5,7 @@ using UnityEngine;
 ///     【重要】前腰的等待计时由 SkillCaster.CastPipeline 统一管理，
 ///     本节点仅负责 VFX 播放与中断标志传播，不独立等待。
 /// </summary>
+[CreateAssetMenu(fileName = "PreCastNode", menuName = "Skill System/Nodes/Casting/PreCast")]
 public class PreCastNode : SkillNodeBase
 {
     public FloatBinding castTime = new()

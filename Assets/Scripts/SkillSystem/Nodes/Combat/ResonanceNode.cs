@@ -1,3 +1,6 @@
+using UnityEngine;
+
+[CreateAssetMenu(fileName = "ResonanceNode", menuName = "Skill System/Nodes/Combat/Resonance")]
 public class ResonanceNode : SkillNodeBase
 {
     public StringBinding resonanceTags = new() { LiteralValue = "row_focus" };

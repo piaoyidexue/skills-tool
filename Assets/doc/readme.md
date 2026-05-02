@@ -309,6 +309,18 @@ SkillData（ScriptableObject，含时间轴 SkillStep[]）
 - **3 个业务适配器**：SaveableInventory、SaveableAttributeSet、SaveableQuestSystem
 - **新模块接入成本**：实现 ISaveable + 挂载到 GameObject，零改动 SaveManager
 
+### 3.14 5维度复用架构
+
+解决"节点实例孤立无法复用"与"全盘配置化导致CSV逻辑极度臃肿"的架构冲突。核心哲学：**图定义逻辑形状，表定义数值大小，黑板提供运行时上下文。**
+
+| 维度 | 机制 | 核心 |
+|------|------|------|
+| **1 - 逻辑块级** | SubGraph 子图 | SubGraphNode + BBMapping 桥接 |
+| **2 - 参数级** | 动态数据绑定 | FloatBinding / IntBinding / BoolBinding / StringBinding |
+| **3 - 拓扑级** | 配方与图模板 | GraphPreset + SkillRecipe + ElementLineGraphGenerator |
+| **4 - 上下文级** | 黑板解耦 | BBKeyRef 声明式引用 + Custom 数据流键 |
+| **5 - 规则级** | 标签驱动管线 | TagDamageRule + ApplyEffectNode.extraTags |
+
 ---
 
 ## 4. 关键设计决策
@@ -324,6 +336,7 @@ SkillData（ScriptableObject，含时间轴 SkillStep[]）
 | **空间哈希替代物理** | AI 感知使用 `SpatialHashGrid.QueryRange()`，不调用 `Physics.OverlapSphere` |
 | **对象池强制** | 所有 VFX 通过 `VFXObjectPool.Get/Release`，所有音效通过 `AudioManager` 对象池，禁用 `Instantiate/Destroy` |
 | **Blackboard 通信** | 节点间不直接传参，全部通过 `Blackboard.SetValue/GetValue` |
+| **5维度复用** | 图定义逻辑形状，表定义数值大小，黑板提供运行时上下文。逻辑块→SubGraph，参数→Binding，拓扑→Preset，上下文→BBKeyRef，规则→TagDamageRule |
 | **数据驱动 UI** | AttributeSet 属性变更通过 `BindableProperty.OnChanged` 通知 UI，UI 组件不轮询 |
 | **存档接口契约** | 新模块只需实现 `ISaveable` 即可自动接入 SaveManager，零耦合扩展 |
 
