@@ -1,0 +1,5 @@
+projectile_id,name,prefab_key,trajectory,hit_radius,lifetime,gravity,tags
+fireball_default,Fireball Projectile,FireballPrefab,0,0.5,5,9.8,element.fire
+lightning_orb,Lightning Orb,LightningOrbPrefab,1,0.3,4,0,element.lightning
+ice_shard,Ice Shard,IceShardPrefab,0,0.4,6,9.8,element.ice
+frost_burst,Frost Burst,FrostBurstPrefab,2,0.6,3,15,element.ice|status.freeze

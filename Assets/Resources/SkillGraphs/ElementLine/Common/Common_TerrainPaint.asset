@@ -1,32 +1,6 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
---- !u!114 &11400000
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 27773d9782edc754f9ac8e26070c55fd, type: 3}
-  m_Name: Common_TerrainPaint
-  m_EditorClassIdentifier: Assembly-CSharp::SkillGraphAsset
-  graphId: 6549218e024740afbd193af893a35ba7
-  _nodes:
-  - {fileID: 343671948483634104}
-  - {fileID: 1210883810009577967}
-  - {fileID: 4875569917994295041}
-  _edges:
-  - SourceNodeGuid: bdf4920494dc8c4489fe55a9e6f8fef6
-    SourcePort: output
-    TargetNodeGuid: c9283ca04280f1f48a0b32195465be2a
-    TargetPort: input
-  - SourceNodeGuid: c9283ca04280f1f48a0b32195465be2a
-    SourcePort: output
-    TargetNodeGuid: 86e496f2fa200234ebf69e89f621a673
-    TargetPort: input
---- !u!114 &343671948483634104
+--- !u!114 &-7954774241276042890
 MonoBehaviour:
   m_ObjectHideFlags: 1
   m_CorrespondingSourceObject: {fileID: 0}
@@ -35,17 +9,17 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 551f49b56a2d6324392c66b975cb256e, type: 3}
-  m_Name: StartNode
-  m_EditorClassIdentifier: Assembly-CSharp::StartNode
-  _nodeGuid: bdf4920494dc8c4489fe55a9e6f8fef6
-  _position: {x: 80, y: 120}
+  m_Script: {fileID: 11500000, guid: 2195c972e71a3fd4a8277bff583f3084, type: 3}
+  m_Name: EndNode
+  m_EditorClassIdentifier: Assembly-CSharp::EndNode
+  _nodeGuid: 5d86d010aa9c15f49ba7aebd186a590a
+  _position: {x: 560, y: 120}
   _inputPortNames:
   - input
   _outputPortNames:
   - output
   _isBreakpoint: 0
---- !u!114 &1210883810009577967
+--- !u!114 &-4085773185460811272
 MonoBehaviour:
   m_ObjectHideFlags: 1
   m_CorrespondingSourceObject: {fileID: 0}
@@ -57,7 +31,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a00c8911fbee10d4b9601bf5cfca4209, type: 3}
   m_Name: PaintTerrainNode
   m_EditorClassIdentifier: Assembly-CSharp::PaintTerrainNode
-  _nodeGuid: c9283ca04280f1f48a0b32195465be2a
+  _nodeGuid: 666065965f752554497680e60427dd00
   _position: {x: 320, y: 120}
   _inputPortNames:
   - input
@@ -71,7 +45,34 @@ MonoBehaviour:
     LiteralValue: scorch
     DefaultValue: 
   defaultRadius: 1.5
---- !u!114 &4875569917994295041
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 27773d9782edc754f9ac8e26070c55fd, type: 3}
+  m_Name: Common_TerrainPaint
+  m_EditorClassIdentifier: Assembly-CSharp::SkillGraphAsset
+  graphId: 6549218e024740afbd193af893a35ba7
+  skillName: 
+  _nodes:
+  - {fileID: 993453411934578789}
+  - {fileID: -4085773185460811272}
+  - {fileID: -7954774241276042890}
+  _edges:
+  - SourceNodeGuid: a106275870b78364e96e38f482cf6796
+    SourcePort: output
+    TargetNodeGuid: 666065965f752554497680e60427dd00
+    TargetPort: input
+  - SourceNodeGuid: 666065965f752554497680e60427dd00
+    SourcePort: output
+    TargetNodeGuid: 5d86d010aa9c15f49ba7aebd186a590a
+    TargetPort: input
+--- !u!114 &993453411934578789
 MonoBehaviour:
   m_ObjectHideFlags: 1
   m_CorrespondingSourceObject: {fileID: 0}
@@ -80,11 +81,11 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 2195c972e71a3fd4a8277bff583f3084, type: 3}
-  m_Name: EndNode
-  m_EditorClassIdentifier: Assembly-CSharp::EndNode
-  _nodeGuid: 86e496f2fa200234ebf69e89f621a673
-  _position: {x: 560, y: 120}
+  m_Script: {fileID: 11500000, guid: 551f49b56a2d6324392c66b975cb256e, type: 3}
+  m_Name: StartNode
+  m_EditorClassIdentifier: Assembly-CSharp::StartNode
+  _nodeGuid: a106275870b78364e96e38f482cf6796
+  _position: {x: 80, y: 120}
   _inputPortNames:
   - input
   _outputPortNames:

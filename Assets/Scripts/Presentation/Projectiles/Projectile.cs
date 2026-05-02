@@ -57,6 +57,15 @@ public class Projectile : MonoBehaviour
     private Vector3 _velocity;
     private Action<Projectile> _onFinished;
 
+    /// <summary>施法者 Transform（命中时透传给 DamagePipeline 作为 instigator）</summary>
+    private Transform _instigator;
+
+    /// <summary>技能上下文引用（命中时读取元素标签等）</summary>
+    private SkillContext _skillContext;
+
+    /// <summary>元素/状态标签（如 "element.fire"，命中时透传给 DamagePipeline 触发元素反应）</summary>
+    private string[] _skillTags;
+
     /// <summary>是否已命中</summary>
     public bool HasHit { get; private set; }
 
@@ -108,6 +117,20 @@ public class Projectile : MonoBehaviour
         }
 
         gameObject.SetActive(true);
+    }
+
+    /// <summary>
+    ///     注入技能上下文，使投射物命中时走 GAS 全链路（DamagePipeline + 元素反应）。
+    ///     必须在 Launch 之后、Update 之前调用。
+    /// </summary>
+    /// <param name="instigator">施法者 Transform</param>
+    /// <param name="skillContext">技能上下文（可为 null，降级为直接伤害）</param>
+    /// <param name="skillTags">元素/状态标签（如 "element.fire"），透传给 DamagePipeline</param>
+    public void SetSkillContext(Transform instigator, SkillContext skillContext, string[] skillTags)
+    {
+        _instigator = instigator;
+        _skillContext = skillContext;
+        _skillTags = skillTags;
     }
 
     /// <summary>
@@ -214,18 +237,30 @@ public class Projectile : MonoBehaviour
             });
         }
 
-        // 伤害判定
+        // 伤害判定 —— 通过 DamagePipeline 走 GAS 全链路（Modifier + 元素反应 + 标签规则）
         if (damageAmount > 0f && hitTransform != null)
         {
-            var damageable = hitTransform.GetComponent<IDamageable>();
-            if (damageable == null)
-                damageable = hitTransform.GetComponentInParent<IDamageable>();
+            var instigator = _instigator != null ? _instigator : transform;
 
-            if (damageable != null)
+            if (_skillContext != null && _skillTags != null && _skillTags.Length > 0)
             {
-                var isCrit = UnityEngine.Random.value < critChance;
-                var finalDmg = damageAmount * damageMultiplier * (isCrit ? 2f : 1f);
-                damageable.TakeDamage(finalDmg, transform);
+                // 全链路：DamagePipeline → GEHost 事件拦截 → Modifier → 元素反应 → 标签规则 → 最终伤害
+                DamagePipeline.CalculateAndApply(damageAmount * damageMultiplier,
+                    hitTransform, instigator, _skillTags);
+            }
+            else
+            {
+                // 降级路径：无技能上下文时直接伤害（保留暴击判定兼容）
+                var damageable = hitTransform.GetComponent<IDamageable>();
+                if (damageable == null)
+                    damageable = hitTransform.GetComponentInParent<IDamageable>();
+
+                if (damageable != null)
+                {
+                    var isCrit = UnityEngine.Random.value < critChance;
+                    var finalDmg = damageAmount * damageMultiplier * (isCrit ? 2f : 1f);
+                    damageable.TakeDamage(finalDmg, instigator);
+                }
             }
         }
 

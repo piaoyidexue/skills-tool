@@ -2,7 +2,6 @@ using UnityEngine;
 
 /// <summary>
 ///     靶子实体 —— 受击目标，使用 GEHost 接管状态和伤害倍率计算。
-///     GAS架构：CombatStatusHost 已废弃，所有状态由 GEHost 管理。
 /// </summary>
 [RequireComponent(typeof(GEHost))]
 public class TargetDummy : MonoBehaviour, IDamageable

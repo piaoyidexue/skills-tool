@@ -61,6 +61,23 @@ namespace SkillAI
             // 写入黑板通知技能系统
             blackboard.SetVariableValue(AIBBKey.CurrentSkillId, skillId);
             blackboard.SetVariableValue(AIBBKey.LastUsedSkillTime, Time.time);
+
+            // 桥接：通过 SkillOwner 触发技能系统施法管线
+            var owner = agent.GetComponent<SkillOwner>();
+            if (owner != null && int.TryParse(skillId, out var id))
+            {
+                var success = owner.CastSkill(id, target);
+                if (!success)
+                {
+                    Debug.Log($"[CastSkill] SkillOwner.TryCast({id}) failed, possibly on cooldown or busy.");
+                    return Status.Failure;
+                }
+            }
+            else
+            {
+                Debug.LogWarning($"[CastSkill] No SkillOwner on {agent.name} or invalid skillId='{skillId}'");
+            }
+
             _casted = true;
 
             return Status.Success;

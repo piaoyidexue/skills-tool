@@ -12,7 +12,7 @@ public class FloatBinding
 
     public SourceType Source = SourceType.SkillConfig;
     public SkillFloatField SkillField = SkillFloatField.Damage;
-    public string BlackboardKey = BBKey.DamageOverride;
+    public string BlackboardKey = BBKey.ChannelDuration;
     public float LiteralValue;
     public float DefaultValue;
 

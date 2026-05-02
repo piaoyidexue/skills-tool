@@ -1,24 +1,27 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
+using System.Text;
 using UnityEditor;
 using UnityEngine;
 
 // ============================================================
-//  ElementLineGraphGenerator —— 统一图生成器
-//  整合两种生成模式：
-//  1. Preset 驱动：从 GraphPreset 模板一键生成（策划交互式）
-//  2. Recipe 驱动：从 SkillRecipe.csv 批量生成（生产线自动化）
-//  同时管理 Common 公共子图资产。
+//  ElementLineGraphGenerator —— 统一生成器
+//  整合三部分功能：
+//  1. Preset 驱动：从 GraphPreset 模板一键生成技能图（策划交互式）
+//  2. Recipe 驱动：从 SkillRecipe.csv 批量生成技能图 + 运行时配置（生产线自动化）
+//  3. 公共 CSV 解析：ReadRecipes / RecipeRow 供编辑器工具复用
 // ============================================================
 
 /// <summary>
-///     元素阵线统一图生成器 —— 支持预设模板生成 + CSV 批量生成。
+///     元素阵线统一生成器 —— 支持预设模板生成 + CSV 批量生成 + 运行时配置生成。
 /// </summary>
 public static class ElementLineGraphGenerator
 {
     // ---- 路径常量 ----
-    private const string RecipeCsvPath = "Assets/Resources/Config/SkillRecipe.csv";
+    public const string RecipeCsvPath = "Assets/Resources/Config/SkillRecipe.csv";
+    private const string RuntimeSkillCsvPath = "Assets/Resources/Config/Skill.csv";
     public const string ResourceGraphRootFolder = "Assets/Resources/SkillGraphs/ElementLine";
     private const string CommonFolder = ResourceGraphRootFolder + "/Common";
     private const string RecipeFolder = ResourceGraphRootFolder + "/Recipes";
@@ -41,6 +44,7 @@ public static class ElementLineGraphGenerator
         var graph = ScriptableObject.CreateInstance<SkillGraphAsset>();
         if (!string.IsNullOrEmpty(assetPath))
         {
+            graph.name = Path.GetFileNameWithoutExtension(assetPath);
             AssetDatabase.CreateAsset(graph, assetPath);
         }
 
@@ -299,7 +303,10 @@ public static class ElementLineGraphGenerator
         AssetDatabase.SaveAssets();
         AssetDatabase.Refresh();
 
-        if (logResult) Debug.Log($"[ElementLineGraphGenerator] 已根据配置生成 {recipes.Count} 个技能图。");
+        // 同步生成运行时 Skill.csv
+        GenerateRuntimeSkillConfigSilently();
+
+        if (logResult) Debug.Log($"[ElementLineGraphGenerator] 已根据配置生成 {recipes.Count} 个技能图 + 运行时配置。");
     }
 
     // ---- 公共子图 ----
@@ -318,7 +325,7 @@ public static class ElementLineGraphGenerator
     /// <summary>公共子图：命中伤害</summary>
     private static SkillGraphAsset BuildCommonImpactDamage()
     {
-        var graph = LoadOrCreateGraph(CommonFolder + "/Common_ImpactDamage.asset", "Common_ImpactDamage");
+        var graph = LoadOrCreateGraph(CommonFolder + "/Common_ImpactDamage.asset");
         ClearGraph(graph);
 
         var start = graph.AddNode<StartNode>();
@@ -344,7 +351,7 @@ public static class ElementLineGraphGenerator
     /// <summary>公共子图：状态挂载</summary>
     private static SkillGraphAsset BuildCommonStatusPrime()
     {
-        var graph = LoadOrCreateGraph(CommonFolder + "/Common_StatusPrime.asset", "Common_StatusPrime");
+        var graph = LoadOrCreateGraph(CommonFolder + "/Common_StatusPrime.asset");
         ClearGraph(graph);
 
         var start = graph.AddNode<StartNode>();
@@ -371,7 +378,7 @@ public static class ElementLineGraphGenerator
     /// <summary>公共子图：行脉冲</summary>
     private static SkillGraphAsset BuildCommonRowPulse()
     {
-        var graph = LoadOrCreateGraph(CommonFolder + "/Common_RowPulse.asset", "Common_RowPulse");
+        var graph = LoadOrCreateGraph(CommonFolder + "/Common_RowPulse.asset");
         ClearGraph(graph);
 
         var start = graph.AddNode<StartNode>();
@@ -398,7 +405,7 @@ public static class ElementLineGraphGenerator
     /// <summary>公共子图：地形涂绘</summary>
     private static SkillGraphAsset BuildCommonTerrainPaint()
     {
-        var graph = LoadOrCreateGraph(CommonFolder + "/Common_TerrainPaint.asset", "Common_TerrainPaint");
+        var graph = LoadOrCreateGraph(CommonFolder + "/Common_TerrainPaint.asset");
         ClearGraph(graph);
 
         var start = graph.AddNode<StartNode>();
@@ -421,7 +428,7 @@ public static class ElementLineGraphGenerator
     /// <summary>公共子图：处决校验</summary>
     private static SkillGraphAsset BuildCommonExecuteCheck()
     {
-        var graph = LoadOrCreateGraph(CommonFolder + "/Common_ExecuteCheck.asset", "Common_ExecuteCheck");
+        var graph = LoadOrCreateGraph(CommonFolder + "/Common_ExecuteCheck.asset");
         ClearGraph(graph);
 
         var start = graph.AddNode<StartNode>();
@@ -452,7 +459,7 @@ public static class ElementLineGraphGenerator
     private static void BuildRecipeGraph(RecipeRow row, IReadOnlyDictionary<string, SkillGraphAsset> commonGraphs)
     {
         var safeName = SanitizeFileName(row.RecipeId + "_" + row.Recipe);
-        var graph = LoadOrCreateGraph($"{RecipeFolder}/{safeName}.asset", $"Skill_{row.Name}");
+        var graph = LoadOrCreateGraph($"{RecipeFolder}/{safeName}.asset");
         ClearGraph(graph);
 
         var start = graph.AddNode<StartNode>();
@@ -617,17 +624,18 @@ public static class ElementLineGraphGenerator
     //  图资产持久化
     // ============================================================
 
-    private static SkillGraphAsset LoadOrCreateGraph(string path, string graphName)
+    private static SkillGraphAsset LoadOrCreateGraph(string path)
     {
+        var assetName = Path.GetFileNameWithoutExtension(path);
         var graph = AssetDatabase.LoadAssetAtPath<SkillGraphAsset>(path);
         if (graph != null)
         {
-            graph.name = graphName;
+            graph.name = assetName;
             return graph;
         }
 
         graph = ScriptableObject.CreateInstance<SkillGraphAsset>();
-        graph.name = graphName;
+        graph.name = assetName;
         AssetDatabase.CreateAsset(graph, path);
         return graph;
     }
@@ -639,10 +647,10 @@ public static class ElementLineGraphGenerator
     }
 
     // ============================================================
-    //  CSV 读取
+    //  公共 CSV 解析（供编辑器工具复用）
     // ============================================================
 
-    private static List<RecipeRow> ReadRecipes()
+    public static List<RecipeRow> ReadRecipes()
     {
         var text = AssetDatabase.LoadAssetAtPath<TextAsset>(RecipeCsvPath);
         var result = new List<RecipeRow>();
@@ -684,12 +692,12 @@ public static class ElementLineGraphGenerator
         return result;
     }
 
-    private static string GetValue(IReadOnlyDictionary<string, string> row, string key)
+    public static string GetValue(IReadOnlyDictionary<string, string> row, string key)
     {
         return row.TryGetValue(key, out var value) ? value : string.Empty;
     }
 
-    private static List<string> SplitCsvLine(string line)
+    public static List<string> SplitCsvLine(string line)
     {
         var result = new List<string>();
         var current = string.Empty;
@@ -736,10 +744,10 @@ public static class ElementLineGraphGenerator
     }
 
     // ============================================================
-    //  RecipeRow 数据类
+    //  RecipeRow 公共数据类
     // ============================================================
 
-    private sealed class RecipeRow
+    public sealed class RecipeRow
     {
         public string Core;
         public string AttackPattern;
@@ -758,6 +766,303 @@ public static class ElementLineGraphGenerator
         public string SynergyLogic;
         /// <summary>GAS架构：关联的 GameplayEffectData ID</summary>
         public int EffectId;
+    }
+
+    // ============================================================
+    //  模式3：运行时 Skill.csv 生成（从 SkillRecipe.csv 派生数值）
+    // ============================================================
+
+    [MenuItem("Tools/Skills/Templates/根据配方生成运行时技能配置")]
+    public static void GenerateRuntimeSkillConfig()
+    {
+        GenerateRuntimeSkillConfigInternal(true);
+    }
+
+    public static void GenerateRuntimeSkillConfigSilently()
+    {
+        GenerateRuntimeSkillConfigInternal(false);
+    }
+
+    private static void GenerateRuntimeSkillConfigInternal(bool logResult)
+    {
+        var recipes = ReadRecipes();
+        var csv = BuildRuntimeSkillCsv(recipes);
+
+        File.WriteAllText(RuntimeSkillCsvPath, csv, new UTF8Encoding(false));
+        AssetDatabase.ImportAsset(RuntimeSkillCsvPath, ImportAssetOptions.ForceUpdate);
+
+        if (logResult)
+            Debug.Log($"[ElementLineGraphGenerator] 已生成 {recipes.Count} 条运行时技能配置。");
+    }
+
+    private static string BuildRuntimeSkillCsv(List<RecipeRow> recipes)
+    {
+        var sb = new StringBuilder();
+        sb.AppendLine("skill_id,name,graph_path,impact_vfx,beam_vfx,damage,damage_rate,cooldown,cast_range,delay_seconds,crit_chance,radius,chain_count,vfx_duration,cast_time,channel_duration,post_cast_time,interruptible,projectile_speed,projectile_prefab,projectile_trajectory,projectile_hit_radius,projectile_lifetime,projectile_gravity,projectile_tags,resource_cost,projectile_config_key");
+
+        foreach (var recipe in recipes)
+        {
+            var graphPath = $"SkillGraphs/ElementLine/Recipes/{recipe.RecipeId}_{recipe.Recipe}".Replace("|", "_");
+
+            sb.Append(recipe.RecipeId).Append(',')
+                .Append(recipe.Name).Append(',')
+                .Append(graphPath).Append(',')
+                .Append(ResolveImpactVfx(recipe)).Append(',')
+                .Append(ResolveBeamVfx(recipe)).Append(',')
+                .Append(ResolveDamage(recipe).ToString("0.###", CultureInfo.InvariantCulture)).Append(',')
+                .Append(ResolveDamageRate(recipe).ToString("0.###", CultureInfo.InvariantCulture)).Append(',')
+                .Append(ResolveCooldown(recipe).ToString("0.###", CultureInfo.InvariantCulture)).Append(',')
+                .Append(ResolveCastRange(recipe).ToString("0.###", CultureInfo.InvariantCulture)).Append(',')
+                .Append(ResolveDelay(recipe).ToString("0.###", CultureInfo.InvariantCulture)).Append(',')
+                .Append(ResolveCritChance(recipe).ToString("0.###", CultureInfo.InvariantCulture)).Append(',')
+                .Append(ResolveRadius(recipe).ToString("0.###", CultureInfo.InvariantCulture)).Append(',')
+                .Append(ResolveChainCount(recipe).ToString("0.###", CultureInfo.InvariantCulture)).Append(',')
+                .Append(ResolveVfxDuration(recipe).ToString("0.###", CultureInfo.InvariantCulture)).Append(',')
+                .Append(ResolveCastTime(recipe).ToString("0.###", CultureInfo.InvariantCulture)).Append(',')
+                .Append(ResolveChannelDuration(recipe).ToString("0.###", CultureInfo.InvariantCulture)).Append(',')
+                .Append(ResolvePostCastTime(recipe).ToString("0.###", CultureInfo.InvariantCulture)).Append(',')
+                .Append(ResolveInterruptible(recipe)).Append(',')
+                .Append(ResolveProjectileSpeed(recipe).ToString("0.###", CultureInfo.InvariantCulture)).Append(',')
+                .Append(ResolveProjectilePrefab(recipe)).Append(',')
+                .Append(ResolveProjectileTrajectory(recipe)).Append(',')
+                .Append(ResolveProjectileHitRadius(recipe).ToString("0.###", CultureInfo.InvariantCulture)).Append(',')
+                .Append(ResolveProjectileLifetime(recipe).ToString("0.###", CultureInfo.InvariantCulture)).Append(',')
+                .Append(ResolveProjectileGravity(recipe).ToString("0.###", CultureInfo.InvariantCulture)).Append(',')
+                .Append(ResolveProjectileTags(recipe)).Append(',')
+                .Append(ResolveResourceCost(recipe).ToString("0.###", CultureInfo.InvariantCulture)).Append(',')
+                .Append(ResolveProjectileConfigKey(recipe))
+                .AppendLine();
+        }
+
+        return sb.ToString();
+    }
+
+    // ---- VFX 解析 ----
+
+    private static string ResolveImpactVfx(RecipeRow recipe)
+    {
+        if (recipe.NodePresetId == "Preset_ElementCollapse" ||
+            recipe.NodePresetId == "Preset_ChainUltimate" ||
+            recipe.CombatRole.Contains("终极") ||
+            recipe.RuleMutation.Contains("爆破") ||
+            recipe.RuleMutation.Contains("清场"))
+            return "ExplosionWave";
+
+        if (recipe.Core == "Ice" || recipe.StatusTags.Contains("freeze") || recipe.TerrainTags.Contains("ice"))
+            return "FrostBurst";
+
+        return "HitSpark";
+    }
+
+    private static string ResolveBeamVfx(RecipeRow recipe)
+    {
+        if (!UsesBeamVfx(recipe)) return string.Empty;
+
+        if (recipe.AttackPattern.Contains("墙") ||
+            recipe.NodePresetId == "Preset_ElementCollapse" ||
+            recipe.Recipe.Contains("AC-FI-GL-FU") ||
+            recipe.Recipe.Contains("FU-FI-GL-AC"))
+            return "BulwarkBeam";
+
+        if (recipe.AttackPattern.Contains("折线") ||
+            recipe.AttackPattern.Contains("棱镜") ||
+            recipe.NodePresetId == "Preset_RowResonance" ||
+            recipe.Core == "Ice" && recipe.AttackPattern.Contains("射线"))
+            return "PrismBeam";
+
+        if (recipe.AttackPattern.Contains("雷链") ||
+            recipe.AttackPattern.Contains("跳链") ||
+            recipe.NodePresetId == "Preset_ConductiveChain" ||
+            recipe.NodePresetId == "Preset_ChainUltimate")
+            return "ArcBeam";
+
+        return "LightningBeam";
+    }
+
+    // ---- 数值解析 ----
+
+    private static float ResolveDamage(RecipeRow recipe)
+    {
+        var value = recipe.SlotCount switch { 2 => 72f, 3 => 118f, 4 => 175f, _ => 70f };
+        if (recipe.CombatRole.Contains("终极")) value += 35f;
+        if (recipe.CombatRole.Contains("爆发")) value += 18f;
+        if (recipe.CombatRole.Contains("处决")) value += 28f;
+        if (recipe.CombatRole.Contains("控制")) value -= 12f;
+        if (recipe.AttackPattern.Contains("雷链")) value -= 8f;
+        if (recipe.AttackPattern.Contains("射线")) value -= 6f;
+        if (recipe.AttackPattern.Contains("地刺")) value += 10f;
+        return Mathf.Max(35f, value);
+    }
+
+    private static float ResolveDamageRate(RecipeRow recipe)
+    {
+        var value = recipe.SlotCount switch { 2 => 1f, 3 => 1.25f, 4 => 1.65f, _ => 1f };
+        if (recipe.CombatRole.Contains("控制")) value -= 0.1f;
+        if (recipe.CombatRole.Contains("收割") || recipe.CombatRole.Contains("斩杀")) value += 0.2f;
+        return Mathf.Max(0.7f, value);
+    }
+
+    private static float ResolveCooldown(RecipeRow recipe)
+    {
+        var value = recipe.SlotCount switch { 2 => 1.8f, 3 => 3.4f, 4 => 6.5f, _ => 2f };
+        if (recipe.CombatRole.Contains("终极")) value += 1.5f;
+        if (recipe.CombatRole.Contains("控制")) value += 0.4f;
+        if (recipe.AttackPattern.Contains("地雷")) value += 0.5f;
+        return value;
+    }
+
+    private static float ResolveCastRange(RecipeRow recipe)
+    {
+        var value = 8f;
+        if (recipe.AttackPattern.Contains("射线")) value = 7.5f;
+        if (recipe.AttackPattern.Contains("雷链")) value = 8.5f;
+        if (recipe.AttackPattern.Contains("地刺") || recipe.AttackPattern.Contains("地雷")) value = 5.5f;
+        if (recipe.CombatRole.Contains("狙杀")) value += 1f;
+        return value;
+    }
+
+    private static float ResolveDelay(RecipeRow recipe)
+    {
+        var value = recipe.SlotCount switch { 2 => 0.08f, 3 => 0.12f, 4 => 0.18f, _ => 0.1f };
+        if (recipe.AttackPattern.Contains("重型")) value += 0.06f;
+        if (recipe.AttackPattern.Contains("高速")) value -= 0.03f;
+        return Mathf.Max(0.02f, value);
+    }
+
+    private static float ResolveCritChance(RecipeRow recipe)
+    {
+        var value = recipe.Core == "Metal" ? 0.32f : 0.18f;
+        if (recipe.NodePresetId == "Preset_CritBranch" || recipe.NodePresetId == "Preset_ExecuteUltimate") value += 0.18f;
+        if (recipe.CombatRole.Contains("处决") || recipe.CombatRole.Contains("暴击")) value += 0.1f;
+        if (recipe.CombatRole.Contains("控制")) value -= 0.05f;
+        return Mathf.Clamp01(value);
+    }
+
+    private static float ResolveRadius(RecipeRow recipe)
+    {
+        if (recipe.NodePresetId == "Preset_ElementCollapse") return 5.5f;
+        if (recipe.NodePresetId == "Preset_ChainUltimate") return 4.2f;
+        if (recipe.AttackPattern.Contains("雷链")) return 3.8f;
+        if (recipe.AttackPattern.Contains("爆破")) return 4.6f;
+        if (recipe.AttackPattern.Contains("墙")) return 5f;
+        return 2.2f;
+    }
+
+    private static float ResolveChainCount(RecipeRow recipe)
+    {
+        if (recipe.AttackPattern.Contains("雷链")) return recipe.SlotCount + 1;
+        if (recipe.NodePresetId == "Preset_ConductiveChain" || recipe.NodePresetId == "Preset_ChainUltimate") return recipe.SlotCount;
+        return 0f;
+    }
+
+    private static float ResolveVfxDuration(RecipeRow recipe)
+    {
+        return recipe.SlotCount switch { 2 => 0.35f, 3 => 0.55f, 4 => 0.85f, _ => 0.4f };
+    }
+
+    // ---- 释放管线数值 ----
+
+    private static float ResolveCastTime(RecipeRow recipe)
+    {
+        var value = recipe.SlotCount switch { 2 => 0.12f, 3 => 0.18f, 4 => 0.28f, _ => 0.15f };
+        if (recipe.AttackPattern.Contains("重型")) value += 0.06f;
+        if (recipe.AttackPattern.Contains("高速")) value -= 0.04f;
+        if (recipe.CombatRole.Contains("终极")) value += 0.06f;
+        return Mathf.Max(0.04f, value);
+    }
+
+    private static float ResolveChannelDuration(RecipeRow recipe)
+    {
+        if (recipe.AttackPattern.Contains("射线") && recipe.NodePresetId == "Preset_BeamLane") return 1.2f;
+        if (recipe.AttackPattern.Contains("雷链") && recipe.SlotCount >= 3) return 1.5f;
+        if (recipe.CombatRole.Contains("引导") || recipe.AttackPattern.Contains("引导")) return 2f;
+        return 0f;
+    }
+
+    private static float ResolvePostCastTime(RecipeRow recipe)
+    {
+        var value = recipe.SlotCount switch { 2 => 0.08f, 3 => 0.12f, 4 => 0.2f, _ => 0.1f };
+        if (recipe.AttackPattern.Contains("重型")) value += 0.06f;
+        if (recipe.AttackPattern.Contains("高速")) value -= 0.03f;
+        return Mathf.Max(0f, value);
+    }
+
+    private static string ResolveInterruptible(RecipeRow recipe)
+    {
+        if (recipe.CombatRole.Contains("终极") && recipe.SlotCount >= 4) return "false";
+        if (recipe.RuleMutation.Contains("不可打断")) return "false";
+        return "true";
+    }
+
+    private static float ResolveProjectileSpeed(RecipeRow recipe)
+    {
+        if (recipe.AttackPattern.Contains("地刺") || recipe.AttackPattern.Contains("地雷")) return 10f;
+        if (recipe.Core == "Metal" && recipe.AttackPattern.Contains("投掷")) return 14f;
+        if (recipe.AttackPattern.Contains("射击") || recipe.AttackPattern.Contains("轨迹")) return 12f;
+        return 0f;
+    }
+
+    private static string ResolveProjectilePrefab(RecipeRow recipe)
+    {
+        if (ResolveProjectileSpeed(recipe) <= 0f) return string.Empty;
+        if (recipe.Core == "Metal") return "SpikeProjectile";
+        if (recipe.Core == "Fire") return "FireballProjectile";
+        if (recipe.Core == "Ice") return "IceShardProjectile";
+        if (recipe.Core == "Thunder") return "LightningOrbProjectile";
+        return string.Empty;
+    }
+
+    private static float ResolveResourceCost(RecipeRow recipe)
+    {
+        var value = recipe.SlotCount switch { 2 => 15f, 3 => 28f, 4 => 45f, _ => 20f };
+        if (recipe.CombatRole.Contains("终极")) value += 10f;
+        if (recipe.CombatRole.Contains("控制")) value -= 3f;
+        return Mathf.Max(5f, value);
+    }
+
+    private static int ResolveProjectileTrajectory(RecipeRow recipe)
+    {
+        if (ResolveProjectileSpeed(recipe) <= 0f) return 0;
+        if (recipe.AttackPattern.Contains("追踪")) return 1;
+        if (recipe.AttackPattern.Contains("抛物") || recipe.AttackPattern.Contains("抛射")) return 2;
+        return 0; // 默认直线
+    }
+
+    private static float ResolveProjectileHitRadius(RecipeRow recipe)
+    {
+        return 0.5f; // 默认命中半径
+    }
+
+    private static float ResolveProjectileLifetime(RecipeRow recipe)
+    {
+        if (recipe.AttackPattern.Contains("远程")) return 6f;
+        return 5f; // 默认存活时间
+    }
+
+    private static float ResolveProjectileGravity(RecipeRow recipe)
+    {
+        if (ResolveProjectileTrajectory(recipe) == 2) return 9.8f; // 抛物线
+        return 0f;
+    }
+
+    private static string ResolveProjectileTags(RecipeRow recipe)
+    {
+        if (ResolveProjectileSpeed(recipe) <= 0f) return string.Empty;
+        var tags = new System.Collections.Generic.List<string>();
+        if (recipe.Core == "Fire") tags.Add("element.fire");
+        if (recipe.Core == "Ice") tags.Add("element.ice");
+        if (recipe.Core == "Thunder") tags.Add("element.lightning");
+        if (recipe.Core == "Metal") tags.Add("element.metal");
+        return tags.Count > 0 ? string.Join("|", tags) : string.Empty;
+    }
+    private static string ResolveProjectileConfigKey(RecipeRow recipe)
+    {
+        if (recipe.AttackPattern.Contains("雷链")) return "lightning_orb";
+        if (recipe.Core == "Fire") return "fireball_default";
+        if (recipe.Core == "Ice") return "frost_burst";
+        if (recipe.Core == "Thunder") return "lightning_orb";
+        if (recipe.Core == "Metal") return "ice_shard";
+        return string.Empty;
     }
 }
 

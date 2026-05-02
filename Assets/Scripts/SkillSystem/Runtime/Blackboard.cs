@@ -7,38 +7,13 @@ using UnityEngine;
 ///     架构原则：
 ///     - 图定义逻辑形状，表定义数值大小，黑板提供运行时上下文
 ///     - 节点间禁止直接传参，通过黑板解耦输入输出
-///     - EQSNode 写入 BBKey.TargetList，DamageNode 读取 BBKey.TargetList
 ///     - 黑板不存储数值流转变量（由 GAS 接管），不存储业务判定（由 EffectSystem 接管）
 /// </summary>
 public class Blackboard
 {
     private readonly Dictionary<string, object> _data = new();
 
-
-
-
     public event Action<string, object> OnValueChanged;
-
-    // ============================================================
-    //  GAS 红线：禁止写入的废弃键集合。
-    //  这些键对应的业务逻辑已迁移到 EffectSystem / GEHost / ReactionEngine。
-    //  写入时将输出警告日志并静默忽略。
-    // ============================================================
-    private static readonly HashSet<string> DeprecatedKeys = new(StringComparer.OrdinalIgnoreCase)
-    {
-        BBKey.DamageOverride,
-        BBKey.IsCrit,
-        BBKey.LastDamage,
-        BBKey.StatusTags,
-        BBKey.ReactionSummary,
-        BBKey.HasResonance,
-        BBKey.DelayOverride,
-        BBKey.DamagePercent,
-        BBKey.CritChance
-    };
-
-    /// <summary>是否启用红线校验（编辑器下默认开启）</summary>
-    public bool EnforceBoundaryChecks { get; set; } = true;
 
     // ---- 数据流追踪（维度4 调试支持） ----
 
@@ -50,12 +25,6 @@ public class Blackboard
 
     public void SetValue<T>(string key, T value)
     {
-        if (EnforceBoundaryChecks && DeprecatedKeys.Contains(key))
-        {
-            Debug.LogWarning($"[Blackboard] GAS红线：禁止写入废弃键 '{key}'，该逻辑已迁移到 EffectSystem。");
-            return;
-        }
-
         _data[key] = value;
 
         // 写入追踪
@@ -124,10 +93,6 @@ public class Blackboard
         return false;
     }
 
-   
-
-
-
     public IReadOnlyDictionary<string, object> GetAllData()
     {
         return _data;
@@ -162,8 +127,6 @@ public class Blackboard
         _data.Clear();
         _writeTrace.Clear();
     }
-
-
 
     /// <summary>
     ///     获取写入追踪信息（调试用）。

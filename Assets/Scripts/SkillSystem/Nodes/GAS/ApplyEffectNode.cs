@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 // ============================================================
@@ -121,7 +122,7 @@ public class ApplyEffectNode : SkillNodeBase
 
     public override bool CanCompile => true;
 
-    public override System.Collections.Generic.List<SkillEffectData> Compile(SkillContext ctx = null)
+    public override List<SkillEffectData> Compile(SkillContext ctx = null)
     {
         var effectData = ResolveEffectData();
 
@@ -138,10 +139,10 @@ public class ApplyEffectNode : SkillNodeBase
 
         if (effectData?.GrantedTags != null)
         {
-            effect.TagsToApply = new System.Collections.Generic.List<string>(effectData.GrantedTags);
+            effect.TagsToApply = new List<string>(effectData.GrantedTags);
         }
 
-        return new System.Collections.Generic.List<SkillEffectData> { effect };
+        return new List<SkillEffectData> { effect };
     }
 
     // ============================================================

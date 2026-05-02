@@ -282,6 +282,36 @@ public class SkillCaster : MonoBehaviour, IInterruptible
         return true;
     }
 
+    /// <summary>
+    ///     尝试从输入缓冲区获取并执行技能指令（用于输入缓冲系统）
+    /// </summary>
+    /// <param name="inputCommand">输入指令</param>
+    /// <returns>是否成功执行</returns>
+    public bool TryCastFromInput(InputCommand inputCommand)
+    {
+        if (inputCommand.Intent != InputIntent.Skill1 && inputCommand.Intent != InputIntent.Skill2)
+        {
+            return false;
+        }
+
+        int skillId = inputCommand.SkillId;
+        if (skillId <= 0)
+        {
+            // 根据意图类型映射到默认技能ID
+            switch (inputCommand.Intent)
+            {
+                case InputIntent.Skill1:
+                    skillId = 1;
+                    break;
+                case InputIntent.Skill2:
+                    skillId = 2;
+                    break;
+            }
+        }
+
+        return TryCast(skillId, inputCommand.Target);
+    }
+
     private void StartTickPipeline(SkillConfig config, SkillGraphAsset graph)
     {
         _pipelineConfig = config;
@@ -400,11 +430,21 @@ public class SkillCaster : MonoBehaviour, IInterruptible
 
     private SkillGraphAsset ResolveGraph(SkillConfig config)
     {
+        // 优先从 Resources 加载持久化资产
         if (!string.IsNullOrWhiteSpace(config.GraphPath))
         {
             var resourceGraph = Resources.Load<SkillGraphAsset>(config.GraphPath);
             if (resourceGraph != null) return resourceGraph;
         }
+
+        // 兜底：使用运行时技能图工厂动态生成
+        var runtimeGraph = RuntimeSkillGraphFactory.GetOrCreate(config.SkillID);
+        if (runtimeGraph != null) return runtimeGraph;
+
+        // 兜底：使用 SkillOwner 的 fallbackGraph
+        var owner = GetComponent<SkillOwner>();
+        if (owner != null && owner.fallbackGraph != null)
+            return owner.fallbackGraph;
 
         return null;
     }

@@ -72,6 +72,17 @@ public struct SkillEntry
     public float PostCastTime;
     public float ProjectileSpeed;
     public string ProjectilePrefab;
+    /// <summary>投射物弹道类型（0=直线, 1=追踪, 2=抛物线）</summary>
+    public int ProjectileTrajectory;
+    /// <summary>投射物命中判定半径</summary>
+    public float ProjectileHitRadius;
+    /// <summary>投射物最大存活时间（秒）</summary>
+    public float ProjectileLifetime;
+    /// <summary>投射物抛物线重力系数</summary>
+    public float ProjectileGravity;
+    /// <summary>投射物携带的元素/状态标签（分号分隔）</summary>
+    public string ProjectileTags;
+    public string ProjectileConfigKey;
     public float ResourceCost;
     public bool IsInterruptible;
 }

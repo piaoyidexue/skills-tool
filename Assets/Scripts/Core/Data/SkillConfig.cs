@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+
 /// <summary>
 ///     技能浮点数字段枚举
 /// </summary>
@@ -129,11 +131,29 @@ public class SkillConfig
     /// <summary>是否可打断(前腰/吟唱期间受控即中断)</summary>
     public bool IsInterruptible;
 
+    /// <summary>投射物配置 Key（引用 ProjectileConfig.csv 中的 projectile_id）</summary>
+    public string ProjectileConfigKey;
+
     /// <summary>投射物速度, 0=非投射物</summary>
     public float ProjectileSpeed;
 
     /// <summary>投射物预制体 Key</summary>
     public string ProjectilePrefab;
+
+    /// <summary>投射物弹道类型（0=直线, 1=追踪, 2=抛物线）</summary>
+    public int ProjectileTrajectory;
+
+    /// <summary>投射物命中判定半径</summary>
+    public float ProjectileHitRadius = 0.5f;
+
+    /// <summary>投射物最大存活时间（秒）</summary>
+    public float ProjectileLifetime = 5f;
+
+    /// <summary>投射物抛物线重力系数（Trajectory=2 时生效）</summary>
+    public float ProjectileGravity = 9.8f;
+
+    /// <summary>投射物携带的元素/状态标签（如 "element.fire|element.ice"），命中时透传给 DamagePipeline 触发元素反应</summary>
+    public List<string> ProjectileTags = new();
 
     /// <summary>资源消耗(法力/能量等)</summary>
     public float ResourceCost;

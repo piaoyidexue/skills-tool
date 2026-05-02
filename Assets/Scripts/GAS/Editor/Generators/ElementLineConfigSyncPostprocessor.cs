@@ -23,6 +23,6 @@ public class ElementLineConfigSyncPostprocessor : AssetPostprocessor
             return;
         }
 
-        EditorApplication.delayCall += ElementLineSkillConfigGenerator.GenerateRuntimeSkillConfigSilently;
+        EditorApplication.delayCall += ElementLineGraphGenerator.GenerateRuntimeSkillConfigSilently;
     }
 }

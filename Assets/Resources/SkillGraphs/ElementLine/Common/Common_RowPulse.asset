@@ -1,6 +1,6 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
---- !u!114 &-6279051765265866880
+--- !u!114 &-4431224034487551039
 MonoBehaviour:
   m_ObjectHideFlags: 1
   m_CorrespondingSourceObject: {fileID: 0}
@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4fcb8e53a919ff645886c86931eb8f2d, type: 3}
   m_Name: PlayVFXNode
   m_EditorClassIdentifier: Assembly-CSharp::PlayVFXNode
-  _nodeGuid: d8eb95490a609fe45ab1c3ad57fab1da
+  _nodeGuid: c22f6d395ba29904a87bcf63f8c9cc64
   _position: {x: 520, y: 120}
   _inputPortNames:
   - input
@@ -37,66 +37,35 @@ MonoBehaviour:
   scaleMultiplier:
     Source: 2
     SkillField: 0
-    BlackboardKey: DamageOverride
+    BlackboardKey: ChannelDuration
     LiteralValue: 1
     DefaultValue: 0
   widthMultiplier:
     Source: 2
     SkillField: 0
-    BlackboardKey: DamageOverride
+    BlackboardKey: ChannelDuration
     LiteralValue: 1
     DefaultValue: 0
   lengthOverride:
     Source: 2
     SkillField: 0
-    BlackboardKey: DamageOverride
+    BlackboardKey: ChannelDuration
     LiteralValue: 0
     DefaultValue: 0
   durationOverride:
     Source: 0
     SkillField: 8
-    BlackboardKey: DamageOverride
+    BlackboardKey: ChannelDuration
     LiteralValue: 0
     DefaultValue: 0
   intensityMultiplier:
     Source: 2
     SkillField: 0
-    BlackboardKey: DamageOverride
+    BlackboardKey: ChannelDuration
     LiteralValue: 1
     DefaultValue: 0
   customDirection: {x: 0, y: 0, z: 1}
---- !u!114 &11400000
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 27773d9782edc754f9ac8e26070c55fd, type: 3}
-  m_Name: Common_RowPulse
-  m_EditorClassIdentifier: Assembly-CSharp::SkillGraphAsset
-  graphId: 2cafb05013334a289968585a6b86e1e5
-  _nodes:
-  - {fileID: 537489949332139985}
-  - {fileID: 7511898266510920133}
-  - {fileID: -6279051765265866880}
-  - {fileID: 8129605500420598588}
-  _edges:
-  - SourceNodeGuid: a1c1447ede96ccd4db8fe744b214e6a7
-    SourcePort: output
-    TargetNodeGuid: 09fc316b6bc35f842a2b1766010befff
-    TargetPort: input
-  - SourceNodeGuid: 09fc316b6bc35f842a2b1766010befff
-    SourcePort: output
-    TargetNodeGuid: d8eb95490a609fe45ab1c3ad57fab1da
-    TargetPort: input
-  - SourceNodeGuid: d8eb95490a609fe45ab1c3ad57fab1da
-    SourcePort: output
-    TargetNodeGuid: 9a297460d599dcb4885864ca96aa9c18
-    TargetPort: input
---- !u!114 &537489949332139985
+--- !u!114 &-1663098934291764212
 MonoBehaviour:
   m_ObjectHideFlags: 1
   m_CorrespondingSourceObject: {fileID: 0}
@@ -108,14 +77,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 551f49b56a2d6324392c66b975cb256e, type: 3}
   m_Name: StartNode
   m_EditorClassIdentifier: Assembly-CSharp::StartNode
-  _nodeGuid: a1c1447ede96ccd4db8fe744b214e6a7
+  _nodeGuid: 049744dc41a431d40a45e9e4e6131a50
   _position: {x: 80, y: 120}
   _inputPortNames:
   - input
   _outputPortNames:
   - output
   _isBreakpoint: 0
---- !u!114 &7511898266510920133
+--- !u!114 &-120116040000541288
 MonoBehaviour:
   m_ObjectHideFlags: 1
   m_CorrespondingSourceObject: {fileID: 0}
@@ -127,7 +96,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1e5dc56a2e2c4694cb640bef4eb552dc, type: 3}
   m_Name: ResonanceNode
   m_EditorClassIdentifier: Assembly-CSharp::ResonanceNode
-  _nodeGuid: 09fc316b6bc35f842a2b1766010befff
+  _nodeGuid: 3a59c0e618afe2348b2dd7a4878f9391
   _position: {x: 280, y: 120}
   _inputPortNames:
   - input
@@ -141,7 +110,39 @@ MonoBehaviour:
     LiteralValue: row_resonance
     DefaultValue: 
   defaultActive: 1
---- !u!114 &8129605500420598588
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 27773d9782edc754f9ac8e26070c55fd, type: 3}
+  m_Name: Common_RowPulse
+  m_EditorClassIdentifier: Assembly-CSharp::SkillGraphAsset
+  graphId: 2cafb05013334a289968585a6b86e1e5
+  skillName: 
+  _nodes:
+  - {fileID: -1663098934291764212}
+  - {fileID: -120116040000541288}
+  - {fileID: -4431224034487551039}
+  - {fileID: 1889015534364628218}
+  _edges:
+  - SourceNodeGuid: 049744dc41a431d40a45e9e4e6131a50
+    SourcePort: output
+    TargetNodeGuid: 3a59c0e618afe2348b2dd7a4878f9391
+    TargetPort: input
+  - SourceNodeGuid: 3a59c0e618afe2348b2dd7a4878f9391
+    SourcePort: output
+    TargetNodeGuid: c22f6d395ba29904a87bcf63f8c9cc64
+    TargetPort: input
+  - SourceNodeGuid: c22f6d395ba29904a87bcf63f8c9cc64
+    SourcePort: output
+    TargetNodeGuid: 5e111c87765c4084ebbc2fd45b41ce87
+    TargetPort: input
+--- !u!114 &1889015534364628218
 MonoBehaviour:
   m_ObjectHideFlags: 1
   m_CorrespondingSourceObject: {fileID: 0}
@@ -153,7 +154,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2195c972e71a3fd4a8277bff583f3084, type: 3}
   m_Name: EndNode
   m_EditorClassIdentifier: Assembly-CSharp::EndNode
-  _nodeGuid: 9a297460d599dcb4885864ca96aa9c18
+  _nodeGuid: 5e111c87765c4084ebbc2fd45b41ce87
   _position: {x: 760, y: 120}
   _inputPortNames:
   - input

@@ -1,25 +1,6 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
---- !u!114 &-8796132444138101670
-MonoBehaviour:
-  m_ObjectHideFlags: 1
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 2195c972e71a3fd4a8277bff583f3084, type: 3}
-  m_Name: EndNode
-  m_EditorClassIdentifier: Assembly-CSharp::EndNode
-  _nodeGuid: 088c58e83bcd7854a8e3fff85a210c4c
-  _position: {x: 760, y: 120}
-  _inputPortNames:
-  - input
-  _outputPortNames:
-  - output
-  _isBreakpoint: 0
---- !u!114 &-8519438224091468054
+--- !u!114 &-3721066045712484101
 MonoBehaviour:
   m_ObjectHideFlags: 1
   m_CorrespondingSourceObject: {fileID: 0}
@@ -31,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 55d32cdda21801c4ab21c7ac5e1c1a42, type: 3}
   m_Name: ApplyEffectNode
   m_EditorClassIdentifier: Assembly-CSharp::ApplyEffectNode
-  _nodeGuid: f4f3e29d390c45242a4878e9d8048d87
+  _nodeGuid: e64bc855912026b448c435a8822b68fa
   _position: {x: 300, y: 120}
   _inputPortNames:
   - input
@@ -69,10 +50,11 @@ MonoBehaviour:
   EffectId: 0
   AbilityLevel: 1
   UseBlackboardTarget: 1
+  extraTags: 
   LastCalculatedDamage: 0
   LastWasCriticalHit: 0
   LastResult: 
---- !u!114 &-7251731477181577208
+--- !u!114 &-3165375774011540693
 MonoBehaviour:
   m_ObjectHideFlags: 1
   m_CorrespondingSourceObject: {fileID: 0}
@@ -84,7 +66,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1c9155eae9372794a9fb2cefb939b3e5, type: 3}
   m_Name: LogNode
   m_EditorClassIdentifier: Assembly-CSharp::LogNode
-  _nodeGuid: c60eb93de8cf0d149b250423cf189374
+  _nodeGuid: 06dcbaeea49296c428981e29e41573c4
   _position: {x: 520, y: 120}
   _inputPortNames:
   - input
@@ -110,25 +92,45 @@ MonoBehaviour:
   m_Name: Common_StatusPrime
   m_EditorClassIdentifier: Assembly-CSharp::SkillGraphAsset
   graphId: 98aa0850a60947dab49f3047a572aa4d
+  skillName: 
   _nodes:
-  - {fileID: 8924285234946646161}
-  - {fileID: -8519438224091468054}
-  - {fileID: -7251731477181577208}
-  - {fileID: -8796132444138101670}
+  - {fileID: 3030002165508984584}
+  - {fileID: -3721066045712484101}
+  - {fileID: -3165375774011540693}
+  - {fileID: 880650697586623590}
   _edges:
-  - SourceNodeGuid: dc31c1c286385734c9d710fe16b6e262
+  - SourceNodeGuid: 970f09c1bab30f9499ed51549acf5eab
     SourcePort: output
-    TargetNodeGuid: f4f3e29d390c45242a4878e9d8048d87
+    TargetNodeGuid: e64bc855912026b448c435a8822b68fa
     TargetPort: input
-  - SourceNodeGuid: f4f3e29d390c45242a4878e9d8048d87
+  - SourceNodeGuid: e64bc855912026b448c435a8822b68fa
     SourcePort: output
-    TargetNodeGuid: c60eb93de8cf0d149b250423cf189374
+    TargetNodeGuid: 06dcbaeea49296c428981e29e41573c4
     TargetPort: input
-  - SourceNodeGuid: c60eb93de8cf0d149b250423cf189374
+  - SourceNodeGuid: 06dcbaeea49296c428981e29e41573c4
     SourcePort: output
-    TargetNodeGuid: 088c58e83bcd7854a8e3fff85a210c4c
+    TargetNodeGuid: 6c7bcb46566c78b408db2f866a7d0c90
     TargetPort: input
---- !u!114 &8924285234946646161
+--- !u!114 &880650697586623590
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2195c972e71a3fd4a8277bff583f3084, type: 3}
+  m_Name: EndNode
+  m_EditorClassIdentifier: Assembly-CSharp::EndNode
+  _nodeGuid: 6c7bcb46566c78b408db2f866a7d0c90
+  _position: {x: 760, y: 120}
+  _inputPortNames:
+  - input
+  _outputPortNames:
+  - output
+  _isBreakpoint: 0
+--- !u!114 &3030002165508984584
 MonoBehaviour:
   m_ObjectHideFlags: 1
   m_CorrespondingSourceObject: {fileID: 0}
@@ -140,7 +142,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 551f49b56a2d6324392c66b975cb256e, type: 3}
   m_Name: StartNode
   m_EditorClassIdentifier: Assembly-CSharp::StartNode
-  _nodeGuid: dc31c1c286385734c9d710fe16b6e262
+  _nodeGuid: 970f09c1bab30f9499ed51549acf5eab
   _position: {x: 80, y: 120}
   _inputPortNames:
   - input

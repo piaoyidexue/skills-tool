@@ -87,8 +87,7 @@ public class SkillSystemBootstrapper : Editor
 
     /// <summary>
     ///     为场景中的所有战斗实体自动安装 GAS 架构组件。
-    ///     确保每个实体都挂载 GEHost（Tag Container + Effect 管理），
-    ///     移除旧的 CombatStatusHost（已废弃）。
+    ///     确保每个实体都挂载 GEHost（Tag Container + Effect 管理）。
     /// </summary>
     [MenuItem("Tools/Skills/Install GEHost on All Entities")]
     private static void InstallGEHostOnAllEntities()
@@ -114,28 +113,6 @@ public class SkillSystemBootstrapper : Editor
             go.AddComponent<GEHost>();
             count++;
             Debug.Log($"[SkillEntityInstaller] Added GEHost to {go.name}");
-        }
-
-        // 移除旧的 CombatStatusHost（通过反射避免直接引用已废弃类型）
-        var combatStatusHostType = Type.GetType("CombatStatusHost, Assembly-CSharp");
-        if (combatStatusHostType != null)
-        {
-            var findMethod = typeof(UnityEngine.Object).GetMethod("FindObjectsOfType", new Type[] { typeof(Type) });
-            if (findMethod != null)
-            {
-                var oldObjects = findMethod.Invoke(null, new object[] { combatStatusHostType }) as UnityEngine.Object[];
-                if (oldObjects != null)
-                {
-                    foreach (var old in oldObjects)
-                    {
-                        if (old is MonoBehaviour mb)
-                        {
-                            Debug.LogWarning($"[SkillEntityInstaller] Removing deprecated CombatStatusHost from {mb.gameObject.name}. Use GEHost instead.");
-                            DestroyImmediate(mb);
-                        }
-                    }
-                }
-            }
         }
 
         if (count > 0)

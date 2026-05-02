@@ -16,8 +16,12 @@ public enum GEModOp
 /// <summary>GE 修改器目标属性</summary>
 public enum GEAttribute
 {
-    DamageTakenMultiplier, DamageDealtMultiplier,
-    MoveSpeed, AttackSpeed, DamagePerTick, HealingReceived,
+    DamageTakenMultiplier,
+    DamageDealtMultiplier,
+    MoveSpeed,
+    AttackSpeed,
+    DamagePerTick,
+    HealingReceived,
     Custom
 }
 
@@ -29,19 +33,33 @@ public enum GEDurationPolicy
 
 public class GameplayEffectInstance
 {
+    /// <summary>效果唯一标识ID</summary>
     public int GEId;
+    /// <summary>效果名称</summary>
     public string Name;
+    /// <summary>持续时间策略：即时 / 有限时长 / 永久</summary>
     public GEDurationPolicy DurationPolicy;
+    /// <summary>剩余持续时间（秒）</summary>
     public float RemainingDuration;
+    /// <summary>总持续时间（秒）</summary>
     public float TotalDuration;
+    /// <summary>修改器列表，定义对属性的加成/削减</summary>
     public List<GEModifier> Modifiers = new();
+    /// <summary>本效果授予的Tag列表</summary>
     public List<string> GrantedTags = new();
+    /// <summary>本效果生效所需的前提Tag列表</summary>
     public List<string> RequiredTags = new();
+    /// <summary>施放者（来源Transform）</summary>
     public Transform Instigator;
+    /// <summary>周期触发间隔（秒），0表示非周期效果</summary>
     public float Period;
+    /// <summary>周期触发计时器</summary>
     public float PeriodTimer;
+    /// <summary>当前叠层数</summary>
     public int StackCount;
+    /// <summary>最大叠层数</summary>
     public int MaxStacks;
+    /// <summary>叠层策略</summary>
     public GEStackPolicy StackPolicy;
     public bool IsActive => DurationPolicy == GEDurationPolicy.Infinite || RemainingDuration > 0f;
 
@@ -55,9 +73,13 @@ public class GameplayEffectInstance
 [System.Serializable]
 public class GEModifier
 {
+    /// <summary>修改的目标属性</summary>
     public GEAttribute Attribute;
+    /// <summary>自定义属性名（当Attribute为Custom时使用）</summary>
     public string CustomAttribute;
+    /// <summary>修改操作类型：加/乘/覆写</summary>
     public GEModOp Operation;
+    /// <summary>修改量数值</summary>
     public float Magnitude;
 
     public float Evaluate(float baseValue) => Operation switch
@@ -71,15 +93,25 @@ public class GEModifier
 
 public class GEConfig
 {
+    /// <summary>效果唯一标识ID</summary>
     public int GEId;
+    /// <summary>效果名称</summary>
     public string Name;
+    /// <summary>持续时间策略</summary>
     public GEDurationPolicy DurationPolicy;
+    /// <summary>叠层策略，默认刷新时长</summary>
     public GEStackPolicy StackPolicy = GEStackPolicy.Refresh;
+    /// <summary>持续时间（秒）</summary>
     public float Duration;
+    /// <summary>周期触发间隔（秒），0表示非周期效果</summary>
     public float Period;
+    /// <summary>最大叠层数</summary>
     public int MaxStacks;
+    /// <summary>修改器列表</summary>
     public List<GEModifier> Modifiers = new();
+    /// <summary>本效果授予的Tag列表</summary>
     public List<string> GrantedTags = new();
+    /// <summary>本效果生效所需的前提Tag列表</summary>
     public List<string> RequiredTags = new();
 
     public GameplayEffectInstance CreateInstance(Transform instigator)
@@ -103,22 +135,37 @@ public class GEConfig
 
 public class GEEventContext
 {
+    /// <summary>事件标识ID</summary>
     public string EventId;
+    /// <summary>事件目标（受影响者）</summary>
     public Transform Target;
+    /// <summary>事件施放者（来源）</summary>
     public Transform Instigator;
+    /// <summary>原始数值（事件触发前的初始值）</summary>
     public float RawValue;
+    /// <summary>处理后数值（可被订阅者修改，作为最终结果）</summary>
     public float Value;
+    /// <summary>事件关联的Tag列表</summary>
     public List<string> Tags = new();
 }
 
-public class GEHost : MonoBehaviour
+public class GEHost : MonoBehaviour, IStatusReceiver
 {
+    /// <summary>当前活跃的效果实例列表</summary>
     private readonly List<GameplayEffectInstance> _activeEffects = new(16);
+    /// <summary>待移除效果缓冲区，避免遍历时修改集合</summary>
     private readonly List<GameplayEffectInstance> _toRemove = new(8);
+    /// <summary>实体先天Tag容器（不由Effect授予）</summary>
     private readonly GameplayTagContainer _innateTags = default;
 
     // ---- 缓存当前所有活跃 Tag（用于变更检测） ----
     private readonly HashSet<string> _cachedTags = new(StringComparer.OrdinalIgnoreCase);
+
+    // ---- 状态（Status）语义层 ----
+    /// <summary>活跃状态字典：StatusType → StatusRuntime，桥接 Status 语义与 GE 底层</summary>
+    private readonly Dictionary<StatusType, StatusRuntime> _activeStatuses = new();
+    /// <summary>状态变更事件：当任何状态被应用、刷新或消耗时触发</summary>
+    public event Action<GEHost, StatusRuntime> OnStatusChanged;
 
     public IReadOnlyList<GameplayEffectInstance> ActiveEffects => _activeEffects;
 
@@ -155,9 +202,40 @@ public class GEHost : MonoBehaviour
             OnEffectExpired?.Invoke(ge);
             NotifyTagChanges();
         }
+
+        // 清理过期的 Status（同步 GE 层的过期移除）
+        var expiredStatuses = new List<StatusType>();
+        foreach (var kvp in _activeStatuses)
+        {
+            kvp.Value.Remaining -= dt;
+            if (!kvp.Value.IsActive) expiredStatuses.Add(kvp.Key);
+        }
+        foreach (var type in expiredStatuses)
+        {
+            _activeStatuses.Remove(type);
+            OnStatusChanged?.Invoke(this, null);
+        }
     }
 
+    /// <summary>
+    ///     应用效果（公开接口，已标记废弃）。
+    ///     外部系统请使用 EffectSystem.ApplyEffect() 统一派发，
+    ///     确保 Modifier 管线 + Reaction 引擎 + DamagePipeline 全链路生效。
+    ///     GEHost.ApplyEffect() 会绕过上述管线，违反架构红线。
+    /// </summary>
+    [System.Obsolete("请使用 EffectSystem.ApplyEffect() 统一派发，禁止直接调用 GEHost.ApplyEffect()。" +
+                     "直接调用会绕过 Modifier 管线和 DamagePipeline，违反架构红线。")]
     public bool ApplyEffect(GEConfig config, Transform instigator)
+    {
+        return ApplyEffectInternal(config, instigator);
+    }
+
+    /// <summary>
+    ///     应用效果（内部接口）。
+    ///     仅供 EffectSystem / ReactionEngine 等管线内部使用，
+    ///     外部调用者必须走 EffectSystem.ApplyEffect()。
+    /// </summary>
+    public bool ApplyEffectInternal(GEConfig config, Transform instigator)
     {
         if (config == null) return false;
         foreach (var tag in config.RequiredTags)
@@ -355,10 +433,211 @@ public class GEHost : MonoBehaviour
             { ge.PeriodTimer = 0f; results.Add(ge); }
     }
 
+    // ============================================================
+    //  IStatusReceiver 实现 —— Status 语义层桥接 GE 底层
+    // ============================================================
+
+    /// <summary>
+    ///     施加状态。若同名状态已存在则刷新（重置剩余时间），
+    ///     同时在 GE 层创建对应的 GE 实例以驱动 Modifier 和 Tag。
+    /// </summary>
+    public void ApplyStatus(StatusRuntime status)
+    {
+        if (status == null || status.Type == StatusType.None) return;
+
+        if (_activeStatuses.TryGetValue(status.Type, out var existing))
+        {
+            // 刷新已有状态
+            existing.Reset(status.Value, status.Duration, status.SourceTag, status.Instigator);
+        }
+        else
+        {
+            // 新建状态并加入字典
+            var newStatus = new StatusRuntime
+            {
+                Type = status.Type
+            };
+            newStatus.Reset(status.Value, status.Duration, status.SourceTag, status.Instigator);
+            _activeStatuses[status.Type] = newStatus;
+        }
+
+        // 同步到 GE 层：为该状态创建对应的 GE 实例
+        ApplyStatusAsGE(status);
+
+        OnStatusChanged?.Invoke(this, _activeStatuses[status.Type]);
+    }
+
+    /// <summary>是否拥有指定类型的状态（且状态仍活跃）。</summary>
+    public bool HasStatus(StatusType type)
+    {
+        return _activeStatuses.TryGetValue(type, out var s) && s.IsActive;
+    }
+
+    /// <summary>尝试获取指定类型的状态实例。</summary>
+    public bool TryGetStatus(StatusType type, out StatusRuntime status)
+    {
+        if (_activeStatuses.TryGetValue(type, out var s) && s.IsActive)
+        {
+            status = s;
+            return true;
+        }
+        status = null;
+        return false;
+    }
+
+    /// <summary>
+    ///     消耗指定类型的状态：取出后从活跃字典中移除，
+    ///     同时移除对应的 GE 实例和授予的 Tag。
+    /// </summary>
+    public bool ConsumeStatus(StatusType type, out StatusRuntime status)
+    {
+        if (_activeStatuses.TryGetValue(type, out var s) && s.IsActive)
+        {
+            status = s;
+            _activeStatuses.Remove(type);
+
+            // 同步移除 GE 层实例
+            RemoveStatusGE(type);
+
+            OnStatusChanged?.Invoke(this, status);
+            return true;
+        }
+        status = null;
+        return false;
+    }
+
+    /// <summary>获取当前所有活跃状态的只读集合。</summary>
+    public IReadOnlyCollection<StatusRuntime> GetActiveStatuses()
+    {
+        var result = new List<StatusRuntime>();
+        foreach (var kvp in _activeStatuses)
+            if (kvp.Value.IsActive) result.Add(kvp.Value);
+        return result;
+    }
+
+    // ---- Status → GE 桥接 ----
+
+    /// <summary>StatusType 到 GE Tag 的映射表</summary>
+    private static readonly Dictionary<StatusType, string> StatusTagMap = new()
+    {
+        { StatusType.Burn, "status.burn" },
+        { StatusType.Chill, "status.chill" },
+        { StatusType.Conductive, "status.conductive" },
+        { StatusType.Mark, "status.mark" },
+        { StatusType.Freeze, "status.freeze" },
+        { StatusType.Slow, "status.slow" },
+        { StatusType.Stun, "status.stun" },
+        { StatusType.Poison, "status.poison" },
+        { StatusType.Root, "status.root" },
+    };
+
+    /// <summary>StatusType 到 GE ID 的偏移基数（避免与普通 GE ID 冲突）</summary>
+    private const int StatusGEIdBase = 100000;
+
+    /// <summary>将状态作为 GE 实例应用到 GE 层</summary>
+    private void ApplyStatusAsGE(StatusRuntime status)
+    {
+        var tag = GetStatusTag(status.Type);
+        if (tag == null) return;
+
+        var geId = StatusGEIdBase + (int)status.Type;
+        var config = new GEConfig
+        {
+            GEId = geId,
+            Name = $"Status_{status.Type}",
+            DurationPolicy = GEDurationPolicy.HasDuration,
+            Duration = status.Duration,
+            StackPolicy = GEStackPolicy.Refresh,
+            MaxStacks = 1
+        };
+        config.GrantedTags.Add(tag);
+
+        // 根据状态类型添加对应的 Modifier
+        AddStatusModifiers(status, config);
+
+        // 如果 GE 已存在则先移除再重新应用（刷新时长）
+        if (HasEffect(geId)) RemoveEffect(geId);
+        ApplyEffectInternal(config, status.Instigator);
+    }
+
+    /// <summary>根据状态类型添加对应的 GE Modifier</summary>
+    private void AddStatusModifiers(StatusRuntime status, GEConfig config)
+    {
+        switch (status.Type)
+        {
+            case StatusType.Slow:
+                config.Modifiers.Add(new GEModifier
+                {
+                    Attribute = GEAttribute.MoveSpeed, Operation = GEModOp.Multiply, Magnitude = status.Value
+                });
+                break;
+            case StatusType.Freeze:
+                // 冻结：移速为 0，攻速为 0
+                config.Modifiers.Add(new GEModifier
+                {
+                    Attribute = GEAttribute.MoveSpeed, Operation = GEModOp.Override, Magnitude = 0f
+                });
+                config.Modifiers.Add(new GEModifier
+                {
+                    Attribute = GEAttribute.AttackSpeed, Operation = GEModOp.Override, Magnitude = 0f
+                });
+                break;
+            case StatusType.Stun:
+                // 眩晕：移速为 0，攻速为 0
+                config.Modifiers.Add(new GEModifier
+                {
+                    Attribute = GEAttribute.MoveSpeed, Operation = GEModOp.Override, Magnitude = 0f
+                });
+                config.Modifiers.Add(new GEModifier
+                {
+                    Attribute = GEAttribute.AttackSpeed, Operation = GEModOp.Override, Magnitude = 0f
+                });
+                break;
+            case StatusType.Burn:
+                // 燃烧：周期性伤害
+                config.Period = 0.5f;
+                config.Modifiers.Add(new GEModifier
+                {
+                    Attribute = GEAttribute.DamagePerTick, Operation = GEModOp.Add, Magnitude = status.Value
+                });
+                break;
+            case StatusType.Poison:
+                // 中毒：周期性伤害
+                config.Period = 1f;
+                config.Modifiers.Add(new GEModifier
+                {
+                    Attribute = GEAttribute.DamagePerTick, Operation = GEModOp.Add, Magnitude = status.Value
+                });
+                break;
+            case StatusType.Root:
+                // 定身：移速为 0
+                config.Modifiers.Add(new GEModifier
+                {
+                    Attribute = GEAttribute.MoveSpeed, Operation = GEModOp.Override, Magnitude = 0f
+                });
+                break;
+            // Chill、Conductive、Mark 仅通过 Tag 生效，不需要额外 Modifier
+        }
+    }
+
+    /// <summary>移除状态对应的 GE 实例</summary>
+    private void RemoveStatusGE(StatusType type)
+    {
+        var geId = StatusGEIdBase + (int)type;
+        RemoveEffect(geId);
+    }
+
+    /// <summary>获取状态类型对应的 Tag 字符串</summary>
+    private static string GetStatusTag(StatusType type)
+    {
+        return StatusTagMap.TryGetValue(type, out var tag) ? tag : null;
+    }
+
     public void ClearAll()
     {
         foreach (var ge in _activeEffects) OnEffectRemoved?.Invoke(ge);
         _activeEffects.Clear();
+        _activeStatuses.Clear();
         NotifyTagChanges();
     }
 
@@ -405,14 +684,22 @@ public class GEHost : MonoBehaviour
 
 public class AttributeSet : MonoBehaviour
 {
+    /// <summary>基础攻击力</summary>
     [SerializeField] private float _attack = 10f;
+    /// <summary>基础防御力</summary>
     [SerializeField] private float _defense = 2f;
+    /// <summary>基础最大生命值</summary>
     [SerializeField] private float _maxHealth = 100f;
+    /// <summary>基础移动速度</summary>
     [SerializeField] private float _moveSpeed = 5f;
+    /// <summary>基础攻击速度</summary>
     [SerializeField] private float _attackSpeed = 1f;
+    /// <summary>基础暴击率（0~1）</summary>
     [SerializeField] private float _critChance = 0.05f;
+    /// <summary>基础暴击伤害倍率</summary>
     [SerializeField] private float _critDamage = 1.5f;
 
+    /// <summary>关联的GEHost组件引用，用于查询GE修改后的最终属性</summary>
     private GEHost _geHost;
 
     // ──────────── 数据绑定属性（UI 响应式驱动） ────────────

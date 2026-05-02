@@ -3,7 +3,7 @@ using UnityEngine;
 /// <summary>
 ///     AnimationEventWaitNode —— 替代 DelayNode，等待动画事件推进。
 ///     不依赖时间，完全由动画帧驱动：
-///     - 播放攻击动画 → OnHit 事件触发 → 本节点通过 → 执行后续 DamageNode
+///     - 播放攻击动画 → OnHit 事件触发 → 本节点通过 → 执行后续伤害节点
 ///     - 攻速变化时自动适配（动画速度变化，事件时机自动对齐）。
 /// </summary>
 [CreateAssetMenu(fileName = "AnimEventWaitNode", menuName = "Skill System/Nodes/Animation/AnimEventWait")]

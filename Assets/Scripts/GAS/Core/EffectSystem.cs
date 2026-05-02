@@ -23,6 +23,7 @@ public static class EffectSystem
 
     // ---- Modifier 管线 ----
     private static readonly List<IEffectModifier> Modifiers = new(16);
+    
     private static readonly List<IReactionHandler> ReactionHandlers = new(8);
 
     // ---- 对象池 ----
@@ -114,8 +115,7 @@ public static class EffectSystem
     /// <summary>
     ///     批量应用效果到多个目标。
     /// </summary>
-    public static int ApplyEffectToTargets(EffectContext context, GameplayEffectData data,
-        IReadOnlyList<Transform> targets)
+    public static int ApplyEffectToTargets(EffectContext context, GameplayEffectData data, IReadOnlyList<Transform> targets)
     {
         if (targets == null || targets.Count == 0) return 0;
 
@@ -281,7 +281,7 @@ public static class EffectSystem
             });
         }
 
-        spec.Context.TargetHost?.ApplyEffect(geConfig, spec.Context.Instigator);
+        spec.Context.TargetHost?.ApplyEffectInternal(geConfig, spec.Context.Instigator);
     }
 
     // ============================================================

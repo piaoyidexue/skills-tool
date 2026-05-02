@@ -6,11 +6,21 @@ using UnityEngine;
 
 public static class ConfigLoader
 {
+    /// <summary>技能配置字典，skill_id → SkillConfig</summary>
     private static readonly Dictionary<int, SkillConfig> SkillConfigs = new();
+    
+    
+    
     private static readonly Dictionary<int, BuffConfig> BuffConfigs = new();
     private static readonly Dictionary<int, EffectConfig> EffectConfigs = new();
+    
+    /// <summary>反应配置字典，reaction_name → ReactionConfig</summary>
     private static readonly Dictionary<string, ReactionConfig> ReactionConfigs = new(StringComparer.OrdinalIgnoreCase);
+    
+    /// <summary>地形配置字典，terrain_name → TerrainConfig</summary>
     private static readonly Dictionary<string, TerrainConfig> TerrainConfigs = new(StringComparer.OrdinalIgnoreCase);
+    
+    /// <summary>VFX艺术配置字典，profile_key → VFXArtProfileConfig</summary>
     private static readonly Dictionary<string, VFXArtProfileConfig> VfxArtProfiles = new(StringComparer.OrdinalIgnoreCase);
 
     /// <summary>物品配置字典，item_id → ItemConfig</summary>
@@ -21,6 +31,9 @@ public static class ConfigLoader
 
     /// <summary>音频配置字典，audio_id → AudioConfig</summary>
     private static readonly Dictionary<int, AudioConfig> AudioConfigs = new();
+
+    /// <summary>投射物配置字典，projectile_id → ProjectileConfig</summary>
+    private static readonly Dictionary<string, ProjectileConfig> ProjectileConfigs = new(StringComparer.OrdinalIgnoreCase);
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
     public static void Initialize()
@@ -40,8 +53,46 @@ public static class ConfigLoader
         LoadVfxArtProfilesFromCsv();
         LoadItemsFromCsv();
         LoadAudioFromCsv();
+        LoadProjectileConfigsFromCsv();
         Debug.Log(
-            $"[ConfigLoader] Reload complete. Skills={SkillConfigs.Count}, Buffs={BuffConfigs.Count}, Effects={EffectConfigs.Count}, GameplayEffects={GameplayEffectConfigs.Count}, Reactions={ReactionConfigs.Count}, Terrains={TerrainConfigs.Count}, VFXProfiles={VfxArtProfiles.Count}, Items={ItemConfigs.Count}, Audio={AudioConfigs.Count}");
+            $"[ConfigLoader] Reload complete. Skills={SkillConfigs.Count}," +
+            $" Buffs={BuffConfigs.Count}, Effects={EffectConfigs.Count}," +
+            $" GameplayEffects={GameplayEffectConfigs.Count}," +
+            $" Reactions={ReactionConfigs.Count}," +
+            $" Terrains={TerrainConfigs.Count}," +
+            $" VFXProfiles={VfxArtProfiles.Count}," +
+            $" Items={ItemConfigs.Count}," +
+            $" Audio={AudioConfigs.Count}");
+    }
+
+    private static void LoadProjectileConfigsFromCsv()
+    {
+        ProjectileConfigs.Clear();
+
+        var csv = LoadConfigText("ProjectileConfig");
+        if (csv == null)
+        {
+            Debug.LogWarning("[ConfigLoader] Missing ProjectileConfig.csv.");
+            return;
+        }
+
+        ForEachRow(csv.text, row =>
+        {
+            var cfg = new ProjectileConfig
+            {
+                ProjectileID = GetString(row, "projectile_id"),
+                Name = GetString(row, "name"),
+                PrefabKey = GetString(row, "prefab_key"),
+                Trajectory = ParseInt(row, "trajectory"),
+                HitRadius = ParseFloat(row, "hit_radius", 0.5f),
+                Lifetime = ParseFloat(row, "lifetime", 5f),
+                Gravity = ParseFloat(row, "gravity", 9.8f),
+                Tags = ParseTagList(row, "tags")
+            };
+
+            if (!string.IsNullOrWhiteSpace(cfg.ProjectileID))
+                ProjectileConfigs[cfg.ProjectileID] = cfg;
+        });
     }
 
     public static SkillConfig GetSkillConfig(int id)
@@ -194,8 +245,26 @@ public static class ConfigLoader
                 IsInterruptible = GetString(row, "interruptible").ToLowerInvariant() == "true", // 是否可被打断
                 ProjectileSpeed = ParseFloat(row, "projectile_speed"), // 投射物飞行速度
                 ProjectilePrefab = GetString(row, "projectile_prefab"),// 投射物预制体名称
+                ProjectileTrajectory = ParseInt(row, "projectile_trajectory"),    // 投射物弹道类型（0=直线, 1=追踪, 2=抛物线）
+                ProjectileHitRadius = ParseFloat(row, "projectile_hit_radius", 0.5f), // 投射物命中判定半径
+                ProjectileLifetime = ParseFloat(row, "projectile_lifetime", 5f),    // 投射物最大存活时间（秒）
+                ProjectileGravity = ParseFloat(row, "projectile_gravity", 9.8f),    // 投射物抛物线重力系数
+                ProjectileTags = ParseTagList(row, "projectile_tags"),              // 投射物携带的元素/状态标签
                 ResourceCost = ParseFloat(row, "resource_cost")        // 技能资源消耗
             };
+
+            // ===== 投射物配置覆盖逻辑 =====
+            // 如果指定了 ProjectileConfigKey，则从 ProjectileConfig.csv 加载并覆盖内联字段
+            if (!string.IsNullOrWhiteSpace(cfg.ProjectileConfigKey) && 
+                ProjectileConfigs.TryGetValue(cfg.ProjectileConfigKey, out var projectileCfg))
+            {
+                cfg.ProjectilePrefab = projectileCfg.PrefabKey ?? cfg.ProjectilePrefab;
+                cfg.ProjectileTrajectory = projectileCfg.Trajectory;
+                cfg.ProjectileHitRadius = projectileCfg.HitRadius > 0f ? projectileCfg.HitRadius : cfg.ProjectileHitRadius;
+                cfg.ProjectileLifetime = projectileCfg.Lifetime > 0f ? projectileCfg.Lifetime : cfg.ProjectileLifetime;
+                cfg.ProjectileGravity = projectileCfg.Gravity > 0f ? projectileCfg.Gravity : cfg.ProjectileGravity;
+                cfg.ProjectileTags = projectileCfg.Tags;
+            }
 
             SkillConfigs[cfg.SkillID] = cfg;
         });

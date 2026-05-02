@@ -99,8 +99,7 @@ public abstract class SkillNodeBase : ScriptableObject
     /// </summary>
     protected SkillNodeBase GetConnectedNode(string outputPortName)
     {
-        var edge = GetOwningGraphEdges()
-            .FirstOrDefault(e => e.SourceNodeGuid == _nodeGuid && e.SourcePort == outputPortName);
+        var edge = GetOwningGraphEdges().FirstOrDefault(e => e.SourceNodeGuid == _nodeGuid && e.SourcePort == outputPortName);
         return edge.Equals(default(SkillEdge)) ? null : ResolveNode(edge.TargetNodeGuid);
     }
 

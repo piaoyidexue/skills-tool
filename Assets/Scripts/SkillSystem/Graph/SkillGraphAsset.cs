@@ -15,6 +15,7 @@ public class SkillGraphAsset : ScriptableObject
     // ──────────── 序列化数据 ────────────
 
     [SerializeField] private string graphId = System.Guid.NewGuid().ToString("N");
+    [SerializeField] private string skillName;
 
     [SerializeField] private List<SkillNodeBase> _nodes = new List<SkillNodeBase>();
 
@@ -28,6 +29,14 @@ public class SkillGraphAsset : ScriptableObject
 
     /// <summary>图唯一标识符</summary>
     public string GraphId => string.IsNullOrWhiteSpace(graphId) ? name : graphId;
+    
+    
+    /// <summary>技能名称</summary>
+    public string SkillName
+    {
+        get;
+        set;
+    }
 
     /// <summary>所有节点（只读）</summary>
     public IReadOnlyList<SkillNodeBase> Nodes => _nodes;
@@ -42,7 +51,6 @@ public class SkillGraphAsset : ScriptableObject
 
     /// <summary>
     ///     创建并添加一个新节点到图中。
-    ///     等价替换原 NodeCanvas 的 Graph.AddNode&lt;T&gt;()。
     /// </summary>
     public T AddNode<T>() where T : SkillNodeBase
     {

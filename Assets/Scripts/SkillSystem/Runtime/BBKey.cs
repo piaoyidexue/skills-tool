@@ -68,34 +68,4 @@ public static class BBKey
 
     /// <summary>生成 ChannelTick_{n} 键名</summary>
     public static string ChannelTick(int tickIndex) => $"ChannelTick_{tickIndex}";
-
-    // ============================================================
-    //  以下键名已被 GAS 架构废弃，禁止在新代码中使用。
-    //  保留定义仅为向后兼容旧序列化资产。
-    // ============================================================
-
-    [System.Obsolete("GAS红线：伤害覆写禁止存储在黑板，由 EffectSystem.ModifierPipeline 接管")]
-    public const string DamageOverride = "DamageOverride";
-    [System.Obsolete("GAS红线：暴击判定禁止存储在黑板，由 EffectSpec.IsCriticalHit 接管")]
-    public const string IsCrit = "IsCrit";
-    [System.Obsolete("GAS红线：最终伤害禁止存储在黑板，由 EffectSpec.CalculatedDamage 接管")]
-    public const string LastDamage = "LastDamage";
-    [System.Obsolete("GAS红线：状态标签禁止存储在黑板，由 GEHost.TagContainer 接管")]
-    public const string StatusTags = "StatusTags";
-    [System.Obsolete("GAS红线：地形标签禁止存储在黑板，由 PaintTerrainNode 直接使用")]
-    public const string TerrainTags = "TerrainTags";
-    [System.Obsolete("GAS红线：共鸣标签禁止存储在黑板，由 ResonanceNode 直接使用")]
-    public const string ResonanceTags = "ResonanceTags";
-    [System.Obsolete("GAS红线：反应摘要禁止存储在黑板，由 ReactionEngine 事件接管")]
-    public const string ReactionSummary = "ReactionSummary";
-    [System.Obsolete("GAS红线：配置ID只读引用，不应在黑板中流转")]
-    public const string RecipeId = "RecipeId";
-    [System.Obsolete("GAS红线：共鸣状态由 TagContainer 接管")]
-    public const string HasResonance = "HasResonance";
-    [System.Obsolete("GAS红线：延迟覆写禁止存储在黑板")]
-    public const string DelayOverride = "DelayOverride";
-    [System.Obsolete("GAS红线：伤害百分比由 GameplayEffectData.BaseDamage 接管")]
-    public const string DamagePercent = "DamagePercent";
-    [System.Obsolete("GAS红线：暴击率由 GameplayEffectData.CritChanceBonus 接管")]
-    public const string CritChance = "CritChance";
 }

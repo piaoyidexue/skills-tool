@@ -379,7 +379,7 @@ public class ReactionEngine : IEffectModifier
         };
         geConfig.GrantedTags.Add(rule.GrantedTag);
 
-        spec.Context.TargetHost?.ApplyEffect(geConfig, spec.Context.Instigator);
+        spec.Context.TargetHost?.ApplyEffectInternal(geConfig, spec.Context.Instigator);
     }
 
     private static string NormalizeTag(string tag)

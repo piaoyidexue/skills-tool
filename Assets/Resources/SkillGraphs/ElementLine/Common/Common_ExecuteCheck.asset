@@ -1,36 +1,6 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
---- !u!114 &-9134611859286959475
-MonoBehaviour:
-  m_ObjectHideFlags: 1
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: fef7ac9782582cd498e1c419ef8c0e49, type: 3}
-  m_Name: ConditionNode
-  m_EditorClassIdentifier: Assembly-CSharp::ConditionNode
-  _nodeGuid: 246f12877f9696e42998189287690a8d
-  _position: {x: 320, y: 120}
-  _inputPortNames:
-  - input
-  _outputPortNames:
-  - truePort
-  - falsePort
-  _isBreakpoint: 0
-  mode: 2
-  compareMode: 0
-  bbKey: IsCrit
-  compareKey: LastDamage
-  threshold:
-    Source: 0
-    SkillField: 5
-    BlackboardKey: DamageOverride
-    LiteralValue: 0
-    DefaultValue: 0
---- !u!114 &-5325812342064949678
+--- !u!114 &-8999229469828406447
 MonoBehaviour:
   m_ObjectHideFlags: 1
   m_CorrespondingSourceObject: {fileID: 0}
@@ -42,14 +12,69 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 551f49b56a2d6324392c66b975cb256e, type: 3}
   m_Name: StartNode
   m_EditorClassIdentifier: Assembly-CSharp::StartNode
-  _nodeGuid: 048bc9a56a771d34da2e66c7e0152bd4
+  _nodeGuid: a4c3bb830ccf5b74e83bd15864d67156
   _position: {x: 80, y: 120}
   _inputPortNames:
   - input
   _outputPortNames:
   - output
   _isBreakpoint: 0
---- !u!114 &-1137661262909010210
+--- !u!114 &-3276403582261824806
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2195c972e71a3fd4a8277bff583f3084, type: 3}
+  m_Name: EndNode
+  m_EditorClassIdentifier: Assembly-CSharp::EndNode
+  _nodeGuid: ee9cb47a16ecb504dab9dac50bd18f93
+  _position: {x: 820, y: 120}
+  _inputPortNames:
+  - input
+  _outputPortNames:
+  - output
+  _isBreakpoint: 0
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 27773d9782edc754f9ac8e26070c55fd, type: 3}
+  m_Name: Common_ExecuteCheck
+  m_EditorClassIdentifier: Assembly-CSharp::SkillGraphAsset
+  graphId: 2bdcb38f302949eaaf2383c056e911aa
+  skillName: 
+  _nodes:
+  - {fileID: -8999229469828406447}
+  - {fileID: 8051022747208386900}
+  - {fileID: 789026283733725087}
+  - {fileID: -3276403582261824806}
+  _edges:
+  - SourceNodeGuid: a4c3bb830ccf5b74e83bd15864d67156
+    SourcePort: output
+    TargetNodeGuid: aed77fa265a88bd4e802a71b4eb82017
+    TargetPort: input
+  - SourceNodeGuid: aed77fa265a88bd4e802a71b4eb82017
+    SourcePort: truePort
+    TargetNodeGuid: 3376f61e3fa91be459a1ffe535f06bde
+    TargetPort: input
+  - SourceNodeGuid: 3376f61e3fa91be459a1ffe535f06bde
+    SourcePort: output
+    TargetNodeGuid: ee9cb47a16ecb504dab9dac50bd18f93
+    TargetPort: input
+  - SourceNodeGuid: aed77fa265a88bd4e802a71b4eb82017
+    SourcePort: falsePort
+    TargetNodeGuid: ee9cb47a16ecb504dab9dac50bd18f93
+    TargetPort: input
+--- !u!114 &789026283733725087
 MonoBehaviour:
   m_ObjectHideFlags: 1
   m_CorrespondingSourceObject: {fileID: 0}
@@ -61,7 +86,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 55d32cdda21801c4ab21c7ac5e1c1a42, type: 3}
   m_Name: ApplyEffectNode
   m_EditorClassIdentifier: Assembly-CSharp::ApplyEffectNode
-  _nodeGuid: 8caa40085a3569f408875ee20096e856
+  _nodeGuid: 3376f61e3fa91be459a1ffe535f06bde
   _position: {x: 580, y: 60}
   _inputPortNames:
   - input
@@ -99,45 +124,11 @@ MonoBehaviour:
   EffectId: 0
   AbilityLevel: 1
   UseBlackboardTarget: 1
+  extraTags: 
   LastCalculatedDamage: 0
   LastWasCriticalHit: 0
   LastResult: 
---- !u!114 &11400000
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 27773d9782edc754f9ac8e26070c55fd, type: 3}
-  m_Name: Common_ExecuteCheck
-  m_EditorClassIdentifier: Assembly-CSharp::SkillGraphAsset
-  graphId: 2bdcb38f302949eaaf2383c056e911aa
-  _nodes:
-  - {fileID: -5325812342064949678}
-  - {fileID: -9134611859286959475}
-  - {fileID: -1137661262909010210}
-  - {fileID: 2598216265065545842}
-  _edges:
-  - SourceNodeGuid: 048bc9a56a771d34da2e66c7e0152bd4
-    SourcePort: output
-    TargetNodeGuid: 246f12877f9696e42998189287690a8d
-    TargetPort: input
-  - SourceNodeGuid: 246f12877f9696e42998189287690a8d
-    SourcePort: truePort
-    TargetNodeGuid: 8caa40085a3569f408875ee20096e856
-    TargetPort: input
-  - SourceNodeGuid: 8caa40085a3569f408875ee20096e856
-    SourcePort: output
-    TargetNodeGuid: c508848313ee74d4484331e6d8c0ee98
-    TargetPort: input
-  - SourceNodeGuid: 246f12877f9696e42998189287690a8d
-    SourcePort: falsePort
-    TargetNodeGuid: c508848313ee74d4484331e6d8c0ee98
-    TargetPort: input
---- !u!114 &2598216265065545842
+--- !u!114 &8051022747208386900
 MonoBehaviour:
   m_ObjectHideFlags: 1
   m_CorrespondingSourceObject: {fileID: 0}
@@ -146,13 +137,28 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 2195c972e71a3fd4a8277bff583f3084, type: 3}
-  m_Name: EndNode
-  m_EditorClassIdentifier: Assembly-CSharp::EndNode
-  _nodeGuid: c508848313ee74d4484331e6d8c0ee98
-  _position: {x: 820, y: 120}
+  m_Script: {fileID: 11500000, guid: fef7ac9782582cd498e1c419ef8c0e49, type: 3}
+  m_Name: ConditionNode
+  m_EditorClassIdentifier: Assembly-CSharp::ConditionNode
+  _nodeGuid: aed77fa265a88bd4e802a71b4eb82017
+  _position: {x: 320, y: 120}
   _inputPortNames:
   - input
   _outputPortNames:
-  - output
+  - truePort
+  - falsePort
   _isBreakpoint: 0
+  mode: 2
+  compareMode: 0
+  bbKey: IsInterrupted
+  compareKey: TargetDistance
+  threshold:
+    Source: 0
+    SkillField: 5
+    BlackboardKey: ChannelDuration
+    LiteralValue: 0
+    DefaultValue: 0
+  boolCondition:
+    Source: 1
+    BlackboardKey: IsInterrupted
+    LiteralValue: 0

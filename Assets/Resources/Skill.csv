@@ -1,6 +1,6 @@
-skill_id,name,graph_path,impact_vfx,beam_vfx,damage,damage_rate,cooldown,cast_range,delay_seconds,crit_chance,radius,chain_count,vfx_duration
-1001,Fireball,Examples/Graphs/Skill_Fireball,HitSpark,,120,1.5,2,10,0.15,0.2,2,0,0.8
-1002,Chain Lightning,,HitSpark,LightningBeam,45,0.8,5,8,0.05,0.25,4,3,0.35
-1003,AOE Explosion,,ExplosionWave,,160,1.0,6,7,0.2,0.1,4.5,0,0.75
-1004,Frost Nova,,FrostBurst,,80,1.1,8,5,0.1,0.15,5,0,0.9
-1005,Crit Fireball,Examples/Graphs/Skill_CritFireball,HitSpark,LightningBeam,90,1.3,3,10,0.1,0.35,2,0,0.5
+skill_id,name,graph_path,impact_vfx,beam_vfx,damage,damage_rate,cooldown,cast_range,delay_seconds,crit_chance,radius,chain_count,vfx_duration,cast_time,channel_duration,post_cast_time,interruptible,projectile_speed,projectile_prefab,projectile_trajectory,projectile_hit_radius,projectile_lifetime,projectile_gravity,projectile_tags,resource_cost,projectile_config_key
+1001,Fireball,Examples/Graphs/Skill_Fireball,HitSpark,,120,1.5,2,10,0.15,0.2,2,0,0.8,0.3,0,0.5,true,12,FireballPrefab,0,0.5,5,9.8,element.fire,10,fireball_default
+1002,Chain Lightning,,HitSpark,LightningBeam,45,0.8,5,8,0.05,0.25,4,3,0.35,0.2,0,0.4,true,0,,,0.5,5,9.8,,15,lightning_orb
+1003,AOE Explosion,,ExplosionWave,,160,1.0,6,7,0.2,0.1,4.5,0,0.75,0.5,0,0.6,false,0,,,0.5,5,9.8,,20,
+1004,Frost Nova,,FrostBurst,,80,1.1,8,5,0.1,0.15,5,0,0.9,0.4,0,0.5,false,0,,,0.5,5,9.8,element.ice,15,frost_burst
+1005,Crit Fireball,Examples/Graphs/Skill_CritFireball,HitSpark,LightningBeam,90,1.3,3,10,0.1,0.35,2,0,0.5,0.2,0,0.3,true,15,FireballPrefab,0,0.5,5,9.8,element.fire,12,fireball_default
