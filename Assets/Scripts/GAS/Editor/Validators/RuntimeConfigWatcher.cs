@@ -1,5 +1,6 @@
 #if UNITY_EDITOR
 using System;
+using System.Collections.Generic;
 using System.IO;
 using UnityEditor;
 using UnityEngine;
@@ -14,6 +15,8 @@ public class RuntimeConfigWatcher
 {
     private static FileSystemWatcher _watcher;
     private static string _watchPath;
+    private static readonly Dictionary<string, DateTime> _recentChanges = new();
+    private static readonly TimeSpan DebounceInterval = TimeSpan.FromMilliseconds(500);
 
     static RuntimeConfigWatcher()
     {
@@ -44,6 +47,12 @@ public class RuntimeConfigWatcher
 
         try
         {
+            if (_watcher != null)
+            {
+                _watcher.EnableRaisingEvents = false;
+                _watcher.Dispose();
+            }
+
             _watcher = new FileSystemWatcher(_watchPath, "*.csv")
             {
                 NotifyFilter = NotifyFilters.LastWrite | NotifyFilters.FileName,
@@ -52,36 +61,81 @@ public class RuntimeConfigWatcher
 
             _watcher.Changed += OnConfigFileChanged;
             _watcher.Created += OnConfigFileChanged;
+            _watcher.Error += OnWatcherError;
 
             Debug.Log($"[HotReload] Watching config directory: {_watchPath}");
         }
         catch (Exception ex)
         {
             Debug.LogError($"[HotReload] Failed to start file watcher: {ex.Message}");
+            CleanupWatcher();
         }
     }
 
     private static void StopWatching()
     {
+        CleanupWatcher();
+        Debug.Log("[HotReload] Stopped watching config directory.");
+    }
+
+    private static void CleanupWatcher()
+    {
         if (_watcher != null)
         {
-            _watcher.EnableRaisingEvents = false;
-            _watcher.Dispose();
+            try
+            {
+                _watcher.EnableRaisingEvents = false;
+                _watcher.Changed -= OnConfigFileChanged;
+                _watcher.Created -= OnConfigFileChanged;
+                _watcher.Error -= OnWatcherError;
+                _watcher.Dispose();
+            }
+            catch
+            {
+            }
             _watcher = null;
         }
+    }
 
-        Debug.Log("[HotReload] Stopped watching config directory.");
+    private static void OnWatcherError(object sender, ErrorEventArgs e)
+    {
+        var ex = e.GetException();
+        if (ex is InternalBufferOverflowException)
+        {
+            Debug.LogWarning("[HotReload] Buffer overflow - too many file changes. Consider reducing notification frequency.");
+        }
+        else
+        {
+            Debug.LogError($"[HotReload] FileSystemWatcher error: {ex.Message}");
+        }
+
+        EditorApplication.delayCall += StopWatching;
+        EditorApplication.delayCall += StartWatching;
     }
 
     private static void OnConfigFileChanged(object sender, FileSystemEventArgs e)
     {
-        // 在主线程执行 Reload
+        var fileName = Path.GetFileName(e.FullPath);
+        var now = DateTime.Now;
+
+        lock (_recentChanges)
+        {
+            if (_recentChanges.TryGetValue(fileName, out var lastChange))
+            {
+                if (now - lastChange < DebounceInterval)
+                {
+                    return;
+                }
+            }
+            _recentChanges[fileName] = now;
+        }
+
         EditorApplication.delayCall += () =>
         {
             if (!Application.isPlaying) return;
 
             ConfigLoader.ReloadAll();
-            Debug.Log($"[HotReload] Config reloaded due to: {Path.GetFileName(e.FullPath)}");
+            Debug.Log($"[HotReload] Config reloaded due to: {fileName}");
         };
     }
 }

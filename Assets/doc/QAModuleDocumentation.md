@@ -797,7 +797,7 @@ QA 模块使用的 `StatusType` 枚举（定义于 `Runtime/StatusType.cs`）：
 
 ## 九、注意事项
 
-1. **GEHost 依赖**：`QATargetDummy` 必须配合 `GEHost` 组件使用（`[RequireComponent]` 自动添加）。伤害修正确保通过 GE 管道，与正式战斗流程一致。
+1. **GEHost 依赖**：`QATargetDummy` 必须配合 `GEHost` 组件使用（`[RequireComponent]` 自动添加）。伤害修深刻确保通过 GE 管道，与正式战斗流程一致。
 
 2. **HealthComponent 与 AttributeSet**：当 QATargetDummy 上同时存在 `AttributeSet` 时，`TakeDamage()` 会委托给 `AttributeSet.TakeDamage()` 处理，避免双重扣血。
 
@@ -820,3 +820,9 @@ QA 模块使用的 `StatusType` 枚举（定义于 `Runtime/StatusType.cs`）：
 11. **打断测试的协程**：`QAGalleryTestController.StartRandomInterruptTest()` 内部使用 `StartCoroutine(Invoke(...))` 延迟触发打断。这是 QA 工具中唯一使用协程的地方，业务节点仍遵循 Tick 驱动。
 
 12. **EQS Gizmo 显示条件**：`QAEQSDebugger` 的 Gizmo 仅在物体被选中（`OnDrawGizmosSelected`）时绘制，查询结果 3 秒后自动隐藏。
+
+13. **RuntimeConfigWatcher 文件监听节流**：热重载监听器内置 500ms 防抖机制，避免 CSV 文件频繁变更时重复触发重载。监听器还会自动处理 `InternalBufferOverflowException` 等错误并尝试恢复。
+
+14. **SkillGraphValidatorWindow 多错误收集**：技能图校验器现在会收集所有错误和警告后再统一输出，避免因早期返回而遗漏后续问题。延迟节点（DelayNode）和引导节点（ChannelNode）被正确豁免输出边检查。
+
+15. **QASkillDataValidatorWindow 热重载测试**：热重载测试不再依赖硬编码的 SkillID 10001，而是动态获取配置列表中的第一个技能进行测试，提高了测试的鲁棒性。

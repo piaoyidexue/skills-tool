@@ -280,14 +280,17 @@ public class QASkillDataValidatorWindow : EditorWindow
     {
         try
         {
-            var before = ConfigLoader.GetSkillConfig(10001);
-            if (before == null) { _testResult = "❌ 获取 Skill 10001 失败"; return; }
+            var configs = ConfigLoader.GetAllSkillConfigs();
+            if (configs.Count == 0) { _testResult = "❌ 没有找到任何 Skill 配置"; return; }
 
-            _testDamageOriginal = before.Damage;
+            var testSkill = configs[0];
+            var testSkillId = testSkill.SkillID;
+
+            _testDamageOriginal = testSkill.Damage;
             ConfigLoader.ReloadAll();
 
-            var after = ConfigLoader.GetSkillConfig(10001);
-            if (after == null) { _testResult = "❌ 热重载后获取 Skill 10001 失败"; return; }
+            var after = ConfigLoader.GetSkillConfig(testSkillId);
+            if (after == null) { _testResult = $"❌ 热重载后获取 Skill {testSkillId} 失败"; return; }
 
             _hotReloadTestPassed = Mathf.Abs(after.Damage - _testDamageOriginal) < 0.01f;
 
@@ -398,11 +401,11 @@ public class QASkillDataValidatorWindow : EditorWindow
 
     private void ValidateBuffs()
     {
-        for (var i = 1; i <= 9999; i++)
+        var buffConfigs = ConfigLoader.GetAllBuffConfigs();
+        _totalCount += buffConfigs.Count;
+
+        foreach (var cfg in buffConfigs)
         {
-            var cfg = ConfigLoader.GetBuffConfig(i);
-            if (cfg == null) break;
-            _totalCount++;
             if (!string.IsNullOrEmpty(cfg.IconKey))
             {
                 ValidateAsset($"Buff[{cfg.BuffID}]", "IconKey", cfg.IconKey,
@@ -462,29 +465,35 @@ public class QASkillDataValidatorWindow : EditorWindow
         Object obj = null;
         var resolvedPath = "";
 
-        // 策略 1：Resources 路径直接加载
-        var resourcePath = fieldValue.StartsWith("Resources/") ? fieldValue : $"Resources/{fieldValue}";
-        obj = Resources.Load<Object>(resourcePath);
-
-        // 策略 2：直接文件路径
-        if (obj == null)
+        try
         {
-            var fullPath = $"{Application.dataPath}/{fieldValue}";
-            if (System.IO.File.Exists(fullPath))
-                obj = AssetDatabase.LoadAssetAtPath<Object>($"Assets/{fieldValue}");
-        }
+            var resourcePath = fieldValue.StartsWith("Resources/") ? fieldValue : $"Resources/{fieldValue}";
+            obj = Resources.Load<Object>(resourcePath);
 
-        // 策略 3：GUID 查找
-        if (obj == null)
-        {
-            var guid = AssetDatabase.FindAssets($"{fieldValue} t:{assetType.Name}",
-                new[] { searchIn }).FirstOrDefault();
-            if (!string.IsNullOrEmpty(guid))
+            if (obj == null)
             {
-                var path = AssetDatabase.GUIDToAssetPath(guid);
-                obj = AssetDatabase.LoadAssetAtPath<Object>(path);
-                resolvedPath = path;
+                var fullPath = $"{Application.dataPath}/{fieldValue}";
+                if (System.IO.File.Exists(fullPath))
+                    obj = AssetDatabase.LoadAssetAtPath<Object>($"Assets/{fieldValue}");
             }
+
+            if (obj == null)
+            {
+                var guid = AssetDatabase.FindAssets($"{fieldValue} t:{assetType.Name}",
+                    new[] { searchIn }).FirstOrDefault();
+                if (!string.IsNullOrEmpty(guid))
+                {
+                    var path = AssetDatabase.GUIDToAssetPath(guid);
+                    obj = AssetDatabase.LoadAssetAtPath<Object>(path);
+                    resolvedPath = path;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            AddResult(configName, fieldName, fieldValue, ValidationSeverity.Warning,
+                $"Asset validation error: {ex.Message}");
+            return;
         }
 
         if (obj == null)

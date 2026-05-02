@@ -116,6 +116,11 @@ public static class ConfigLoader
         return cfg;
     }
 
+    public static IReadOnlyList<BuffConfig> GetAllBuffConfigs()
+    {
+        return BuffConfigs.Values.OrderBy(cfg => cfg.BuffID).ToList();
+    }
+
     public static EffectConfig GetEffectConfig(int id)
     {
         EffectConfigs.TryGetValue(id, out var cfg);

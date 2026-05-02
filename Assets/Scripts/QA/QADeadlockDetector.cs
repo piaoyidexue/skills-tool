@@ -152,7 +152,6 @@ public class QADeadlockDetector : EditorWindow
         _results.Clear();
         _progress = 0;
 
-        // 获取所有 SkillGraph 资产
         var graphGuids = AssetDatabase.FindAssets("t:SkillGraphAsset", new[] { "Assets" });
         _totalGraphs = graphGuids.Length;
 
@@ -165,19 +164,17 @@ public class QADeadlockDetector : EditorWindow
             _currentGraphName = graph.name;
             _progress++;
 
-            // 强制刷新（保持 Editor 响应）
-            EditorUtility.DisplayProgressBar(
-                "死循环检测",
-                $"检测 {_progress}/{_totalGraphs}: {graph.name}",
-                (float)_progress / _totalGraphs);
+            if (_progress % 10 == 1 || _progress == _totalGraphs)
+            {
+                EditorUtility.DisplayProgressBar(
+                    "死循环检测",
+                    $"检测 {_progress}/{_totalGraphs}: {graph.name}",
+                    (float)_progress / _totalGraphs);
+            }
 
             var result = TestGraphForDeadlock(graph, path);
             if (result != null)
                 _results.Add(result);
-
-            // 让编辑器喘口气
-            if (_progress % 5 == 0)
-                System.Threading.Thread.Sleep(10);
         }
 
         EditorUtility.ClearProgressBar();
