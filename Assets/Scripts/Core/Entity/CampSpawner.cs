@@ -66,7 +66,7 @@ public class CampSpawner : MonoBehaviour
     private void GeneratePatrolPoints()
     {
         _patrolPoints.Clear();
-        
+
         if (_patrolCenter == null)
         {
             _patrolCenter = transform;
@@ -98,46 +98,37 @@ public class CampSpawner : MonoBehaviour
         var spawnPosition = _patrolPoints[spawnIndex];
         var spawnRotation = Quaternion.identity;
 
-        // 创建小队
-        var transforms = MonsterFactory.CreateSquad(squadConfig.SquadID, spawnPosition, spawnRotation);
+        // 创建小队并获取创建结果
+        var spawnResults = MonsterFactory.CreateSquadWithContext(
+            squadConfig.SquadID,
+            squadConfig.Level > 0 ? squadConfig.Level : 1,
+            spawnPosition,
+            spawnRotation);
+
+        // 获取怪物配置以获取 AiTier
+        var squadConfigData = ConfigLoader.GetSquadConfig(squadConfig.SquadID);
 
         // 为每个怪物注入ARPG上下文
-        foreach (var transform in transforms)
+        foreach (var result in spawnResults)
         {
-            if (transform != null)
-            {
-                InjectARPGContext(transform);
-                
-                // 应用词缀（如果配置了）
-                if (!string.IsNullOrEmpty(squadConfig.MonsterIDList))
-                {
-                    // 这里可以添加词缀应用逻辑
-                }
-            }
+            if (result.Transform == null) continue;
+
+            // 获取对应怪物的配置信息
+            var monsterConfig = ConfigLoader.GetMonsterConfig(result.MonsterID);
+            var aiTier = monsterConfig?.AiTier ?? "minion";
+
+            // 创建ARPG上下文
+            var context = MonsterSpawnContext.CreateForARPG(
+                result.MonsterID,
+                result.Level,
+                aiTier,
+                _patrolCenter.position,
+                _patrolRadius,
+                result.SquadID);
+
+            // 通过 IMonsterInitializer 注入上下文
+            var initializer = result.Transform.GetComponent<IMonsterInitializer>();
+            initializer?.Initialize(context);
         }
-    }
-
-    /// <summary>
-    ///     注入ARPG上下文到怪物黑板。
-    /// </summary>
-    private void InjectARPGContext(Transform monsterTransform)
-    {
-        var blackboardComponent = monsterTransform.GetComponent<BlackboardComponent>();
-        if (blackboardComponent == null)
-        {
-            blackboardComponent = monsterTransform.gameObject.AddComponent<BlackboardComponent>();
-        }
-        var blackboard = blackboardComponent.Blackboard;
-
-        // 设置目标模式为FreeRoam
-        blackboard.SetValue("TargetMode", AITargetMode.FreeRoam);
-
-        // 设置巡逻区域
-        blackboard.SetValue("PatrolCenter", _patrolCenter);
-        blackboard.SetValue("PatrolRadius", _patrolRadius);
-        blackboard.SetValue("PatrolPoints", _patrolPoints.ToArray());
-        
-        // 设置巡逻状态
-        blackboard.SetValue("IsPatrolling", _enablePatrol);
     }
 }

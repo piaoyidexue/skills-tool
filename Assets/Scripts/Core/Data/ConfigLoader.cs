@@ -197,9 +197,28 @@ public static class ConfigLoader
             {
                 SquadID = ParseInt(row, "squad_id"),
                 Name = GetString(row, "name"),
+                Level = ParseInt(row, "level", 1),
                 MemberCount = ParseInt(row, "member_count"),
                 MonsterIDList = GetString(row, "monster_id_list")
             };
+
+            // 数据校验
+            if (cfg.SquadID <= 0)
+            {
+                Debug.LogWarning($"[ConfigLoader] Invalid SquadID in Squad.csv: {cfg.SquadID}");
+                return;
+            }
+
+            if (string.IsNullOrEmpty(cfg.Name))
+            {
+                cfg.Name = $"Squad_{cfg.SquadID}";
+            }
+
+            if (cfg.MemberCount <= 0)
+            {
+                Debug.LogWarning($"[ConfigLoader] Invalid MemberCount ({cfg.MemberCount}) for Squad {cfg.SquadID}");
+                cfg.MemberCount = 1;
+            }
 
             // 解析怪物ID列表
             if (!string.IsNullOrEmpty(cfg.MonsterIDList))
@@ -208,12 +227,32 @@ public static class ConfigLoader
                 foreach (var idStr in ids)
                 {
                     if (int.TryParse(idStr.Trim(), out int id))
-                        cfg.MonsterIDs.Add(id);
+                    {
+                        if (id > 0)
+                            cfg.MonsterIDs.Add(id);
+                        else
+                            Debug.LogWarning($"[ConfigLoader] Invalid MonsterID ({id}) in Squad {cfg.SquadID}");
+                    }
+                    else
+                    {
+                        Debug.LogWarning($"[ConfigLoader] Failed to parse MonsterID '{idStr}' in Squad {cfg.SquadID}");
+                    }
                 }
             }
 
-            if (cfg.SquadID > 0)
-                SquadConfigs[cfg.SquadID] = cfg;
+            // 校验怪物数量和配置的成员数量是否匹配
+            if (cfg.MonsterIDs.Count == 0)
+            {
+                Debug.LogWarning($"[ConfigLoader] No monsters configured for Squad {cfg.SquadID}");
+                return;
+            }
+
+            if (cfg.MonsterIDs.Count < cfg.MemberCount)
+            {
+                Debug.LogWarning($"[ConfigLoader] Squad {cfg.SquadID} has {cfg.MonsterIDs.Count} monsters but MemberCount is {cfg.MemberCount}");
+            }
+
+            SquadConfigs[cfg.SquadID] = cfg;
         });
     }
 
@@ -230,18 +269,40 @@ public static class ConfigLoader
 
         ForEachRow(csv.text, row =>
         {
-            var cfg = new DropTableConfig
-            {
-                TableID = ParseInt(row, "table_id"),
-                ItemID = ParseInt(row, "item_id"),
-                Weight = ParseInt(row, "weight"),
-                MinQty = ParseInt(row, "min_qty"),
-                MaxQty = ParseInt(row, "max_qty"),
-                GlobalChance = ParseFloat(row, "global_chance")
-            };
+            var tableId = ParseInt(row, "table_id");
+            var itemId = ParseInt(row, "item_id");
+            var weight = ParseInt(row, "weight");
+            var minQty = ParseInt(row, "min_qty");
+            var maxQty = ParseInt(row, "max_qty");
+            var globalChance = ParseFloat(row, "global_chance");
+            var isRare = ParseBool(row, "is_rare");
+            var tableName = GetString(row, "name");
 
-            if (cfg.TableID > 0)
-                DropTableConfigs[cfg.TableID] = cfg;
+            if (tableId <= 0) return;
+
+            // 获取或创建掉落表
+            if (!DropTableConfigs.TryGetValue(tableId, out var tableConfig))
+            {
+                tableConfig = new DropTableConfig
+                {
+                    TableID = tableId,
+                    Name = string.IsNullOrEmpty(tableName) ? $"Table_{tableId}" : tableName
+                };
+                DropTableConfigs[tableId] = tableConfig;
+            }
+
+            // 添加掉落项
+            var dropItem = new DropItemConfig
+            {
+                TableID = tableId,
+                ItemID = itemId,
+                Weight = weight,
+                MinQty = minQty,
+                MaxQty = maxQty,
+                GlobalChance = globalChance,
+                IsRare = isRare
+            };
+            tableConfig.Items.Add(dropItem);
         });
     }
 
@@ -842,6 +903,14 @@ public static class ConfigLoader
         return float.TryParse(raw, NumberStyles.Float, CultureInfo.InvariantCulture, out var value)
             ? value
             : defaultValue;
+    }
+
+    private static bool ParseBool(IReadOnlyDictionary<string, string> row, string key, bool defaultValue = false)
+    {
+        if (!row.TryGetValue(key, out var raw) || string.IsNullOrWhiteSpace(raw)) return defaultValue;
+
+        var lower = raw.ToLowerInvariant();
+        return lower == "true" || lower == "1" || lower == "yes";
     }
 
     // ============================================================

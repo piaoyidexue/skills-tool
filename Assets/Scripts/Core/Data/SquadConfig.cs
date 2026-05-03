@@ -14,6 +14,9 @@ public class SquadConfig
     /// <summary>小队名称</summary>
     public string Name;
 
+    /// <summary>怪物等级（用于属性计算）</summary>
+    public int Level = 1;
+
     /// <summary>成员数量</summary>
     public int MemberCount;
 

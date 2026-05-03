@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -17,8 +18,12 @@ public class WaveSpawner : MonoBehaviour
     /// <summary>是否正在运行</summary>
     private bool _isRunning = false;
 
+    /// <summary>全局等级调整（每波递增）</summary>
+    [SerializeField] private int _baseLevel = 1;
+    [SerializeField] private int _levelIncrementPerWave = 0;
+
     /// <summary>波次配置结构体</summary>
-    [System.Serializable]
+    [Serializable]
     public struct WaveConfig
     {
         /// <summary>波次索引</summary>
@@ -37,7 +42,20 @@ public class WaveSpawner : MonoBehaviour
         public string AffixPool;
 
         /// <summary>解析后的词缀ID数组</summary>
-        public List<int> AffixIDs ;
+        public List<int> AffixIDs;
+
+        /// <summary>
+        ///     怪物等级（如果不设置，则使用波次器的全局等级计算值）
+        /// </summary>
+        public int Level;
+
+        /// <summary>
+        ///     获取实际等级（优先使用配置的等级，否则使用计算值）
+        /// </summary>
+        public int GetEffectiveLevel(int calculatedLevel)
+        {
+            return Level > 0 ? Level : calculatedLevel;
+        }
     }
 
     /// <summary>
@@ -64,7 +82,7 @@ public class WaveSpawner : MonoBehaviour
     /// <summary>
     ///     波次生成协程。
     /// </summary>
-    private System.Collections.IEnumerator SpawnWaveCoroutine()
+    private IEnumerator SpawnWaveCoroutine()
     {
         while (_isRunning && _currentWaveIndex < _waveConfigs.Length)
         {
@@ -84,26 +102,41 @@ public class WaveSpawner : MonoBehaviour
                 continue;
             }
 
-            // 生成小队
-            var squadTransforms = MonsterFactory.CreateSquad(waveConfig.SquadID, spawnPoint.position, spawnPoint.rotation);
+            // 计算怪物等级
+            var effectiveLevel = _baseLevel + _currentWaveIndex * _levelIncrementPerWave;
+            var finalLevel = waveConfig.GetEffectiveLevel(effectiveLevel);
 
-            // 为每个怪物注入路径点信息（用于塔防AI）
-            foreach (var transform in squadTransforms)
+            // 获取路径点
+            var pathNodes = GetPathNodes(spawnPoint);
+
+            // 创建小队并获取创建结果
+            var spawnResults = MonsterFactory.CreateSquadWithContext(
+                waveConfig.SquadID,
+                finalLevel,
+                spawnPoint.position,
+                spawnPoint.rotation);
+
+            // 初始化每个怪物
+            foreach (var result in spawnResults)
             {
-                if (transform != null)
+                if (result.Transform == null) continue;
+
+                // 创建塔防上下文
+                var context = MonsterSpawnContext.CreateForTowerDefense(
+                    result.MonsterID,
+                    result.Level,
+                    result.AiTier,
+                    pathNodes,
+                    result.SquadID);
+
+                // 通过 IMonsterInitializer 注入上下文
+                var initializer = result.Transform.GetComponent<IMonsterInitializer>();
+                initializer?.Initialize(context);
+
+                // 应用词缀
+                if (waveConfig.AffixIDs?.Count > 0)
                 {
-                    var context = CreatePathContext(spawnPoint, waveConfig.SquadID);
-                    var initializer = transform.GetComponent<IMonsterInitializer>();
-                    if (initializer != null)
-                    {
-                        initializer.Initialize(context);
-                    }
-                    
-                    // 应用词缀
-                    if (waveConfig.AffixIDs?.Count > 0)
-                    {
-                        AffixApplier.ApplyAffixes(transform, waveConfig.AffixIDs.ToArray());
-                    }
+                    AffixApplier.ApplyAffixes(result.Transform, waveConfig.AffixIDs.ToArray());
                 }
             }
 
@@ -153,22 +186,6 @@ public class WaveSpawner : MonoBehaviour
             return namedChild;
 
         return transform;
-    }
-
-
-
-    /// <summary>
-    ///     创建路径上下文载荷。
-    /// </summary>
-    private MonsterSpawnContext CreatePathContext(Transform spawnPoint, int squadId)
-    {
-        return new MonsterSpawnContext
-        {
-            TargetMode = AITargetMode.Waypoint,
-            PathNodes = GetPathNodes(spawnPoint),
-            SquadID = squadId,
-            EnableAggroPropagation = true
-        };
     }
 
     /// <summary>
