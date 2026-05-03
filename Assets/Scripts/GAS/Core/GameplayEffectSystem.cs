@@ -22,7 +22,11 @@ public enum GEAttribute
     AttackSpeed,
     DamagePerTick,
     HealingReceived,
-    Custom
+    Custom,
+    ResFire,
+    ResIce,
+    ResLightning,
+    Armor
 }
 
 /// <summary>GE 持续时间策略</summary>

@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -97,6 +98,31 @@ public static class DamagePipeline
                             break;
                         case GEAttribute.DamageDealtMultiplier:
                             if (mod.Operation == GEModOp.Multiply) multiplier *= mod.Magnitude;
+                            break;
+                        case GEAttribute.ResFire:
+                            if (tags != null && Array.Exists(tags, t => t.Contains("fire") || t.Contains("element.fire")))
+                            {
+                                if (mod.Operation == GEModOp.Multiply) multiplier *= (1f - mod.Magnitude);
+                                else if (mod.Operation == GEModOp.Add) multiplier *= (1f - mod.Magnitude);
+                            }
+                            break;
+                        case GEAttribute.ResIce:
+                            if (tags != null && Array.Exists(tags, t => t.Contains("ice") || t.Contains("element.ice")))
+                            {
+                                if (mod.Operation == GEModOp.Multiply) multiplier *= (1f - mod.Magnitude);
+                                else if (mod.Operation == GEModOp.Add) multiplier *= (1f - mod.Magnitude);
+                            }
+                            break;
+                        case GEAttribute.ResLightning:
+                            if (tags != null && Array.Exists(tags, t => t.Contains("lightning") || t.Contains("element.lightning")))
+                            {
+                                if (mod.Operation == GEModOp.Multiply) multiplier *= (1f - mod.Magnitude);
+                                else if (mod.Operation == GEModOp.Add) multiplier *= (1f - mod.Magnitude);
+                            }
+                            break;
+                        case GEAttribute.Armor:
+                            if (mod.Operation == GEModOp.Multiply) multiplier *= (1f - mod.Magnitude);
+                            else if (mod.Operation == GEModOp.Add) additive -= mod.Magnitude;
                             break;
                     }
                 }

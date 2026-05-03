@@ -1,0 +1,4 @@
+affix_id,name,granted_ge_id,vfx_key,color_tint
+2001,Molten,501,fire_aura,#FF4400
+2002,Swift,502,speed_boost,#00AAFF
+2003,Shielded,503,shield_pulsing,#00FF44

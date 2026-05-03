@@ -1,0 +1,4 @@
+monster_id,name,prefab_path,ai_tier,base_hp,base_atk,base_def,move_speed,attack_range,res_fire,res_ice,res_lightning,ai_tree_id,drop_table_id
+1001,Goblin Minion,Assets/Prefabs/Monsters/Goblin.prefab,Minion,50,8,2,3.5,1.2,0,0,0,101,1001
+1002,Goblin Elite,Assets/Prefabs/Monsters/GoblinElite.prefab,Elite,120,18,6,3.0,1.5,0,0,0,102,1002
+1003,Goblin Boss,Assets/Prefabs/Monsters/GoblinBoss.prefab,Boss,300,35,15,2.5,2.0,0,0,0,103,1003

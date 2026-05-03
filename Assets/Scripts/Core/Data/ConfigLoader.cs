@@ -29,6 +29,18 @@ public static class ConfigLoader
     /// <summary>GAS 架构：GameplayEffectData 配置字典，effect_id → GameplayEffectData</summary>
     private static readonly Dictionary<int, GameplayEffectData> GameplayEffectConfigs = new();
 
+    /// <summary>怪物配置字典，monster_id → MonsterConfig</summary>
+    private static readonly Dictionary<int, MonsterConfig> MonsterConfigs = new();
+
+    /// <summary>词缀配置字典，affix_id → AffixConfig</summary>
+    private static readonly Dictionary<int, AffixConfig> AffixConfigs = new();
+
+    /// <summary>阵容小队配置字典，squad_id → SquadConfig</summary>
+    private static readonly Dictionary<int, SquadConfig> SquadConfigs = new();
+
+    /// <summary>掉落表配置字典，table_id → DropTableConfig</summary>
+    private static readonly Dictionary<int, DropTableConfig> DropTableConfigs = new();
+
     /// <summary>音频配置字典，audio_id → AudioConfig</summary>
     private static readonly Dictionary<int, AudioConfig> AudioConfigs = new();
 
@@ -54,6 +66,10 @@ public static class ConfigLoader
         LoadItemsFromCsv();
         LoadAudioFromCsv();
         LoadProjectileConfigsFromCsv();
+        LoadMonstersFromCsv();
+        LoadAffixesFromCsv();
+        LoadSquadsFromCsv();
+        LoadDropTablesFromCsv();
         Debug.Log(
             $"[ConfigLoader] Reload complete. Skills={SkillConfigs.Count}," +
             $" Buffs={BuffConfigs.Count}, Effects={EffectConfigs.Count}," +
@@ -62,7 +78,13 @@ public static class ConfigLoader
             $" Terrains={TerrainConfigs.Count}," +
             $" VFXProfiles={VfxArtProfiles.Count}," +
             $" Items={ItemConfigs.Count}," +
-            $" Audio={AudioConfigs.Count}");
+            $" Audio={AudioConfigs.Count}" +
+            $" Projectiles={ProjectileConfigs.Count}" +
+            $" Monsters={MonsterConfigs.Count}" +
+            $" Affixes={AffixConfigs.Count}" +
+            $" Squads={SquadConfigs.Count}" +
+            $" DropTables={DropTableConfigs.Count}" )
+            ;
     }
 
     private static void LoadProjectileConfigsFromCsv()
@@ -95,6 +117,134 @@ public static class ConfigLoader
         });
     }
 
+    private static void LoadMonstersFromCsv()
+    {
+        MonsterConfigs.Clear();
+
+        var csv = LoadConfigText("Monster");
+        if (csv == null)
+        {
+            Debug.LogWarning("[ConfigLoader] Missing Monster.csv.");
+            return;
+        }
+
+        ForEachRow(csv.text, row =>
+        {
+            var cfg = new MonsterConfig
+            {
+                MonsterID = ParseInt(row, "monster_id"),
+                Name = GetString(row, "name"),
+                PrefabPath = GetString(row, "prefab_path"),
+                AiTier = GetString(row, "ai_tier"),
+                BaseHP = ParseFloat(row, "base_hp"),
+                BaseATK = ParseFloat(row, "base_atk"),
+                BaseDEF = ParseFloat(row, "base_def"),
+                MoveSpeed = ParseFloat(row, "move_speed"),
+                AttackRange = ParseFloat(row, "attack_range"),
+                ResFire = ParseFloat(row, "res_fire"),
+                ResIce = ParseFloat(row, "res_ice"),
+                ResLightning = ParseFloat(row, "res_lightning"),
+                AiTreeID = ParseInt(row, "ai_tree_id"),
+                DropTableID = ParseInt(row, "drop_table_id")
+            };
+
+            if (cfg.MonsterID > 0)
+                MonsterConfigs[cfg.MonsterID] = cfg;
+        });
+    }
+
+    private static void LoadAffixesFromCsv()
+    {
+        AffixConfigs.Clear();
+
+        var csv = LoadConfigText("Affix");
+        if (csv == null)
+        {
+            Debug.LogWarning("[ConfigLoader] Missing Affix.csv.");
+            return;
+        }
+
+        ForEachRow(csv.text, row =>
+        {
+            var cfg = new AffixConfig
+            {
+                AffixID = ParseInt(row, "affix_id"),
+                Name = GetString(row, "name"),
+                GrantedGEID = ParseInt(row, "granted_ge_id"),
+                VFXKey = GetString(row, "vfx_key"),
+                ColorTint = GetString(row, "color_tint")
+            };
+
+            if (cfg.AffixID > 0)
+                AffixConfigs[cfg.AffixID] = cfg;
+        });
+    }
+
+    private static void LoadSquadsFromCsv()
+    {
+        SquadConfigs.Clear();
+
+        var csv = LoadConfigText("Squad");
+        if (csv == null)
+        {
+            Debug.LogWarning("[ConfigLoader] Missing Squad.csv.");
+            return;
+        }
+
+        ForEachRow(csv.text, row =>
+        {
+            var cfg = new SquadConfig
+            {
+                SquadID = ParseInt(row, "squad_id"),
+                Name = GetString(row, "name"),
+                MemberCount = ParseInt(row, "member_count"),
+                MonsterIDList = GetString(row, "monster_id_list")
+            };
+
+            // 解析怪物ID列表
+            if (!string.IsNullOrEmpty(cfg.MonsterIDList))
+            {
+                var ids = cfg.MonsterIDList.Split('|');
+                foreach (var idStr in ids)
+                {
+                    if (int.TryParse(idStr.Trim(), out int id))
+                        cfg.MonsterIDs.Add(id);
+                }
+            }
+
+            if (cfg.SquadID > 0)
+                SquadConfigs[cfg.SquadID] = cfg;
+        });
+    }
+
+    private static void LoadDropTablesFromCsv()
+    {
+        DropTableConfigs.Clear();
+
+        var csv = LoadConfigText("DropTable");
+        if (csv == null)
+        {
+            Debug.LogWarning("[ConfigLoader] Missing DropTable.csv.");
+            return;
+        }
+
+        ForEachRow(csv.text, row =>
+        {
+            var cfg = new DropTableConfig
+            {
+                TableID = ParseInt(row, "table_id"),
+                ItemID = ParseInt(row, "item_id"),
+                Weight = ParseInt(row, "weight"),
+                MinQty = ParseInt(row, "min_qty"),
+                MaxQty = ParseInt(row, "max_qty"),
+                GlobalChance = ParseFloat(row, "global_chance")
+            };
+
+            if (cfg.TableID > 0)
+                DropTableConfigs[cfg.TableID] = cfg;
+        });
+    }
+
     public static SkillConfig GetSkillConfig(int id)
     {
         SkillConfigs.TryGetValue(id, out var cfg);
@@ -108,6 +258,62 @@ public static class ConfigLoader
     public static IReadOnlyList<SkillConfig> GetAllSkillConfigs()
     {
         return SkillConfigs.Values.OrderBy(cfg => cfg.SkillID).ToList();
+    }
+
+    public static MonsterConfig GetMonsterConfig(int id)
+    {
+        MonsterConfigs.TryGetValue(id, out var cfg);
+        return cfg;
+    }
+
+    /// <summary>
+    ///     获取所有怪物配置（按 MonsterID 排序）。
+    /// </summary>
+    public static IReadOnlyList<MonsterConfig> GetAllMonsterConfigs()
+    {
+        return MonsterConfigs.Values.OrderBy(cfg => cfg.MonsterID).ToList();
+    }
+
+    public static AffixConfig GetAffixConfig(int id)
+    {
+        AffixConfigs.TryGetValue(id, out var cfg);
+        return cfg;
+    }
+
+    /// <summary>
+    ///     获取所有词缀配置（按 AffixID 排序）。
+    /// </summary>
+    public static IReadOnlyList<AffixConfig> GetAllAffixConfigs()
+    {
+        return AffixConfigs.Values.OrderBy(cfg => cfg.AffixID).ToList();
+    }
+
+    public static SquadConfig GetSquadConfig(int id)
+    {
+        SquadConfigs.TryGetValue(id, out var cfg);
+        return cfg;
+    }
+
+    /// <summary>
+    ///     获取所有阵容小队配置（按 SquadID 排序）。
+    /// </summary>
+    public static IReadOnlyList<SquadConfig> GetAllSquadConfigs()
+    {
+        return SquadConfigs.Values.OrderBy(cfg => cfg.SquadID).ToList();
+    }
+
+    public static DropTableConfig GetDropTableConfig(int id)
+    {
+        DropTableConfigs.TryGetValue(id, out var cfg);
+        return cfg;
+    }
+
+    /// <summary>
+    ///     获取所有掉落表配置（按 TableID 排序）。
+    /// </summary>
+    public static IReadOnlyList<DropTableConfig> GetAllDropTableConfigs()
+    {
+        return DropTableConfigs.Values.OrderBy(cfg => cfg.TableID).ToList();
     }
 
     public static BuffConfig GetBuffConfig(int id)
