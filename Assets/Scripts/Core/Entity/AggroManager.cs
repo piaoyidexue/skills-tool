@@ -8,19 +8,18 @@ using UnityEngine;
 /// </summary>
 public static class AggroManager
 {
+    private static readonly Dictionary<int, List<Transform>> _squadMonsters = new();
+
     /// <summary>仇恨事件</summary>
     public static event Action<Transform, Transform> OnMonsterAggroed;
 
     /// <summary>
     ///     注册怪物到仇恨系统。
     /// </summary>
-    /// <param name="monsterTransform">怪物Transform</param>
-    /// <param name="squadId">所属小队ID</param>
     public static void RegisterMonster(Transform monsterTransform, int squadId)
     {
-        if (monsterTransform == null) return;
+        if (monsterTransform == null || squadId <= 0) return;
 
-        // 存储怪物与小队的映射关系
         var squadMonsters = GetSquadMonsters(squadId);
         if (!squadMonsters.Contains(monsterTransform))
         {
@@ -31,11 +30,9 @@ public static class AggroManager
     /// <summary>
     ///     移除怪物从仇恨系统。
     /// </summary>
-    /// <param name="monsterTransform">怪物Transform</param>
-    /// <param name="squadId">所属小队ID</param>
     public static void UnregisterMonster(Transform monsterTransform, int squadId)
     {
-        if (monsterTransform == null) return;
+        if (monsterTransform == null || squadId <= 0) return;
 
         var squadMonsters = GetSquadMonsters(squadId);
         squadMonsters.Remove(monsterTransform);
@@ -44,25 +41,16 @@ public static class AggroManager
     /// <summary>
     ///     触发仇恨事件。
     /// </summary>
-    /// <param name="aggroer">触发仇恨的怪物</param>
-    /// <param name="target">目标（通常是玩家）</param>
     public static void TriggerAggro(Transform aggroer, Transform target)
     {
         if (aggroer == null || target == null) return;
 
-        // 获取怪物的小队ID
-        var blackboardComponent = aggroer.GetComponent<BlackboardComponent>();
-        if (blackboardComponent == null) return;
-        var blackboard = blackboardComponent.Blackboard;
-
-        var squadId = blackboard.GetValue<int>("SquadID", 0);
+        var squadId = GetSquadId(aggroer);
         if (squadId <= 0) return;
 
-        // 获取同小队的所有怪物
         var squadMonsters = GetSquadMonsters(squadId);
         if (squadMonsters.Count <= 1) return;
 
-        // 向所有同小队怪物广播仇恨事件
         foreach (var monster in squadMonsters)
         {
             if (monster != aggroer)
@@ -70,6 +58,22 @@ public static class AggroManager
                 OnMonsterAggroed?.Invoke(monster, target);
             }
         }
+    }
+
+    /// <summary>
+    ///     从 AI 组件获取小队ID。
+    /// </summary>
+    private static int GetSquadId(Transform monsterTransform)
+    {
+        var aiController = monsterTransform.GetComponent<SkillAI.AIController>();
+        if (aiController != null)
+            return aiController.SquadId;
+
+        var minionBrain = monsterTransform.GetComponent<MinionBrain>();
+        if (minionBrain != null)
+            return minionBrain.SquadId;
+
+        return 0;
     }
 
     /// <summary>
@@ -84,7 +88,4 @@ public static class AggroManager
         }
         return monsters;
     }
-
-    /// <summary>小队怪物字典</summary>
-    private static readonly Dictionary<int, List<Transform>> _squadMonsters = new();
 }

@@ -1,0 +1,42 @@
+{
+    "LevelId": "LV_Example_01",
+    "TopologyType": 0,
+    "GridSize": {
+        "x": 20,
+        "y": 15
+    },
+    "CellSize": 1.0,
+    "Origin": {
+        "x": -10.0,
+        "y": 0.0,
+        "z": -7.5
+    },
+    "GridCells": [],
+    "Paths": [
+        {
+            "PathId": "Path_Main",
+            "Nodes": [
+                {"x": 0, "y": 7},
+                {"x": 5, "y": 7},
+                {"x": 5, "y": 3},
+                {"x": 10, "y": 3},
+                {"x": 10, "y": 12},
+                {"x": 15, "y": 12},
+                {"x": 15, "y": 7},
+                {"x": 19, "y": 7}
+            ]
+        }
+    ],
+    "Spawners": [
+        {
+            "SpawnerId": "Spawner_Main",
+            "Position": {"x": 0, "y": 7},
+            "LinkedPathId": "Path_Main",
+            "WaveConfigId": 1,
+            "SquadId": 1
+        }
+    ],
+    "Triggers": [],
+    "ArtScenePath": "Scenes/Level_01_Art",
+    "Version": "1.0.0"
+}

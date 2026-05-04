@@ -49,6 +49,13 @@ namespace SkillAI
         public const string FleeHealthThreshold = "FleeHealthThreshold";
         public const string EnemyCount = "EnemyCount";
         public const string AllyCount = "AllyCount";
+
+        // ---- 怪物元数据 ----
+        public const string MonsterID = "MonsterID";
+        public const string Level = "Level";
+        public const string AiTier = "AiTier";
+        public const string TargetMode = "TargetMode";
+        public const string SquadID = "SquadID";
     }
 
     /// <summary>

@@ -217,8 +217,7 @@ public class LogicalGridManager : MonoBehaviour
     /// <returns>是否可通行</returns>
     private bool IsPassableCell(GridCellData cellData)
     {
-        return cellData.Type != GridCellType.Impassable && 
-               cellData.Type != GridCellType.Obstacle &&
+        return cellData.Type != GridCellType.Blocked && 
                cellData.OccupiedBy == -1;
     }
     

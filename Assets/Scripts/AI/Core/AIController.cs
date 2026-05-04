@@ -35,6 +35,10 @@ namespace SkillAI
         [SerializeField] private int _teamId = 1;
         public int TeamId { get => _teamId; set => _teamId = value; }
 
+        [Tooltip("小队 ID（用于仇恨联动）")]
+        [SerializeField] private int _squadId = 0;
+        public int SquadId { get => _squadId; set => _squadId = value; }
+
         [Header("运行时状态")]
         [SerializeField] private AIStateType currentState = AIStateType.Idle;
         [SerializeField] private AIAlertLevel alertLevel = AIAlertLevel.None;

@@ -2,30 +2,36 @@ using System;
 using UnityEngine;
 
 /// <summary>
-/// 单元格类型枚举
+/// 单元格类型枚举（对齐设计文档）
 /// </summary>
 public enum GridCellType
 {
-    /// <summary>不可通行</summary>
-    Impassable,
+    /// <summary>不可通行、不可建造</summary>
+    Blocked,
     
-    /// <summary>高地</summary>
-    HighGround,
-    
-    /// <summary>平地</summary>
-    FlatGround,
-    
-    /// <summary>水域</summary>
-    Water,
-    
-    /// <summary>障碍物</summary>
-    Obstacle,
+    /// <summary>仅通行、不可建造</summary>
+    Walkable,
     
     /// <summary>可建造</summary>
     Buildable,
     
-    /// <summary>特殊地形</summary>
-    SpecialTerrain
+    /// <summary>高台（提供视野/射程加成）</summary>
+    HighGround
+}
+
+/// <summary>
+/// 兼容性枚举别名（用于兼容旧代码）
+/// </summary>
+[Obsolete("Use GridCellType instead")]
+public enum UnityGridCellType
+{
+    Impassable = (int)GridCellType.Blocked,
+    HighGround = (int)GridCellType.HighGround,
+    FlatGround = (int)GridCellType.Walkable,
+    Water = (int)GridCellType.Blocked,
+    Obstacle = (int)GridCellType.Blocked,
+    Buildable = (int)GridCellType.Buildable,
+    SpecialTerrain = (int)GridCellType.Walkable
 }
 
 /// <summary>
@@ -98,7 +104,7 @@ public struct GridCellData
     /// </summary>
     public void Initialize()
     {
-        Type = GridCellType.FlatGround;
+        Type = GridCellType.Walkable;
         OccupiedBy = -1;
         TerrainType = TerrainEffect.None;
         TerrainDuration = 0f;

@@ -1,6 +1,5 @@
 using System;
 using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
@@ -42,7 +41,7 @@ public class WaveSpawner : MonoBehaviour
         public string AffixPool;
 
         /// <summary>解析后的词缀ID数组</summary>
-        public List<int> AffixIDs;
+        public int[] AffixIDs;
 
         /// <summary>
         ///     怪物等级（如果不设置，则使用波次器的全局等级计算值）
@@ -87,7 +86,6 @@ public class WaveSpawner : MonoBehaviour
         while (_isRunning && _currentWaveIndex < _waveConfigs.Length)
         {
             var waveConfig = _waveConfigs[_currentWaveIndex];
-            waveConfig.AffixIDs ??= new List<int>();
 
             // 解析词缀池
             ParseAffixPool(waveConfig);
@@ -109,36 +107,23 @@ public class WaveSpawner : MonoBehaviour
             // 获取路径点
             var pathNodes = GetPathNodes(spawnPoint);
 
-            // 创建小队并获取创建结果
-            var spawnResults = MonsterFactory.CreateSquadWithContext(
+            // 创建塔防上下文
+            var context = new MonsterSpawnContext
+            {
+                TargetMode = AITargetMode.Waypoint,
+                PathNodes = pathNodes,
+                SquadID = waveConfig.SquadID,
+                EnableAggroPropagation = true
+            };
+
+            // 批量创建小队（包含初始化和应用词缀）
+            MonsterFactory.CreateSquad(
                 waveConfig.SquadID,
                 finalLevel,
                 spawnPoint.position,
-                spawnPoint.rotation);
-
-            // 初始化每个怪物
-            foreach (var result in spawnResults)
-            {
-                if (result.Transform == null) continue;
-
-                // 创建塔防上下文
-                var context = MonsterSpawnContext.CreateForTowerDefense(
-                    result.MonsterID,
-                    result.Level,
-                    result.AiTier,
-                    pathNodes,
-                    result.SquadID);
-
-                // 通过 IMonsterInitializer 注入上下文
-                var initializer = result.Transform.GetComponent<IMonsterInitializer>();
-                initializer?.Initialize(context);
-
-                // 应用词缀
-                if (waveConfig.AffixIDs?.Count > 0)
-                {
-                    AffixApplier.ApplyAffixes(result.Transform, waveConfig.AffixIDs.ToArray());
-                }
-            }
+                spawnPoint.rotation,
+                context,
+                waveConfig.AffixIDs);
 
             // 等待下一次波次
             _currentWaveIndex++;
@@ -151,18 +136,19 @@ public class WaveSpawner : MonoBehaviour
     /// </summary>
     private void ParseAffixPool(WaveConfig config)
     {
-        config.AffixIDs ??= new List<int>();
-        config.AffixIDs.Clear();
+        config.AffixIDs = Array.Empty<int>();
         if (string.IsNullOrEmpty(config.AffixPool)) return;
 
         var affixIds = config.AffixPool.Split('|');
+        var ids = new System.Collections.Generic.List<int>();
         foreach (var idStr in affixIds)
         {
             if (int.TryParse(idStr.Trim(), out int id))
             {
-                config.AffixIDs.Add(id);
+                ids.Add(id);
             }
         }
+        config.AffixIDs = ids.ToArray();
     }
 
     /// <summary>
@@ -172,7 +158,6 @@ public class WaveSpawner : MonoBehaviour
     {
         if (string.IsNullOrEmpty(tag)) return transform;
 
-        // 尝试查找带有指定标签的子对象
         var children = GetComponentsInChildren<Transform>();
         foreach (var child in children)
         {
@@ -180,7 +165,6 @@ public class WaveSpawner : MonoBehaviour
                 return child;
         }
 
-        // 尝试查找同名子对象
         var namedChild = transform.Find(tag);
         if (namedChild != null)
             return namedChild;
@@ -193,8 +177,6 @@ public class WaveSpawner : MonoBehaviour
     /// </summary>
     private Transform[] GetPathNodes(Transform spawnPoint)
     {
-        // 在实际项目中，这里会从场景中获取路径点
-        // 为了演示，返回一个空数组
         return new Transform[0];
     }
 }

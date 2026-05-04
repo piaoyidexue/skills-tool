@@ -3,6 +3,7 @@ using UnityEngine;
 
 public enum MinionState
 {
+    Idle,
     MoveToWaypoint,
     Attack,
     Dead
@@ -13,7 +14,7 @@ public enum MinionState
 ///     Replaces NodeCanvas BT for tower-defense mobs (0 GC, 0 serialization overhead).
 ///     Uses SpatialHashGrid for O(1) target detection.
 ///     Optionally registers with AISensorJobSystem for Burst-parallel FOV/distance checks.
-/// 
+///
 ///     AI Tier Strategy:
 ///     - Minion: MinionBrain FSM (this class)
 ///     - Elite/Boss/Tower: AIController + NodeCanvas BT
@@ -37,12 +38,22 @@ public class MinionBrain : MonoBehaviour, ISpatialEntity
     [SerializeField] private bool _useJobSystem = true;
 
     [Header("Movement")]
-    [SerializeField] private Transform[] _waypoints;
     [SerializeField] private float _moveSpeed = 3f;
+
+    // ---- Navigation Data (Injected via SpawnContext) ----
+    private AITargetMode _targetMode = AITargetMode.Waypoint;
+    private Transform[] _pathNodes;
+    private int _currentWaypointIndex;
+    private Vector3 _patrolCenter;
+    private float _patrolRadius;
+    private bool _isPatrolling = true;
+
+    // ---- Squad ID ----
+    private int _squadId;
+    public int SquadId { get => _squadId; set => _squadId = value; }
 
     // ---- FSM Runtime ----
     private MinionState _currentState;
-    private int _currentWaypoint;
     private ISpatialEntity _target;
     private float _lastAttackTime = -999f;
     private int _spatialEntityId = -1;
@@ -61,6 +72,29 @@ public class MinionBrain : MonoBehaviour, ISpatialEntity
     int ISpatialEntity.EntityType => (int)_aiTier;
 
     public int TeamId { get => _teamId; set => _teamId = value; }
+
+    /// <summary>
+    ///     注入导航数据。
+    ///     由生成器在怪物出生时调用。
+    /// </summary>
+    public void InjectNavigation(MonsterSpawnContext context)
+    {
+        _targetMode = context.TargetMode;
+        _squadId = context.SquadID;
+
+        switch (context.TargetMode)
+        {
+            case AITargetMode.Waypoint:
+                _pathNodes = context.PathNodes;
+                _currentWaypointIndex = 0;
+                break;
+            case AITargetMode.FreeRoam:
+                _patrolCenter = context.PatrolCenter;
+                _patrolRadius = context.PatrolRadius;
+                _isPatrolling = true;
+                break;
+        }
+    }
 
     private void Start()
     {
@@ -87,14 +121,15 @@ public class MinionBrain : MonoBehaviour, ISpatialEntity
         if (_spatialEntityId >= 0)
             SpatialHashGrid.Instance?.UpdatePosition(_spatialEntityId, transform.position);
 
-        // Register job query every 4 frames
         if (_useJobSystem && Time.frameCount % 4 == 0)
             RegisterJobQuery();
 
         switch (_currentState)
         {
+            case MinionState.Idle:
+                break;
             case MinionState.MoveToWaypoint:
-                MoveTowardWaypoint();
+                MoveTowardTarget();
                 TryDetectEnemy();
                 break;
             case MinionState.Attack:
@@ -130,29 +165,51 @@ public class MinionBrain : MonoBehaviour, ISpatialEntity
         _pendingJobResult = false;
     }
 
-    private void MoveTowardWaypoint()
+    private void MoveTowardTarget()
     {
-        if (_waypoints == null || _waypoints.Length == 0) return;
-        var target = _waypoints[_currentWaypoint];
-        var dir = (target.position - transform.position).normalized;
+        Vector3 targetPos;
+        switch (_targetMode)
+        {
+            case AITargetMode.Waypoint:
+                if (_pathNodes == null || _pathNodes.Length == 0) return;
+                targetPos = _pathNodes[_currentWaypointIndex].position;
+                break;
+            case AITargetMode.FreeRoam:
+                if (!_isPatrolling) return;
+                targetPos = _patrolCenter + new Vector3(
+                    UnityEngine.Random.Range(-_patrolRadius, _patrolRadius),
+                    0,
+                    UnityEngine.Random.Range(-_patrolRadius, _patrolRadius)
+                );
+                _isPatrolling = false;
+                break;
+            default:
+                return;
+        }
+
+        var dir = (targetPos - transform.position).normalized;
         transform.position += dir * _moveSpeed * Time.deltaTime;
         transform.forward = dir;
-        if (Vector3.Distance(transform.position, target.position) < 0.5f)
-            _currentWaypoint = (_currentWaypoint + 1) % _waypoints.Length;
+
+        if (Vector3.Distance(transform.position, targetPos) < 0.5f)
+        {
+            if (_targetMode == AITargetMode.Waypoint)
+                _currentWaypointIndex = (_currentWaypointIndex + 1) % _pathNodes.Length;
+            else if (_targetMode == AITargetMode.FreeRoam)
+                _isPatrolling = true;
+        }
     }
 
     private void TryDetectEnemy()
     {
         if (_currentState != MinionState.MoveToWaypoint) return;
 
-        // Prefer job system result
         if (_useJobSystem && !_pendingJobResult && _nearestEnemyEntityId >= 0)
         {
             _target = LookupEntity(_nearestEnemyEntityId);
             if (_target != null) { _currentState = MinionState.Attack; return; }
         }
 
-        // Fallback to spatial hash
         var grid = SpatialHashGrid.Instance;
         if (grid == null) return;
         _target = grid.QueryNearest(transform.position, _detectionRange,
@@ -187,7 +244,6 @@ public class MinionBrain : MonoBehaviour, ISpatialEntity
         }
     }
 
-    /// <summary>O(1) entity lookup via SpatialHashGrid.</summary>
     private ISpatialEntity LookupEntity(int entityId)
     {
         return SpatialHashGrid.Instance?.GetEntity(entityId);
