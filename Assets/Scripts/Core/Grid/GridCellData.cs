@@ -55,7 +55,10 @@ public enum TerrainEffect
     Rock,
     
     /// <summary>草丛</summary>
-    Grass
+    Grass,
+    
+    /// <summary>毒雾</summary>
+    Poison
 }
 
 /// <summary>
