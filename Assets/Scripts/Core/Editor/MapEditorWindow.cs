@@ -29,6 +29,10 @@ public class MapEditorWindow : EditorWindow
     private TerrainEffect _selectedTerrain = TerrainEffect.None;
     private int _brushSize = 1;
 
+    // Shader设置
+    private Material _sharedCellMaterial;
+    private Shader _defaultShader;
+
     // 当前选中的对象
     private string _selectedPathId = "";
     private string _selectedSpawnerId = "";
@@ -562,8 +566,8 @@ public class MapEditorWindow : EditorWindow
     private void StartEditing()
     {
         _isEditing = true;
-        RebuildGrid();
         CreateEditorVisuals();
+        RebuildGrid();
         SceneView.RepaintAll();
     }
 
@@ -635,14 +639,67 @@ public class MapEditorWindow : EditorWindow
         visual.hideFlags = HideFlags.DontSave;
 
         Renderer renderer = visual.GetComponent<Renderer>();
-        renderer.material = new Material(Shader.Find("Standard"));
-        renderer.material.color = GetCellColor(cellData.Type, cellData.Terrain);
+
+        // 1. 初始化共享材质（整个编辑器生命周期只创建一次，防止泄漏）
+        if (_sharedCellMaterial == null)
+        {
+            _sharedCellMaterial = GetCompatibleMaterial();
+            _sharedCellMaterial.hideFlags = HideFlags.DontSave;
+        }
+
+        // 2. 赋值 sharedMaterial（严禁在 Edit Mode 使用 .material）
+        renderer.sharedMaterial = _sharedCellMaterial;
+
+        // 3. 使用 MaterialPropertyBlock 单独修改这个格子的颜色
+        MaterialPropertyBlock mpb = new MaterialPropertyBlock();
+        renderer.GetPropertyBlock(mpb); // 获取当前的属性块
+
+        Color cellColor = GetCellColor(cellData.Type, cellData.Terrain);
+        if (_sharedCellMaterial.HasProperty("_BaseColor"))
+        {
+            mpb.SetColor("_BaseColor", cellColor); // URP 材质
+        }
+        else if (_sharedCellMaterial.HasProperty("_Color"))
+        {
+            mpb.SetColor("_Color", cellColor);      // Built-in 材质
+        }
+
+        renderer.SetPropertyBlock(mpb); // 应用修改，不会产生新的材质实例
 
         DestroyImmediate(visual.GetComponent<Collider>());
 
         _cellVisuals[coord] = visual;
     }
 
+    /// <summary>
+    /// 获取兼容当前渲染管线的默认材质 (支持 URP 和 Built-in)
+    /// </summary>
+    private Material GetCompatibleMaterial()
+    {
+        Material mat = null;
+
+        // 方案 1：尝试直接从当前激活的渲染管线资产中获取默认材质 (最稳妥的 URP/HDRP 做法)
+        if (UnityEngine.Rendering.GraphicsSettings.currentRenderPipeline != null)
+        {
+            mat = new Material(UnityEngine.Rendering.GraphicsSettings.currentRenderPipeline.defaultMaterial);
+            return mat;
+        }
+
+        // 方案 2：如果方案 1 失败，尝试硬编码查找 URP 无光照 Shader (编辑器网格用无光照更好看)
+        Shader urpUnlit = Shader.Find("Universal Render Pipeline/Unlit");
+        if (urpUnlit != null) return new Material(urpUnlit);
+
+        // 方案 3：查找 URP 标准光照 Shader
+        Shader urpLit = Shader.Find("Universal Render Pipeline/Lit");
+        if (urpLit != null) return new Material(urpLit);
+
+        // 方案 4：回退到 Unity 传统的内置管线 (Built-in)
+        Shader standardShader = Shader.Find("Standard");
+        if (standardShader != null) return new Material(standardShader);
+
+        // 方案 5：终极兜底 (Unity 底层一定存在的 Shader)
+        return new Material(Shader.Find("Hidden/Internal-Colored"));
+    }
     private void ClearEditorVisuals()
     {
         if (_editorGridVisual != null)
@@ -654,6 +711,12 @@ public class MapEditorWindow : EditorWindow
         if (_cellVisuals != null)
         {
             _cellVisuals.Clear();
+        }
+        // 清理共享材质，防止关闭编辑器窗口后发生内存泄漏
+        if (_sharedCellMaterial != null)
+        {
+            DestroyImmediate(_sharedCellMaterial);
+            _sharedCellMaterial = null;
         }
     }
 
@@ -829,10 +892,124 @@ public class MapEditorWindow : EditorWindow
         }
     }
 
-    private void BakeFromCollision()
+private void BakeFromCollision()
     {
-        // TODO: 实现从场景碰撞体烘焙网格
-        EditorUtility.DisplayDialog("Not Implemented", "Bake from collision feature coming soon!", "OK");
+        if (_currentLevel == null || _currentLevel.GridCells == null || _currentLevel.GridCells.Count == 0)
+        {
+            EditorUtility.DisplayDialog("Error", "Grid is not initialized. Please rebuild grid first.", "OK");
+            return;
+        }
+
+        // 弹窗二次确认，防止误触覆盖数据
+        bool confirm = EditorUtility.DisplayDialog("Bake Grid from Collision", 
+            "This will overwrite the current grid cell types based on scene physical colliders. Are you sure?", 
+            "Bake", "Cancel");
+
+        if (!confirm) return;
+
+        int bakedHitCount = 0;
+        float rayStartHeight = 100f; // 射线起始高度（假设地图不会超过 Y=100）
+        float maxDistance = 200f;    // 射线最大检测距离
+
+        try
+        {
+            for (int i = 0; i < _currentLevel.GridCells.Count; i++)
+            {
+                LevelGridCellData cell = _currentLevel.GridCells[i];
+                GridCoord coord = new GridCoord(cell.X, cell.Y);
+                Vector3 worldPos = GridCoordToWorld(coord);
+                
+                // 从该格子的高空正中心向下发射射线
+                Vector3 rayOrigin = new Vector3(worldPos.x, _currentLevel.Origin.y + rayStartHeight, worldPos.z);
+
+                // 显示烘焙进度条（防止网格过大导致 Unity 无响应假死）
+                if (i % 50 == 0)
+                {
+                    EditorUtility.DisplayProgressBar("Baking Grid...", 
+                        $"Scanning cell {i}/{_currentLevel.GridCells.Count}", 
+                        (float)i / _currentLevel.GridCells.Count);
+                }
+
+                // 默认初始化：没扫到东西的格子一律视为不可通行（Blocked）
+                cell.Type = GridCellType.Blocked;
+                cell.Terrain = TerrainEffect.None;
+                // 如果你的 LevelGridCellData 有 Height 字段，可以在此重置
+                // cell.Height = 0f; 
+
+                // 向下发射射线
+                if (Physics.Raycast(rayOrigin, Vector3.down, out RaycastHit hit, maxDistance))
+                {
+                    bakedHitCount++;
+
+                    // 1. 高度与法线提取 (预留给后续的高度图系统)
+                    // cell.Height = hit.point.y;
+                    // cell.Normal = hit.normal;
+
+                    // 2. 根据 Layer 提取格子类型 (CellType)
+                    int layer = hit.collider.gameObject.layer;
+                    string layerName = LayerMask.LayerToName(layer);
+
+                    switch (layerName)
+                    {
+                        case "Buildable":    // 可建造的高台/平地
+                            cell.Type = GridCellType.Buildable;
+                            break;
+                        case "Walkable":     // 仅供怪物行走的道路
+                            cell.Type = GridCellType.Walkable;
+                            break;
+                        case "HighGround":   // 狙击位/高地
+                            cell.Type = GridCellType.HighGround;
+                            break;
+                        case "Obstacle":     // 障碍物/墙壁
+                            cell.Type = GridCellType.Blocked;
+                            break;
+                        default:
+                            // 降级策略：如果层级未明确划分，可以通过 Tag 判断
+                            if (hit.collider.CompareTag("Buildable"))
+                                cell.Type = GridCellType.Buildable;
+                            else if (hit.collider.CompareTag("Obstacle"))
+                                cell.Type = GridCellType.Blocked;
+                            else 
+                                cell.Type = GridCellType.Walkable; // 默认击中底板视为可通行
+                            break;
+                    }
+
+                    // 3. 根据 Tag 提取特殊地形效果 (TerrainEffect)
+                    if (hit.collider.CompareTag("Water") || hit.collider.CompareTag("Swamp"))
+                    {
+                        cell.Terrain = TerrainEffect.Swamp;
+                    }
+                    else if (hit.collider.CompareTag("Ice"))
+                    {
+                        cell.Terrain = TerrainEffect.Ice;
+                    }
+                    else if (hit.collider.CompareTag("Lava") || hit.collider.CompareTag("Burnt"))
+                    {
+                        cell.Terrain = TerrainEffect.Burnt;
+                    }
+                    else
+                    {
+                        cell.Terrain = TerrainEffect.None;
+                    }
+                }
+
+                // 将修改后的数据写回列表
+                _currentLevel.GridCells[i] = cell;
+            }
+
+            // 如果处于编辑预览模式，立即刷新视图以展现烘焙结果
+            if (_isEditing)
+            {
+                UpdateAllCellVisuals();
+            }
+
+            Debug.Log($"[MapEditor] Grid successfully baked! {bakedHitCount}/{_currentLevel.GridCells.Count} cells hit physical colliders.");
+        }
+        finally
+        {
+            // 无论是否发生异常，确保清除进度条，防止编辑器卡在进度条界面
+            EditorUtility.ClearProgressBar();
+        }
     }
 
     private void RunSandbox()
@@ -841,7 +1018,7 @@ public class MapEditorWindow : EditorWindow
         SaveLevel();
 
         // 查找 QAAITacticsSandbox 并初始化
-        var sandbox = GameObject.FindObjectOfType<QAAITacticsSandbox>();
+        var sandbox = FindObjectOfType<QAAITacticsSandbox>();
 
         if (sandbox != null)
         {

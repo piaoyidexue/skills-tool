@@ -52,10 +52,11 @@ public static class AffixApplier
     }
 
     /// <summary>
-    ///     应用GameplayEffect。
+    ///     应用GameplayEffect（重构版：完全符合 GAS 架构规范）
     /// </summary>
     private static void ApplyGameplayEffect(Transform monsterTransform, int geId)
     {
+        // 1. 校验目标是否具备受击/受效能力
         var geHost = monsterTransform.GetComponent<GEHost>();
         if (geHost == null)
         {
@@ -63,6 +64,7 @@ public static class AffixApplier
             return;
         }
 
+        // 2. 从配置中心获取静态数据
         var geData = ConfigLoader.GetGameplayEffectData(geId);
         if (geData == null)
         {
@@ -70,28 +72,21 @@ public static class AffixApplier
             return;
         }
 
-        // 创建GE配置并应用
-        var geConfig = new GEConfig
+        // 3. 组装标准结算上下文
+        // 词缀通常由环境或系统施加，因此 Instigator 可以填 null，或者填 monsterTransform (Self-Apply)
+        var context = new EffectContext
         {
-            GEId = geData.EffectId,
-            Name = geData.EffectName,
-            DurationPolicy = geData.DurationPolicy,
-            Duration = geData.Duration,
-            Period = geData.Period,
-            StackPolicy = geData.StackPolicy,
-            MaxStacks = geData.MaxStacks
+            Target = monsterTransform,
+            TargetHost = geHost,
+            TargetPoint = monsterTransform.position,
+            Instigator = null,       // 来源：系统
+            InstigatorHost = null    // 来源没有 GEHost
+            // Level = 1             // 如果词缀有等级，可在此处传入
         };
 
-        // TODO: 【架构规范】GE modifiers 应由 EffectSystem 统一注入，此处暂不支持
-        // 当前 GameplayEffectData 不含 Modifiers 字段，需在 EffectSystem.ApplyEffect() 中统一处理 BaseDamage/Healing
-        // geConfig.Modifiers.Add(...);
-
-        // 添加GrantedTags
-        geConfig.GrantedTags.AddRange(geData.GrantedTags);
-
-        // 应用效果（内部接口，仅限 EffectSystem 使用）
-        // 【警告】直接调用 ApplyEffectInternal 违反架构红线，后续必须迁移到 EffectSystem.ApplyEffect()
-        geHost.ApplyEffectInternal(geConfig, monsterTransform);
+        // 4. 【核心】通过 EffectSystem 统一管线派发
+        // 内部会自动经过：免疫Tag校验 -> Modifier组装 -> 反应处理 -> ApplyBuffEffect -> 事件广播
+        EffectSystem.ApplyEffect(context, geData);
     }
 
     /// <summary>

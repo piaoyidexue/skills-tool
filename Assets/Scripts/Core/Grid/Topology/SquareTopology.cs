@@ -11,6 +11,11 @@ public class SquareTopology : IGridTopology
     private readonly Vector3 _origin;
     private readonly float _cellSize;
     
+    // 预分配的邻居数组（用于 0 GC）
+    private readonly GridCoord[] _neighborBuffer = new GridCoord[8];
+    
+    public int MaxNeighborCount => 8;
+    
     public SquareTopology(Vector3 origin, float cellSize)
     {
         _origin = origin;
@@ -47,6 +52,29 @@ public class SquareTopology : IGridTopology
     }
     
     /// <summary>
+    /// 获取8方向邻居坐标（0 GC 版本）
+    /// </summary>
+    public void GetNeighborsNonAlloc(GridCoord center, ref GridCoord[] result, out int count)
+    {
+        count = 0;
+        
+        // 8方向偏移
+        _neighborBuffer[0] = new GridCoord(center.U - 1, center.V - 1);
+        _neighborBuffer[1] = new GridCoord(center.U, center.V - 1);
+        _neighborBuffer[2] = new GridCoord(center.U + 1, center.V - 1);
+        _neighborBuffer[3] = new GridCoord(center.U - 1, center.V);
+        _neighborBuffer[4] = new GridCoord(center.U + 1, center.V);
+        _neighborBuffer[5] = new GridCoord(center.U - 1, center.V + 1);
+        _neighborBuffer[6] = new GridCoord(center.U, center.V + 1);
+        _neighborBuffer[7] = new GridCoord(center.U + 1, center.V + 1);
+        
+        for (int i = 0; i < 8 && count < result.Length; i++)
+        {
+            result[count++] = _neighborBuffer[i];
+        }
+    }
+    
+    /// <summary>
     /// 获取8方向邻居坐标
     /// </summary>
     public List<GridCoord> GetNeighbors(GridCoord center)
@@ -65,7 +93,27 @@ public class SquareTopology : IGridTopology
     }
     
     /// <summary>
-    /// 获取半径范围内的所有坐标（正方形）
+    /// 获取半径范围内的所有坐标（0 GC 版本）
+    /// </summary>
+    public void GetCellsInRadiusNonAlloc(GridCoord center, int radius, ref GridCoord[] result, out int count)
+    {
+        count = 0;
+        
+        for (int u = center.U - radius; u <= center.U + radius; u++)
+        {
+            for (int v = center.V - radius; v <= center.V + radius; v++)
+            {
+                GridCoord pos = new GridCoord(u, v);
+                if (GetDistance(center, pos) <= radius && count < result.Length)
+                {
+                    result[count++] = pos;
+                }
+            }
+        }
+    }
+    
+    /// <summary>
+    /// 获取半径范围内的所有坐标
     /// </summary>
     public List<GridCoord> GetCellsInRadius(GridCoord center, int radius)
     {
@@ -87,13 +135,31 @@ public class SquareTopology : IGridTopology
     }
     
     /// <summary>
-    /// 获取直线方向上的坐标（正方形）
+    /// 获取直线方向上的坐标（0 GC 版本）
+    /// </summary>
+    public void GetLineNonAlloc(GridCoord start, Vector2 direction, int length, ref GridCoord[] result, out int count)
+    {
+        count = 0;
+        
+        for (int i = 0; i < length && count < result.Length; i++)
+        {
+            float u = start.U + direction.x * i;
+            float v = start.V + direction.y * i;
+            
+            int roundedU = Mathf.RoundToInt(u);
+            int roundedV = Mathf.RoundToInt(v);
+            
+            result[count++] = new GridCoord(roundedU, roundedV);
+        }
+    }
+    
+    /// <summary>
+    /// 获取直线方向上的坐标
     /// </summary>
     public List<GridCoord> GetLine(GridCoord start, Vector2 direction, int length)
     {
         var line = new List<GridCoord>();
         
-        // 简单的直线步进，根据方向四舍五入到最近的网格
         for (int i = 0; i < length; i++)
         {
             float u = start.U + direction.x * i;
@@ -109,7 +175,35 @@ public class SquareTopology : IGridTopology
     }
     
     /// <summary>
-    /// 获取建筑占用的坐标列表（正方形）
+    /// 获取建筑占用的坐标列表（0 GC 版本）
+    /// </summary>
+    public void GetOccupiedCellsNonAlloc(GridCoord center, int size, ref GridCoord[] result, out int count)
+    {
+        count = 0;
+        
+        switch (size)
+        {
+            case 1:
+                if (count < result.Length) result[count++] = center;
+                break;
+            case 2:
+                if (count < result.Length) result[count++] = center;
+                if (count < result.Length) result[count++] = new GridCoord(center.U + 1, center.V);
+                break;
+            case 4:
+                if (count < result.Length) result[count++] = center;
+                if (count < result.Length) result[count++] = new GridCoord(center.U + 1, center.V);
+                if (count < result.Length) result[count++] = new GridCoord(center.U, center.V + 1);
+                if (count < result.Length) result[count++] = new GridCoord(center.U + 1, center.V + 1);
+                break;
+            default:
+                if (count < result.Length) result[count++] = center;
+                break;
+        }
+    }
+    
+    /// <summary>
+    /// 获取建筑占用的坐标列表
     /// </summary>
     public List<GridCoord> GetOccupiedCells(GridCoord center, int size)
     {
@@ -121,19 +215,16 @@ public class SquareTopology : IGridTopology
                 cells.Add(center);
                 break;
             case 2:
-                // 2x1 形态
                 cells.Add(center);
                 cells.Add(new GridCoord(center.U + 1, center.V));
                 break;
             case 4:
-                // 2x2 形态
                 cells.Add(center);
                 cells.Add(new GridCoord(center.U + 1, center.V));
                 cells.Add(new GridCoord(center.U, center.V + 1));
                 cells.Add(new GridCoord(center.U + 1, center.V + 1));
                 break;
             default:
-                // 默认单格
                 cells.Add(center);
                 break;
         }

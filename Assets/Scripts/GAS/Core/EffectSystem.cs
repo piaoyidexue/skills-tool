@@ -258,6 +258,7 @@ public static class EffectSystem
 
     private static void ApplyBuffEffect(EffectSpec spec)
     {
+        // 1. 初始化 GEConfig，拷贝基础配置
         var geConfig = new GEConfig
         {
             GEId = spec.Data.EffectId,
@@ -270,17 +271,24 @@ public static class EffectSystem
         };
         geConfig.GrantedTags.AddRange(spec.AppliedTags ?? new List<string>());
 
-        // 添加 Modifier
-        if (spec.CalculatedDamage > 0)
+        // 2. 【核心架构修复】统一注入配置表中的 Modifiers
+        if (spec.Data.Modifiers != null && spec.Data.Modifiers.Count > 0)
         {
-            geConfig.Modifiers.Add(new GEModifier
+            foreach (var baseMod in spec.Data.Modifiers)
             {
-                Attribute = GEAttribute.DamageTakenMultiplier,
-                Operation = GEModOp.Multiply,
-                Magnitude = 1.1f // 示例：受到伤害增加 10%
-            });
+                // 如果你的技能系统有“技能等级(Level)”概念，可以在此处进行动态数值缩放计算
+                // 例如：float scaledMagnitude = baseMod.Magnitude + (spec.Context.Level - 1) * 0.5f;
+                // 目前按基础值直接拷贝：
+                geConfig.Modifiers.Add(new GEModifier
+                {
+                    Attribute = baseMod.Attribute,
+                    Operation = baseMod.Operation,
+                    Magnitude = baseMod.Magnitude
+                });
+            }
         }
 
+        // 3. 将组装好的纯数据 Config 提交给宿主
         spec.Context.TargetHost?.ApplyEffectInternal(geConfig, spec.Context.Instigator);
     }
 

@@ -29,9 +29,14 @@ public class LogicalGridManager : MonoBehaviour
     // 事件系统
     public event Action<GridCoord, GridCellData> OnCellChanged;
     public event Action<GridCoord, bool> OnCellOccupiedChanged;
+    public event Action<GridCoord, TerrainEffect> OnTerrainEffectChanged;
 
     private int _width;
     private int _height;
+
+    // 元素衰减更新时间
+    private const float DECAY_INTERVAL = 0.1f;
+    private float _lastDecayTime;
 
     public GridConfig Config => _gridConfig;
     public int Width => _width;
@@ -71,6 +76,112 @@ public class LogicalGridManager : MonoBehaviour
         // 设置网格数学参数（兼容旧系统）
         GridMath.Origin = _gridConfig.Origin;
         GridMath.CellSize = _gridConfig.CellSize;
+    }
+
+    private void Update()
+    {
+        UpdateElementDecay();
+    }
+    
+    /// <summary>
+    /// 更新元素衰减
+    /// </summary>
+    private void UpdateElementDecay()
+    {
+        if (Time.time - _lastDecayTime < DECAY_INTERVAL) return;
+        
+        _lastDecayTime = Time.time;
+        
+        for (int i = 0; i < _gridData.Length; i++)
+        {
+            if (_gridData[i].TerrainType != TerrainEffect.None && _gridData[i].TerrainDuration > 0f)
+            {
+                _gridData[i].TerrainDuration -= DECAY_INTERVAL;
+                
+                if (_gridData[i].TerrainDuration <= 0f)
+                {
+                    GridCoord coord = GetCoordFromIndex(i);
+                    TerrainEffect oldEffect = _gridData[i].TerrainType;
+                    
+                    _gridData[i].TerrainType = TerrainEffect.None;
+                    _gridData[i].TerrainDuration = 0f;
+                    
+                    OnCellChanged?.Invoke(coord, _gridData[i]);
+                    OnTerrainEffectChanged?.Invoke(coord, TerrainEffect.None);
+                }
+            }
+        }
+    }
+    
+    /// <summary>
+    /// 根据索引获取网格坐标
+    /// </summary>
+    private GridCoord GetCoordFromIndex(int index)
+    {
+        int v = index / _width;
+        int u = index % _width;
+        return new GridCoord(u, v);
+    }
+    
+    /// <summary>
+    /// 设置地形效果
+    /// </summary>
+    /// <param name="gridCoord">网格坐标</param>
+    /// <param name="effect">地形效果类型</param>
+    /// <param name="duration">持续时间（秒）</param>
+    /// <returns>是否成功设置</returns>
+    public bool SetTerrainEffect(GridCoord gridCoord, TerrainEffect effect, float duration)
+    {
+        if (!IsValidGridPosition(gridCoord))
+        {
+            Debug.LogError($"[LogicalGridManager] Cannot set terrain effect at {gridCoord}: Out of bounds");
+            return false;
+        }
+        
+        int index = GetIndexFromGridPosition(gridCoord);
+        if (index < 0 || index >= _gridData.Length)
+        {
+            Debug.LogError($"[LogicalGridManager] Invalid index {index} for grid coord {gridCoord}");
+            return false;
+        }
+        
+        GridCellData updatedCellData = _gridData[index];
+        updatedCellData.TerrainType = effect;
+        updatedCellData.TerrainDuration = duration;
+        
+        _gridData[index] = updatedCellData;
+        
+        OnCellChanged?.Invoke(gridCoord, updatedCellData);
+        OnTerrainEffectChanged?.Invoke(gridCoord, effect);
+        
+        return true;
+    }
+    
+    /// <summary>
+    /// 设置区域地形效果
+    /// </summary>
+    /// <param name="center">中心坐标</param>
+    /// <param name="radius">半径</param>
+    /// <param name="effect">地形效果类型</param>
+    /// <param name="duration">持续时间</param>
+    public void SetTerrainEffectInRadius(GridCoord center, int radius, TerrainEffect effect, float duration)
+    {
+        var cells = _topology.GetCellsInRadius(center, radius);
+        foreach (var cell in cells)
+        {
+            SetTerrainEffect(cell, effect, duration);
+        }
+    }
+    
+    /// <summary>
+    /// 获取地形效果
+    /// </summary>
+    /// <param name="gridCoord">网格坐标</param>
+    /// <returns>地形效果类型</returns>
+    public TerrainEffect GetTerrainEffect(GridCoord gridCoord)
+    {
+        var cellData = GetCellData(gridCoord);
+        return cellData.HasValue ? cellData.Value.TerrainType : TerrainEffect.None;
     }
     
     /// <summary>

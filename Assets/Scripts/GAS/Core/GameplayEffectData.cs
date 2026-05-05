@@ -60,6 +60,9 @@ public class GameplayEffectData
 
     /// <summary>此效果免疫的标签（目标有此标签则无效）</summary>
     public List<string> ImmuneTags = new();
+    
+    // 【新增】在解析 CSV 时填充此列表
+    public List<GEModifier> Modifiers = new List<GEModifier>(); 
 
     // ---- 叠加策略 ----
     [Tooltip("叠加策略：0=刷新, 1=增加层数, 2=忽略")]

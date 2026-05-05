@@ -657,6 +657,26 @@ public static class ConfigLoader
                 RequiredTargetTags = ParseTagList(row, "required_target_tags"),       // 目标所需标签列表
                 ImmuneTags = ParseTagList(row, "immune_tags")                         // 免疫标签列表
             };
+            // 解析 Modifiers
+            string modStr = row["modifiers"];
+            if (!string.IsNullOrEmpty(modStr))
+            {
+                string[] mods = modStr.Split(';');
+                foreach (var m in mods)
+                {
+                    string[] parts = m.Split('_');
+                    if (parts.Length == 3)
+                    {
+                        data.Modifiers.Add(new GEModifier
+                        {
+                            Attribute = Enum.Parse<GEAttribute>(parts[0]),
+                            Operation = Enum.Parse<GEModOp>(parts[1]),
+                            // invariant culture 确保解析 0.5 不会因为本地化出错
+                            Magnitude = float.Parse(parts[2], CultureInfo.InvariantCulture) 
+                        });
+                    }
+                }
+            }
 
             if (data.EffectId > 0)
             {

@@ -667,10 +667,14 @@ public class GEHost : MonoBehaviour, IStatusReceiver
             case GEStackPolicy.Ignore: return false;
             case GEStackPolicy.Add:
                 if (existing.StackCount < existing.MaxStacks)
-                { existing.StackCount++; existing.RemainingDuration = Mathf.Max(existing.RemainingDuration, config.Duration); return true; }
-                existing.RemainingDuration = Mathf.Max(existing.RemainingDuration, config.Duration); return true;
+                { 
+                    existing.StackCount++; 
+                }
+                existing.RemainingDuration = Mathf.Max(existing.RemainingDuration, config.Duration);
+                return true;
             default:
-                existing.RemainingDuration = Mathf.Max(existing.RemainingDuration, config.Duration); return true;
+                existing.RemainingDuration = Mathf.Max(existing.RemainingDuration, config.Duration); 
+                return true;
         }
     }
 

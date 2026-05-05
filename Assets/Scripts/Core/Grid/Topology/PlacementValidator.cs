@@ -86,7 +86,7 @@ public class PlacementValidator : MonoBehaviour
             return BuildPreviewStatus.AlreadyOccupied;
         }
         
-        if (_gridManager.CanBuildTowerAt(gridCoord))
+        if (!_gridManager.CanBuildTowerAt(gridCoord))
         {
             return BuildPreviewStatus.WouldBlockPath;
         }
